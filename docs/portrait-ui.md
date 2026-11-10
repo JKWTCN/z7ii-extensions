@@ -8,13 +8,13 @@ On the rear screen, shooting information, the 4×3 i menu, its supported setting
 
 In the Setup Menu, open **Auto rotate info** and choose Enable or Disable. The current state appears on the right. The setting is enabled by default and saved to `Z72APP.CFG`. The physical MENU screens, playback interface, and electronic viewfinder use the camera’s standard orientation.
 
-在「设定菜单」中打开 **Auto rotate info**，选择「启用」或「禁用」。列表右侧显示当前状态。此项默认开启，并保存到 `Z72APP.CFG`。实体 MENU、回放界面和电子取景器使用相机原有朝向。
+在「设定菜单」中打开 **自动旋转信息显示**，选择「启用」或「禁用」。列表右侧显示当前状态。此项默认开启，并保存到 `Z72APP.CFG`。实体 MENU、回放界面和电子取景器使用相机原有朝向。
 
 ## Verification / 验证
 
-Portrait display was verified on a Z 7II. The combined module passed local integration checks and is awaiting a camera retest.
+Portrait display was verified on a Z 7II. The localized Setup Menu label was also verified in Simplified Chinese and English. [Menu localization](menu-localization.md)
 
-后屏竖拍界面已在 Z 7II 实机验证。组合版已通过本地集成检查，待实机复测。
+后屏竖拍界面已在 Z 7II 实机验证。设定菜单的简体中文和英文标签也已实机验证。[菜单本地化](menu-localization.md)
 
 ## Setup Menu / 设定菜单
 

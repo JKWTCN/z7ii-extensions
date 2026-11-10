@@ -28,7 +28,7 @@ static inline void z72_menu_set_label(z72_u32 row,const char *label)
 }
 
 /* Storage and callbacks must remain valid until power-off. */
-static inline z72_u32 z72_menu_install_rows(struct z72_menu_storage *storage,
+static inline z72_u32 z72_menu_prepare_rows(struct z72_menu_storage *storage,
                                            const struct z72_menu_row *added,z72_u32 count)
 {
     volatile z72_u32 *header=(volatile z72_u32 *)Z72_SETUP_MENU;
@@ -66,11 +66,24 @@ static inline z72_u32 z72_menu_install_rows(struct z72_menu_storage *storage,
         storage->maps[row]=(z72_u32)storage->events[row];
         z72_menu_set_label(row,added[row].label);
     }
+    return 0;
+}
+
+static inline void z72_menu_publish_rows(struct z72_menu_storage *storage,z72_u32 count)
+{
+    volatile z72_u32 *header=(volatile z72_u32 *)Z72_SETUP_MENU;
     __asm__ volatile("dmb sy" ::: "memory");
     header[3]=(z72_u32)storage->rows;
     header[4]=(z72_u32)storage->maps;
     header[5]=0x8002a+count;
-    return 0;
+}
+
+static inline z72_u32 z72_menu_install_rows(struct z72_menu_storage *storage,
+                                           const struct z72_menu_row *added,z72_u32 count)
+{
+    z72_u32 result=z72_menu_prepare_rows(storage,added,count);
+    if(!result) z72_menu_publish_rows(storage,count);
+    return result;
 }
 
 static inline z72_u32 z72_menu_install(struct z72_menu_storage *storage,

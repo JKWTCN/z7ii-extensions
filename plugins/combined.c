@@ -11,6 +11,6 @@ z72_u32 z72_main(const struct z72_api *api)
         return 1;
     z72_u32 result=portrait_init(api);
     if (result) return result;
-    grid_install();
+    grid_install(rotation_menu.title[0] ? Z72_TEXT_GRID_GOLDEN : 0);
     return 0;
 }

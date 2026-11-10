@@ -11,6 +11,7 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 | [Framing grid](docs/framing-grid.md) | Off, 2×2, 3×3, 4×4, and Golden ratio, with persistent settings | Hardware verified |
 | [Histogram and virtual horizon](docs/histogram-horizon.md) | Live histogram and virtual horizon together on the rear screen and in the viewfinder in photo mode | Hardware verified |
 | [Portrait display](docs/portrait-ui.md) | Rear-screen shooting information, i menu, and histogram rotate with the camera | Hardware verified |
+| [Menu localization](docs/menu-localization.md) | English, Simplified Chinese, and Traditional Chinese labels for the extension settings | Hardware verified in English and Simplified Chinese |
 
 ## Known issues
 
@@ -27,10 +28,10 @@ Proceed with caution: back up your data, verify the camera model, firmware versi
 Install this repository's SD loader host before using extensions. See [Building](#building) to generate the firmware update package.
 
 1. Wait for card access to finish, turn off the camera, and remove the battery for about 30 seconds.
-2. Copy [Z72APP.BIN](releases/v0.1.0-preview.5/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
+2. Copy [Z72APP.BIN](releases/v0.1.0-preview.6/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
 3. Reinsert the card and battery, then turn on the camera.
 
-Current release `v0.1.0-preview.5` · 17,200 bytes · [SHA-256 checksum](releases/v0.1.0-preview.5/SHA256SUMS)
+Current release `v0.1.0-preview.6` · 18,480 bytes · [SHA-256 checksum](releases/v0.1.0-preview.6/SHA256SUMS)
 
 This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
 

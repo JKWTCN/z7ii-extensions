@@ -2,6 +2,7 @@
 #include "z72.h"
 #include "config.h"
 #include "menu.h"
+#include "menu_locale.h"
 
 #define Z72_PORTRAIT_MENU 1
 #ifndef Z72_PORTRAIT_TRACE
@@ -1198,10 +1199,12 @@ static u32 rotation_value(u32 enabled)
 
 static void rotation_page_init(const u32 *page)
 {
-    u32 title=CALL(0x10634623u,u32,u32,u32,u32)(page[9],0,ROTATION_TITLE_WIDGET);
-    if (title && WORD(title)==ROTATION_TITLE_ID) {
-        CALL(0x106361c9u,void,u32,u32,u32)(title,0,0);
-        CALL(0x106361c9u,void,u32,u32,u32)(title,Z72_MENU_SLOT,2);
+    if (!rotation_menu.title[0]) {
+        u32 title=CALL(0x10634623u,u32,u32,u32,u32)(page[9],0,ROTATION_TITLE_WIDGET);
+        if (title && WORD(title)==ROTATION_TITLE_ID) {
+            CALL(0x106361c9u,void,u32,u32,u32)(title,0,0);
+            CALL(0x106361c9u,void,u32,u32,u32)(title,Z72_MENU_SLOT,2);
+        }
     }
     u32 id=ROTATION_ENABLE_ID+!rotation_enabled();
     if (CALL(0x1063bf77u,u32,void)()!=1)
@@ -1304,7 +1307,14 @@ static u32 portrait_install_menu(void)
         {"Portrait probe: export log",export_probe,0xd7},
 #endif
     };
-    if (z72_menu_install_rows(&menu,rows,sizeof(rows)/sizeof(rows[0]))) return 1;
+    const u32 count=sizeof(rows)/sizeof(rows[0]);
+    if (z72_menu_prepare_rows(&menu,rows,count)) return 1;
+    if (z72_menu_locale_install()) {
+        menu.rows[0][0]=Z72_TEXT_AUTO_ROTATE;
+        menu.rows[0][4]=0x1001;
+        rotation_menu.title[0]=Z72_TEXT_AUTO_ROTATE;
+    }
+    z72_menu_publish_rows(&menu,count);
     page[1]=WORD(SETUP_PAGE+4);
     page[4]=(u32)rotation_menu.callbacks;
     page[10]=(u32)rotation_menu.header;

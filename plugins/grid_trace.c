@@ -7,6 +7,7 @@
 #endif
 #ifdef Z72_GRID_GEOMETRY
 #include "grid_geometry.h"
+#include "menu_locale.h"
 #if Z72_GRID_TRACE
 static volatile z72_u32 transformed_counts[2];
 #endif
@@ -191,14 +192,14 @@ static u32 grid_ready(const struct z72_api *api)
            *PRIMARY_SLOT==PRIMARY_HANDLER && *SECONDARY_SLOT==SECONDARY_HANDLER;
 }
 
-static void grid_install(void)
+static void grid_install(u32 golden_text)
 {
     selected_style=((u32 (*)(u32))0x1063c7d5)(0x112d)==1 ? Z72_GRID_FOUR : Z72_GRID_OFF;
     if(z72_config_current.grid_style<=Z72_GRID_STYLE_MAX)
         grid_saved_style=z72_config_current.grid_style;
     if(selected_style && grid_saved_style>=Z72_GRID_FOUR && grid_saved_style<=Z72_GRID_STYLE_MAX)
         selected_style=grid_saved_style;
-    z72_grid_menu_install();
+    z72_grid_menu_publish(golden_text);
     __asm__ volatile("dmb sy" ::: "memory");
     *PRIMARY_SLOT=(u32)grid_primary;
     *SECONDARY_SLOT=(u32)grid_secondary;
@@ -214,7 +215,11 @@ u32 z72_main(const struct z72_api *api)
     if(!grid_ready(api)) return 1;
     if(!z72_grid_menu_ready()) return 2;
     z72_config_current=z72_config_load();
-    grid_install();
+    u32 golden_text=0;
+#ifdef Z72_GRID_GEOMETRY
+    if(z72_menu_locale_install()) golden_text=Z72_TEXT_GRID_GOLDEN;
+#endif
+    grid_install(golden_text);
     return 0;
 }
 #endif

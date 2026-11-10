@@ -107,7 +107,7 @@ static z72_u32 z72_grid_menu_ready(void)
 }
 
 /* Publish only after all components have passed their compatibility checks. */
-static void z72_grid_menu_install(void)
+static void z72_grid_menu_publish(z72_u32 golden_text)
 {
     const char *labels[Z72_GRID_MENU_ROWS]={
         "Off","4x4","3x3","Golden ratio",
@@ -130,8 +130,13 @@ static void z72_grid_menu_install(void)
         const z72_u32 *events=(const z72_u32 *)stock_grid_maps[stock_row];
         for(z72_u32 col=0;col<7;++col)
             z72_grid_menu.rows[row][col]=stock_grid_rows[stock_row*7+col];
-        z72_grid_menu.rows[row][0]=Z72_GRID_MENU_SLOT+row;
-        z72_grid_menu.rows[row][4]=0x1200;
+        if(style==Z72_GRID_GOLDEN && golden_text) {
+            z72_grid_menu.rows[row][0]=golden_text;
+        } else {
+            z72_grid_menu.rows[row][0]=Z72_GRID_MENU_SLOT+row;
+            z72_grid_menu.rows[row][4]=0x1200;
+            ((void (*)(const char *,z72_u32,z72_u32))0x10636a07)(labels[style],Z72_GRID_MENU_SLOT+row,0);
+        }
         z72_grid_menu.rows[row][6]=Z72_GRID_MENU_ID+row;
         for(z72_u32 ev=0;ev<Z72_GRID_MENU_EVENTS;++ev) {
             for(z72_u32 col=0;col<4;++col)
@@ -140,7 +145,6 @@ static void z72_grid_menu_install(void)
                 z72_grid_menu.events[row][ev][1]=(z72_u32)handlers[style];
         }
         z72_grid_menu.maps[row]=(z72_u32)z72_grid_menu.events[row];
-        ((void (*)(const char *,z72_u32,z72_u32))0x10636a07)(labels[style],Z72_GRID_MENU_SLOT+row,0);
     }
     for(z72_u32 i=0;i<5;++i) z72_grid_menu.callbacks[i]=stock_grid_callbacks[i];
     z72_grid_menu.callbacks[0]=(z72_u32)z72_grid_menu_init;
