@@ -3,13 +3,17 @@
 
 typedef z72_u32 u32;
 typedef unsigned char u8;
+#ifndef WORD
 #define WORD(a) (*(volatile u32 *)(a))
 #define BYTE(a) (*(volatile u8 *)(a))
 #define CALL(a, result, ...) ((result (*)(__VA_ARGS__))(a))
+#endif
 
 #define GUI_UPDATE_SLOT 0xb1821b38u
 #define GUI_UPDATE 0x104e6cb5u
+#ifndef DISPLAY_SNAPSHOT
 #define DISPLAY_SNAPSHOT 0xb202be70u
+#endif
 #define LAST_DISPLAY_SNAPSHOT 0xb202c1f4u
 #define DISPLAY_UPDATE_TICK 0xb181dd90u
 #define DISPLAY_SCENE 0xb181da91u
@@ -29,8 +33,15 @@ typedef unsigned char u8;
 
 static u32 updating;
 static u32 last_extra_update_end;
-static _Alignas(64) u32 samples[256];
+static _Alignas(64) u32 histogram_samples[256];
 static volatile u32 paint_visible;
+
+#ifdef Z72_PORTRAIT_HISTOGRAM
+static u32 paint_orientation;
+static u32 portrait_histogram_orientation(void);
+static u32 draw_portrait_histogram(u32 orientation);
+static void clear_portrait_histogram(u32 orientation);
+#endif
 
 enum histogram_result {
     NO_TICK, OTHER_PAGE, PREVIOUS_PAGE, WRONG_CONTEXT, MENU_BLOCKED,
@@ -56,6 +67,12 @@ static u32 histogram_painter(u32 object,u32 next,u32 c,u32 d)
     painter_object=object;
     painter_visibility=visible;
     painter_scale=WORD(HISTOGRAM_STATE+0x34);
+#endif
+#ifdef Z72_PORTRAIT_HISTOGRAM
+    if (visible && paint_orientation) {
+        paint_visible=draw_portrait_histogram(paint_orientation);
+        return 1;
+    }
 #endif
     return CALL(HISTOGRAM_DRAW,u32,u32,u32,u32,u32)(object,next,c,d);
 }
@@ -98,6 +115,18 @@ static void layout_histogram(void)
     CALL(0x10522ec9,void,u32)(HISTOGRAM_WIDGET);
 }
 
+static u32 histogram_masks_match(void)
+{
+    for (u32 i=0;i<9;++i)
+        if (WORD(HISTOGRAM_MASKS+4*i)!=0x444u) return 0;
+    return 1;
+}
+
+static void set_histogram_masks(u32 mask)
+{
+    for (u32 i=0;i<9;++i) WORD(HISTOGRAM_MASKS+4*i)=mask;
+}
+
 /* Freestanding module builds do not link the compiler's division helper. */
 static u32 average(u32 total,u32 count)
 {
@@ -130,17 +159,16 @@ static enum histogram_result update_histogram(void)
     if (object<0xb1800000u || object>=0xc0000000u || (object&3)) return INVALID_OBJECT;
     if (BYTE(HISTOGRAM_CONTROL) || BYTE(HISTOGRAM_CONTROL+1)) return CONTROL_BUSY;
     if (!native_sampling_allowed()) return INELIGIBLE;
-    for (u32 i=0;i<9;++i)
-        if (WORD(HISTOGRAM_MASKS+4*i)!=0x444u) return MASK_MISMATCH;
+    if (!histogram_masks_match()) return MASK_MISMATCH;
 
     _Alignas(4) u8 readiness[0x468];
     CALL(0x106b8dcf,void,void *)(readiness);
     if (readiness[0x28] || readiness[0x29]) return SAMPLE_BLOCKED;
-    if (!CALL(0x1063d397,u32,u32 *)(samples)) return SAMPLE_FAILED;
+    if (!CALL(0x1063d397,u32,u32 *)(histogram_samples)) return SAMPLE_FAILED;
 
     u32 peak=0,total=0,count=0;
     for (u32 i=0;i<256;++i) {
-        u32 bin=samples[i];
+        u32 bin=histogram_samples[i];
         if (bin>peak) peak=bin;
         if (bin) { total+=bin; ++count; }
     }
@@ -148,7 +176,7 @@ static enum histogram_result update_histogram(void)
     if (active_photo_output()!=output || display_work_pending()) return UPDATE_BLOCKED;
     u32 scale=average(total,count)<<2;
     if (peak<scale) scale=peak;
-    for (u32 i=0;i<256;++i) WORD(HISTOGRAM_BINS+4*i)=samples[i];
+    for (u32 i=0;i<256;++i) WORD(HISTOGRAM_BINS+4*i)=histogram_samples[i];
     WORD(HISTOGRAM_STATE+0x34)=scale;
     BYTE(HISTOGRAM_STATE+0x10)=1;
 
@@ -156,9 +184,9 @@ static enum histogram_result update_histogram(void)
      * need to be extended during placement of this one widget. */
     BYTE(HISTOGRAM_CONTROL)=1;
     BYTE(HISTOGRAM_CONTROL+1)=1;
-    for (u32 i=0;i<9;++i) WORD(HISTOGRAM_MASKS+4*i)=0xcccu;
+    set_histogram_masks(0xcccu);
     layout_histogram();
-    for (u32 i=0;i<9;++i) WORD(HISTOGRAM_MASKS+4*i)=0x444u;
+    set_histogram_masks(0x444u);
     enum histogram_result result=BYTE(HISTOGRAM_CONTROL+1)==1 ? PAINTER_MISMATCH : LAYOUT_HIDDEN;
     u32 painter=WORD(object+0x4c);
     if (BYTE(HISTOGRAM_CONTROL+1)==1 && WORD(HISTOGRAM_CONTROL+0x24)==object &&
@@ -166,8 +194,14 @@ static enum histogram_result update_histogram(void)
         CALL(0x10526171,void,void)();
         if (WORD(object+0x4c)==HISTOGRAM_DRAW) {
             paint_visible=0;
+#ifdef Z72_PORTRAIT_HISTOGRAM
+            paint_orientation=portrait_histogram_orientation();
+#endif
             CALL(0x10739a7d,u32,u32,u32)(object,(u32)histogram_painter);
             u32 drawn=CALL(0x1052273f,u32,void)();
+#ifdef Z72_PORTRAIT_HISTOGRAM
+            paint_orientation=0;
+#endif
             /* The native submit consumes dirty callbacks synchronously.
              * Restore the ordinary painter before another page can use it. */
             if (WORD(HISTOGRAM_CONTROL+0x24)!=object) return INVALID_OBJECT;
@@ -199,17 +233,46 @@ static u32 gui_update(u32 a,u32 b,u32 c,u32 d)
     if (__atomic_exchange_n(&updating,1,__ATOMIC_ACQUIRE)) return original(a,b,c,d);
     u32 before=WORD(DISPLAY_UPDATE_TICK);
     u32 output_before=WORD(ACTIVE_OUTPUT_BITS);
+#ifdef Z72_PORTRAIT_HISTOGRAM
+    u32 orientation=portrait_histogram_orientation();
+    u32 page=BYTE(DISPLAY_SNAPSHOT+0x19e);
+    clear_portrait_histogram(page==2 || page==3 ? orientation : 0);
+    /* The stock sampler uses the DISP page directly. Suppress only the
+     * landscape widget during this synchronous pass. */
+    u32 hide=orientation && (page==2 || BYTE(LAST_DISPLAY_SNAPSHOT+0x19e)==2) &&
+             histogram_masks_match();
+    if (hide) set_histogram_masks(0);
+#endif
     u32 result=original(a,b,c,d);
+#ifdef Z72_PORTRAIT_HISTOGRAM
+    if (hide) set_histogram_masks(0x444u);
+    if (current_page()!=LIVE) {
+        __atomic_store_n(&updating,0,__ATOMIC_RELEASE);
+        return result;
+    }
+    orientation=portrait_histogram_orientation();
+    u32 portrait_normal=hide && orientation && BYTE(DISPLAY_SNAPSHOT+0x19e)==2;
+#else
+    const u32 portrait_normal=0;
+#endif
     u32 after=WORD(DISPLAY_UPDATE_TICK);
     enum histogram_result outcome=NO_TICK;
-    if (BYTE(DISPLAY_SNAPSHOT+0x19e)==3 &&
+    if ((portrait_normal || BYTE(DISPLAY_SNAPSHOT+0x19e)==3) &&
         ((after && after!=before) || !CALL(0x1061e41d,u32,void)())) {
         u32 now=CALL(0x1062e59d,u32,void)();
         if (output_before!=WORD(ACTIVE_OUTPUT_BITS)) {
             last_extra_update_end=now;
         } else if (now && (!last_extra_update_end ||
                            now-last_extra_update_end>=EXTRA_UPDATE_INTERVAL)) {
-            outcome=update_histogram();
+#ifdef Z72_PORTRAIT_HISTOGRAM
+            if (portrait_normal) {
+                if (!BYTE(HISTOGRAM_CONTROL+1) && !display_work_pending() &&
+                    draw_portrait_histogram(orientation) && portrait_histogram_orientation()==orientation &&
+                    !CALL(0x106355a1,u32,void)())
+                    CALL(0x105218bb,void,void)();
+            } else
+#endif
+                outcome=update_histogram();
             /* Throttle both timestamp paths from completion so a slow
              * sampling or render call cannot trigger an immediate retry. */
             last_extra_update_end=CALL(0x1062e59d,u32,void)();
@@ -231,6 +294,7 @@ static u32 histogram_horizon_ready(const struct z72_api *api)
            WORD(0x1094aaa4)==0xb181f8acu && WORD(0xb181f8d8)==HISTOGRAM_CONTROL;
 }
 
+#ifndef Z72_PORTRAIT_HISTOGRAM
 static void histogram_horizon_install(void)
 {
     __asm__ volatile("dmb sy" ::: "memory");
@@ -244,4 +308,5 @@ z72_u32 z72_main(const struct z72_api *api)
     histogram_horizon_install();
     return 0;
 }
+#endif
 #endif

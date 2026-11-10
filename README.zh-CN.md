@@ -10,6 +10,7 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 | ------------------------------- | ---------------------------------------- | ------------------------ |
 | [取景网格](docs/framing-grid.md) | 关闭、2×2、3×3、4×4、黄金分割，支持保存设置 | 已实机验证 |
 | [直方图与水平仪同显](docs/histogram-horizon.md) | 照片模式下，后屏和电子取景器均可同时显示实时直方图与水平仪 | 已实机验证 |
+| [后屏竖拍界面](docs/portrait-ui.md) | 拍摄信息、i 菜单和直方图随相机方向转正 | 已实机验证 |
 
 ## 已知问题
 
@@ -26,16 +27,21 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 需要先安装配套 SD 加载宿主；原版固件不能直接加载模块。已安装宿主的相机无需重新刷固件。
 
 1. 等待存储卡访问结束，关机并取出电池约 30 秒。
-2. 将 [Z72APP.BIN](releases/v0.1.0-preview.4/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.5/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
 3. 装回卡和电池，开机。
 
-当前版本：`v0.1.0-preview.4`，模块 5,612 字节。[SHA-256 校验](releases/v0.1.0-preview.4/SHA256SUMS)
+当前版本为 `v0.1.0-preview.5`，模块 17,200 字节。[SHA-256 校验](releases/v0.1.0-preview.5/SHA256SUMS)
 
 这是试用版本，休眠唤醒和长期稳定性尚未单独确认。替换或移除模块请完整断电。只加载可信模块。
 
 ## 构建
 
-需要 Python 3.12，以及 PATH 中的 LLVM `clang`、`ld.lld`。使用 `tools/module.py` 构建插件，具体命令见对应功能文档。输出文件必须不存在。
+构建组合 SD 模块需要 Python 3.12，以及 PATH 中的 LLVM `clang`、`ld.lld`。请选择尚未存在的输出文件。
+
+```powershell
+New-Item -ItemType Directory -Force artifacts | Out-Null
+python -B tools/module.py plugins/combined.c --output artifacts/Z72APP.BIN
+```
 
 `host/` 为宿主源码，`sdk/` 为模块接口，`plugins/` 为插件实现。
 

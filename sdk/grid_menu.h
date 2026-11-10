@@ -83,13 +83,32 @@ static z72_u32 z72_grid_menu_init(z72_u32 page,z72_u32 b,z72_u32 c,z72_u32 d)
     return ((z72_u32 (*)(z72_u32,z72_u32,z72_u32))0x1063ac0d)(page,id,1);
 }
 
-static z72_u32 z72_grid_menu_install(void)
+static volatile z72_u32 *const grid_menu_header=(volatile z72_u32 *)0xb18509fc;
+static volatile z72_u32 *const grid_menu_page=(volatile z72_u32 *)0xb2bbb56c;
+static const z72_u32 *const stock_grid_rows=(const z72_u32 *)0x116e16f4;
+static const z72_u32 *const stock_grid_maps=(const z72_u32 *)0x1171e804;
+static const z72_u32 *const stock_grid_callbacks=(const z72_u32 *)0x10968d64;
+
+static z72_u32 z72_grid_menu_ready(void)
 {
-    volatile z72_u32 *header=(volatile z72_u32 *)0xb18509fc;
-    volatile z72_u32 *page=(volatile z72_u32 *)0xb2bbb56c;
-    const z72_u32 *rows=(const z72_u32 *)0x116e16f4;
-    const z72_u32 *maps=(const z72_u32 *)0x1171e804;
-    const z72_u32 *callbacks=(const z72_u32 *)0x10968d64;
+    if(grid_menu_page[0]!=0x01880002 || grid_menu_page[4]!=(z72_u32)stock_grid_callbacks ||
+       grid_menu_page[10]!=(z72_u32)grid_menu_header || grid_menu_header[1]!=0x1187c500 ||
+       grid_menu_header[3]!=(z72_u32)stock_grid_rows || grid_menu_header[4]!=(z72_u32)stock_grid_maps ||
+       grid_menu_header[5]!=0x20002 || *(const z72_u32 *)Z72_GRID_MENU_LAYOUT!=Z72_GRID_MENU_ROWS ||
+       stock_grid_callbacks[0]!=0x106c17a9) return 0;
+    for(z72_u32 row=0;row<Z72_GRID_MENU_ROWS;++row)
+        if(!*(const volatile z72_u32 *)(0xb20287b4+(Z72_GRID_MENU_SLOT+row)*12+4))
+            return 0;
+    for(z72_u32 row=0;row<2;++row) {
+        const z72_u32 *events=(const z72_u32 *)stock_grid_maps[row];
+        if(events[(Z72_GRID_MENU_EVENTS-1)*4]!=0x31a) return 0;
+    }
+    return 1;
+}
+
+/* Publish only after all components have passed their compatibility checks. */
+static void z72_grid_menu_install(void)
+{
     const char *labels[Z72_GRID_MENU_ROWS]={
         "Off","4x4","3x3","Golden ratio",
 #ifdef Z72_GRID_2X2
@@ -102,28 +121,15 @@ static z72_u32 z72_grid_menu_install(void)
         z72_grid_menu_two,
 #endif
     };
-    if(selected_style>=Z72_GRID_MENU_ROWS || page[0]!=0x01880002 ||
-       page[4]!=(z72_u32)callbacks || page[10]!=(z72_u32)header ||
-       header[1]!=0x1187c500 || header[3]!=(z72_u32)rows ||
-       header[4]!=(z72_u32)maps || header[5]!=0x20002 ||
-       *(const z72_u32 *)Z72_GRID_MENU_LAYOUT!=Z72_GRID_MENU_ROWS || callbacks[0]!=0x106c17a9)
-        return 1;
-    for(z72_u32 row=0;row<Z72_GRID_MENU_ROWS;++row)
-        if(!*(const volatile z72_u32 *)(0xb20287b4+(Z72_GRID_MENU_SLOT+row)*12+4))
-            return 1;
-    for(z72_u32 stock_row=0;stock_row<2;++stock_row) {
-        const z72_u32 *events=(const z72_u32 *)maps[stock_row];
-        if(events[(Z72_GRID_MENU_EVENTS-1)*4]!=0x31a) return 1;
-    }
     for(z72_u32 row=0;row<Z72_GRID_MENU_ROWS;++row) {
         z72_u32 style=row;
 #ifdef Z72_GRID_2X2
         style=z72_grid_style_order[row];
 #endif
         z72_u32 stock_row=style==Z72_GRID_OFF ? 1u : 0u;
-        const z72_u32 *events=(const z72_u32 *)maps[stock_row];
+        const z72_u32 *events=(const z72_u32 *)stock_grid_maps[stock_row];
         for(z72_u32 col=0;col<7;++col)
-            z72_grid_menu.rows[row][col]=rows[stock_row*7+col];
+            z72_grid_menu.rows[row][col]=stock_grid_rows[stock_row*7+col];
         z72_grid_menu.rows[row][0]=Z72_GRID_MENU_SLOT+row;
         z72_grid_menu.rows[row][4]=0x1200;
         z72_grid_menu.rows[row][6]=Z72_GRID_MENU_ID+row;
@@ -136,14 +142,13 @@ static z72_u32 z72_grid_menu_install(void)
         z72_grid_menu.maps[row]=(z72_u32)z72_grid_menu.events[row];
         ((void (*)(const char *,z72_u32,z72_u32))0x10636a07)(labels[style],Z72_GRID_MENU_SLOT+row,0);
     }
-    for(z72_u32 i=0;i<5;++i) z72_grid_menu.callbacks[i]=callbacks[i];
+    for(z72_u32 i=0;i<5;++i) z72_grid_menu.callbacks[i]=stock_grid_callbacks[i];
     z72_grid_menu.callbacks[0]=(z72_u32)z72_grid_menu_init;
     __asm__ volatile("dmb sy" ::: "memory");
-    page[4]=(z72_u32)z72_grid_menu.callbacks;
-    header[1]=Z72_GRID_MENU_LAYOUT;
-    header[3]=(z72_u32)z72_grid_menu.rows;
-    header[4]=(z72_u32)z72_grid_menu.maps;
-    header[5]=(Z72_GRID_MENU_ROWS<<16)|Z72_GRID_MENU_ROWS;
-    return 0;
+    grid_menu_page[4]=(z72_u32)z72_grid_menu.callbacks;
+    grid_menu_header[1]=Z72_GRID_MENU_LAYOUT;
+    grid_menu_header[3]=(z72_u32)z72_grid_menu.rows;
+    grid_menu_header[4]=(z72_u32)z72_grid_menu.maps;
+    grid_menu_header[5]=(Z72_GRID_MENU_ROWS<<16)|Z72_GRID_MENU_ROWS;
 }
 #endif

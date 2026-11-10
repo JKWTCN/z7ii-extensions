@@ -14,24 +14,9 @@ The tester confirmed the 2×2 grid and the five-option menu order on the combine
 
 ## Usage / 使用
 
-In d12, choose Off, 2×2, 3×3, 4×4, or Golden ratio. The 2×2 option draws one horizontal and one vertical line through the center. The selected type is saved to `Z72APP.CFG` and restored after restart. Diagnostic records are written to `Z72TRACE.LOG`.
+In d12, choose Off, 2×2, 3×3, 4×4, or Golden ratio. The 2×2 option draws one horizontal and one vertical line through the center. The selected type is saved to `Z72APP.CFG` and restored after restart.
 
-在原厂 d12「取景网格显示」中选择关闭、2×2、3×3、4×4 或黄金分割。2×2 在取景画面中央绘制一横一竖。所选类型保存到 `Z72APP.CFG`，重启后恢复。诊断记录写入 `Z72TRACE.LOG`。
-
-## Build / 构建
-
-Run from the repository root with Python 3.12 and LLVM installed. The output file must not already exist.
-
-安装 Python 3.12 和 LLVM 后，在项目根目录执行，输出文件必须不存在。
-
-```powershell
-New-Item -ItemType Directory -Force artifacts | Out-Null
-python -B tools/module.py plugins/grid_histogram_horizon.c --output artifacts/Z72APP.BIN
-```
-
-`plugins/grid_histogram_horizon.c` builds the combined module.
-
-`plugins/grid_histogram_horizon.c` 为组合版的构建入口。
+在原厂 d12「取景网格显示」中选择关闭、2×2、3×3、4×4 或黄金分割。2×2 在取景画面中央绘制一横一竖。所选类型保存到 `Z72APP.CFG`，重启后恢复。
 
 ## d12 menu / d12 五项菜单
 
