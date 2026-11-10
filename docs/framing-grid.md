@@ -6,9 +6,9 @@ Original camera-screen photos provided by the tester show the current five-optio
 
 以下为测试者提供的原始实机照片，展示当前五项菜单、各网格样式及关闭网格后的画面。
 
-The tester confirmed the 2×2 grid and its menu order on the combined module. Settings restoration after restart was verified on the earlier four-option build.
+The tester confirmed the 2×2 grid and the five-option menu order on the combined module.
 
-测试者已实机确认组合版的 2×2 显示和菜单顺序。此前的四项菜单版本已验证重启后恢复设置。
+测试者已实机确认组合版的 2×2 显示和五项菜单顺序。
 
 [English README](../README.md) · [中文说明](../README.zh-CN.md)
 
@@ -41,17 +41,13 @@ python -B tools/module.py plugins/grid_histogram_horizon.c --output artifacts/Z7
 
 ![2×2 grid with histogram and virtual horizon on the rear screen](images/z7ii-grid-2x2-hardware-2026-11-10.jpg)
 
-## Earlier d12 menu / 此前的 d12 菜单
+## 3×3 grid / 九宫格
 
-![d12 menu / d12 菜单](images/z7ii-grid-menu-hardware-2026-11-10.jpg)
+![3×3 grid / 九宫格](images/z7ii-grid-thirds-hardware-2026-11-10.jpg)
 
 ## 4×4 grid / 4×4 网格
 
 ![4×4 grid / 4×4 网格](images/z7ii-grid-four-hardware-2026-11-10.jpg)
-
-## 3×3 grid / 九宫格
-
-![3×3 grid / 九宫格](images/z7ii-grid-thirds-hardware-2026-11-10.jpg)
 
 ## Golden ratio / 黄金分割
 
