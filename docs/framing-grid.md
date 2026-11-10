@@ -2,21 +2,21 @@
 
 Nikon Z 7II · 2026-11-10
 
-Original camera-screen photos provided by the tester. The menu, all three grid styles, and the view with the grid switched off are shown below.
+Original camera-screen photos provided by the tester show the current five-option menu, the grid styles, and the view with the grid switched off.
 
-以下为测试者提供的原始实机照片，展示菜单、三种网格及关闭网格后的画面。
+以下为测试者提供的原始实机照片，展示当前五项菜单、各网格样式及关闭网格后的画面。
 
-The tester also confirmed that the current rendering build restores the saved grid setting after restart.
+The tester confirmed the 2×2 grid and its menu order on the combined module. Settings restoration after restart was verified on the earlier four-option build.
 
-测试者另已实机确认：当前绘制版重启后能正确恢复保存的网格设置。
+测试者已实机确认组合版的 2×2 显示和菜单顺序。此前的四项菜单版本已验证重启后恢复设置。
 
 [English README](../README.md) · [中文说明](../README.zh-CN.md)
 
 ## Usage / 使用
 
-In d12, select Off, 4×4, 3×3, or Golden ratio. The selected type is saved to `Z72APP.CFG` and restored after restart. Diagnostic records are written to `Z72TRACE.LOG`.
+In d12, choose Off, 2×2, 3×3, 4×4, or Golden ratio. The 2×2 option draws one horizontal and one vertical line through the center. The selected type is saved to `Z72APP.CFG` and restored after restart. Diagnostic records are written to `Z72TRACE.LOG`.
 
-在原厂 d12「取景网格显示」中选择关闭、4×4、3×3 或黄金分割。所选类型保存到 `Z72APP.CFG`，重启后恢复。诊断记录写入 `Z72TRACE.LOG`。
+在原厂 d12「取景网格显示」中选择关闭、2×2、3×3、4×4 或黄金分割。2×2 在取景画面中央绘制一横一竖。所选类型保存到 `Z72APP.CFG`，重启后恢复。诊断记录写入 `Z72TRACE.LOG`。
 
 ## Build / 构建
 
@@ -26,14 +26,22 @@ Run from the repository root with Python 3.12 and LLVM installed. The output fil
 
 ```powershell
 New-Item -ItemType Directory -Force artifacts | Out-Null
-python -B tools/module.py plugins/grid_live.c --output artifacts/Z72APP.BIN
+python -B tools/module.py plugins/grid_histogram_horizon.c --output artifacts/Z72APP.BIN
 ```
 
-`plugins/grid_live.c` is the entry point and uses the implementation in `grid_trace.c`.
+`plugins/grid_histogram_horizon.c` builds the combined module.
 
-`plugins/grid_live.c` 为入口，复用 `grid_trace.c` 中的实现。
+`plugins/grid_histogram_horizon.c` 为组合版的构建入口。
 
-## d12 menu / d12 菜单
+## d12 menu / d12 五项菜单
+
+![Off, 2×2, 3×3, 4×4, and Golden ratio in d12](images/z7ii-grid-five-option-menu-hardware-2026-11-10.jpg)
+
+## 2×2 grid / 2×2 网格
+
+![2×2 grid with histogram and virtual horizon on the rear screen](images/z7ii-grid-2x2-hardware-2026-11-10.jpg)
+
+## Earlier d12 menu / 此前的 d12 菜单
 
 ![d12 menu / d12 菜单](images/z7ii-grid-menu-hardware-2026-11-10.jpg)
 

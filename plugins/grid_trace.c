@@ -148,7 +148,7 @@ u32 trace_export(u32 requested_style,u32 reason)
 
 u32 grid_apply(u32 style)
 {
-    if(style>Z72_GRID_GOLDEN) return 1;
+    if(style>Z72_GRID_STYLE_MAX) return 1;
     z72_grid_settings_save(style);
     trace_export(style,1);
 #ifdef Z72_GRID_AFTER_EXPORT
@@ -163,7 +163,7 @@ u32 z72_main(const struct z72_api *api)
        *PRIMARY_SLOT!=PRIMARY_HANDLER || *SECONDARY_SLOT!=SECONDARY_HANDLER) return 1;
     selected_style=((u32 (*)(u32))0x1063c7d5)(0x112d)==1 ? Z72_GRID_FOUR : Z72_GRID_OFF;
     z72_grid_settings_load();
-    if(selected_style && grid_saved_style>=Z72_GRID_FOUR && grid_saved_style<=Z72_GRID_GOLDEN)
+    if(selected_style && grid_saved_style>=Z72_GRID_FOUR && grid_saved_style<=Z72_GRID_STYLE_MAX)
         selected_style=grid_saved_style;
     if(z72_grid_menu_install()) return 2;
     __asm__ volatile("dmb sy" ::: "memory");

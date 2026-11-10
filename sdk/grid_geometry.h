@@ -11,7 +11,7 @@ z72_u32 grid_transform(void *descriptor,z72_u32 style)
 {
     unsigned char *p=descriptor;
     unsigned short *v=descriptor;
-    if(style==Z72_GRID_OFF || style>Z72_GRID_GOLDEN) return 0;
+    if(style==Z72_GRID_OFF || style>Z72_GRID_STYLE_MAX) return 0;
     if(style==Z72_GRID_FOUR && p[0x12]==3 && p[0x1e]==3) return 0;
     z72_u32 x=v[0x14/2], y=v[0x22/2];
     z72_u32 right=v[0x18/2], bottom=v[0x26/2];
@@ -25,6 +25,11 @@ z72_u32 grid_transform(void *descriptor,z72_u32 style)
         first_x=((width+4)/8)*2;
         first_y=((height+4)/8)*2;
         step_x=first_x; step_y=first_y; lines=3;
+    } else if(style==Z72_GRID_TWO) {
+        /* Round the midpoint to the nearest even pixel, as for other styles. */
+        first_x=((width+2)/4)*2;
+        first_y=((height+2)/4)*2;
+        step_x=first_x; step_y=first_y; lines=1;
     } else {
         if(style==Z72_GRID_THIRDS) {
             first_x=((width+3)/6)*2;

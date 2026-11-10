@@ -4,9 +4,9 @@ In photo mode, press DISP to select the virtual horizon page on the rear screen.
 
 在照片模式用后屏取景，按 DISP 切到水平仪页即可同时查看原厂实时直方图。组合版保留取景网格和已保存的网格设置。
 
-Use the [combined SD module](../releases/v0.1.0-preview.2/Z72APP.BIN) with the existing Z 7II C 1.70 SD loader host. Follow the installation steps in the [README](../README.md).
+Use the [combined SD module](../releases/v0.1.0-preview.3/Z72APP.BIN) with the existing Z 7II C 1.70 SD loader host. Follow the installation steps in the [README](../README.md).
 
-已安装 Z 7II C 1.70 SD 加载宿主的相机可直接更换 [组合版 SD 模块](../releases/v0.1.0-preview.2/Z72APP.BIN)，无需更新宿主。安装步骤见 [中文 README](../README.zh-CN.md)。
+已安装 Z 7II C 1.70 SD 加载宿主的相机可直接更换 [组合版 SD 模块](../releases/v0.1.0-preview.3/Z72APP.BIN)，无需更新宿主。安装步骤见 [中文 README](../README.zh-CN.md)。
 
 ## Hardware verification / 实机验证
 

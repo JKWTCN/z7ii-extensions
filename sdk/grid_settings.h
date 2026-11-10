@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 #ifndef Z72_GRID_SETTINGS_H
 #define Z72_GRID_SETTINGS_H
-#include "z72.h"
+#include "grid_menu.h"
 
 /* C 1.70 synchronous file-object API, on the SD volume only. */
 #define Z72_CFG_FN(a, result, ...) ((result (*)(__VA_ARGS__))(a))
@@ -28,7 +28,7 @@ static void z72_grid_settings_load(void)
     }
     z72_u32 closed=Z72_CFG_FN(0x104d3c91,z72_u32,z72_u32 *)(file);
     if(result==Z72_CFG_OK && closed==Z72_CFG_OK && actual==16 &&
-       data[0]==Z72_CFG_MAGIC && data[1]==1 && data[2]<=3 && data[3]==~data[2])
+       data[0]==Z72_CFG_MAGIC && data[1]==1 && data[2]<=Z72_GRID_STYLE_MAX && data[3]==~data[2])
         grid_saved_style=data[2];
 }
 

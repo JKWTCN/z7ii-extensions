@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 static void histogram_export(void);
+#define Z72_GRID_2X2 1
 #define Z72_GRID_AFTER_EXPORT histogram_export
 #define Z72_HISTOGRAM_DIAGNOSTIC 1
 #include "grid_histogram_horizon_ram.c"
