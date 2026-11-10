@@ -24,7 +24,7 @@ Proceed with caution: back up your data, verify the camera model, firmware versi
 
 ## Installation
 
-Requires the matching SD loader host to be installed first. Stock firmware cannot load this module directly. Cameras with the host already installed do not need another firmware update.
+Install this repository's SD loader host before using extensions. See [Building](#building) to generate the firmware update package.
 
 1. Wait for card access to finish, turn off the camera, and remove the battery for about 30 seconds.
 2. Copy [Z72APP.BIN](releases/v0.1.0-preview.5/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
@@ -44,6 +44,8 @@ python -B tools/module.py plugins/combined.c --output artifacts/Z72APP.BIN
 ```
 
 `host/` contains the loader source, `sdk/` provides module interfaces, and `plugins/` contains plugin implementations.
+
+The host and module builder accept up to **1 MiB per `Z72APP.BIN` file** and **4 MiB for the image plus BSS**. The file limit includes the header and relocation table.
 
 `tools/build.py` generates the complete firmware update package and a JSON verification report. It requires the exact original C 1.70 update package and LLVM `llvm-objcopy` and `llvm-nm`:
 

@@ -18,11 +18,11 @@ HOOKS = ((0x1044E010, 10, 'extension_init_hook'),
          (0x105B010E, 10, 'extension_grid_enable'))
 STOCK_SHA = '478caf02dba41fa9144c0c4b6e1a051dc556d40e51a79a308bdd1169efb9dbbe'
 STOCK_PACKAGE_SHA = 'fc0e94f57500a1f0e287c6b9a036c81a5ffceccb8432a377d645b3fa35a19b6a'
-VERIFIED_MASTER_SHA = '7ef71ba6dfb89b44a3580049d89357c5e940e14368fc4807934413c6e93537cc'
-VERIFIED_PACKAGE_SHA = 'a0ea6e97f42022668510f635293b196d19c7e06bb20852e8dcad6fe6cebf3657'
+VERIFIED_MASTER_SHA = 'f0d9f06ddc9e1e13ea373c2f1a2cbbb748f3c76ca5dd748c66addb06835f663b'
+VERIFIED_PACKAGE_SHA = '1880ec0faf9b44b6a73265b8d9d69d457cbb01d9d3d955ad90f47c7f56acdccd'
 # Public header digest from the verified update, not private signing material.
 # Valid only for the exact package bound by VERIFIED_PACKAGE_SHA.
-VERIFIED_HEADER = bytes.fromhex('91dd99e931c94b6c1f66c85597f6b505dec8d2fe')
+VERIFIED_HEADER = bytes.fromhex('a42ea6e58e979bfeaa9fe3d62d8859f1bf1a08a6')
 
 # Static container encoding tables for C 1.70; not private signing material.
 ENCODING_TABLES = bytes.fromhex(

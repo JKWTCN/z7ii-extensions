@@ -11,8 +11,8 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = 0x01700072
 HEADER = 64
-MAX_FILE = 65536
-MAX_MEMORY = 131072
+MAX_FILE = 1 << 20
+MAX_MEMORY = 4 << 20
 
 
 def seal(data):
@@ -43,8 +43,10 @@ def from_elf(data):
                 raise ValueError('Undefined module symbol: ' + label)
             symbols[label] = value
     image_size, memory_size = symbols['__image_end'], symbols['__memory_end']
-    if not 0 < image_size <= memory_size <= MAX_MEMORY or not entry & 1 or entry & ~1 >= image_size:
+    if not 0 < image_size <= memory_size or not entry & 1 or entry & ~1 >= image_size:
         raise ValueError('Invalid module image or Thumb entry')
+    if memory_size > MAX_MEMORY:
+        raise ValueError(f'Module image and BSS exceed the {MAX_MEMORY >> 20} MiB memory limit')
     image = bytearray(image_size)
     for _, kind, flags, addr, off, size, *_ in sections:
         if flags & 2 and kind != 8 and size:
@@ -74,7 +76,7 @@ def from_elf(data):
         raise ValueError('Duplicate relocation')
     file_size = HEADER + image_size + 4 * len(relocations)
     if file_size > MAX_FILE:
-        raise ValueError('Module exceeds 64 KiB file limit')
+        raise ValueError(f'Module exceeds the {MAX_FILE >> 20} MiB file limit')
     header = struct.pack('<4s15I', b'Z72M', 1, TARGET, file_size, image_size,
                          memory_size - image_size, entry & ~1, len(relocations), 0, *([0] * 7))
     packed = seal(header + image + b''.join(struct.pack('<I', off) for off in relocations))

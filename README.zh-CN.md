@@ -24,7 +24,7 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 
 ## 使用
 
-需要先安装配套 SD 加载宿主；原版固件不能直接加载模块。已安装宿主的相机无需重新刷固件。
+使用扩展前须安装本仓库提供的 SD 加载宿主。固件升级包的生成方法见[构建](#构建)。
 
 1. 等待存储卡访问结束，关机并取出电池约 30 秒。
 2. 将 [Z72APP.BIN](releases/v0.1.0-preview.5/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
@@ -44,6 +44,8 @@ python -B tools/module.py plugins/combined.c --output artifacts/Z72APP.BIN
 ```
 
 `host/` 为宿主源码，`sdk/` 为模块接口，`plugins/` 为插件实现。
+
+宿主和模块构建器支持最大 **1 MiB 的 `Z72APP.BIN` 文件**，镜像与 BSS 合计最大 **4 MiB**。文件上限包含文件头和重定位表。
 
 `tools/build.py` 生成完整固件升级包及 JSON 校验报告。需要精确匹配的原版 C 1.70 升级包，以及 LLVM `llvm-objcopy`、`llvm-nm`：
 
