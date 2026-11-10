@@ -9,6 +9,7 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 | Feature                             | Description                                                 | Status                                                 |
 | ----------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------ |
 | [Framing grid](docs/framing-grid.md) | Off, 4×4, 3×3, and Golden ratio, with persistent settings | Hardware verified, including restoration after restart |
+| [Histogram and virtual horizon](docs/histogram-horizon.md) | Live histogram and virtual horizon together on the rear screen in photo mode | Hardware verified |
 
 ## Risk disclaimer
 
@@ -21,10 +22,10 @@ Proceed with caution: back up your data, verify the camera model, firmware versi
 Requires the matching SD loader host to be installed first. Stock firmware cannot load this module directly. Cameras with the host already installed do not need another firmware update.
 
 1. Wait for card access to finish, turn off the camera, and remove the battery for about 30 seconds.
-2. Copy [Z72APP.BIN](releases/v0.1.0-preview.1/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
+2. Copy [Z72APP.BIN](releases/v0.1.0-preview.2/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
 3. Reinsert the card and battery, then turn on the camera.
 
-Current release: `v0.1.0-preview.1` · Module size: 3,168 bytes · [SHA-256 checksum](releases/v0.1.0-preview.1/SHA256SUMS)
+Current release: `v0.1.0-preview.2` · Module size: 5,028 bytes · [SHA-256 checksum](releases/v0.1.0-preview.2/SHA256SUMS)
 
 This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
 

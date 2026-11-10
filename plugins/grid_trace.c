@@ -151,6 +151,9 @@ u32 grid_apply(u32 style)
     if(style>Z72_GRID_GOLDEN) return 1;
     z72_grid_settings_save(style);
     trace_export(style,1);
+#ifdef Z72_GRID_AFTER_EXPORT
+    Z72_GRID_AFTER_EXPORT();
+#endif
     return 0;
 }
 
