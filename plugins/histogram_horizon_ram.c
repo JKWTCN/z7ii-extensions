@@ -11,7 +11,13 @@ typedef unsigned char u8;
 #define GUI_UPDATE 0x104e6cb5u
 #define DISPLAY_SNAPSHOT 0xb202be70u
 #define LAST_DISPLAY_SNAPSHOT 0xb202c1f4u
-#define LCD_UPDATE_TICK 0xb181dd90u
+#define DISPLAY_UPDATE_TICK 0xb181dd90u
+#define DISPLAY_SCENE 0xb181da91u
+#define ACTIVE_OUTPUT_BITS 0xb181d3a4u
+#define LCD_OUTPUT 1u
+#define EVF_OUTPUT 4u
+#define LCD_SCENE 0u
+#define EVF_SCENE 2u
 #define HISTOGRAM_MASKS 0xb181f8b0u
 #define HISTOGRAM_CONTROL 0xb181f87cu
 #define HISTOGRAM_STATE 0xb202bc38u
@@ -19,15 +25,16 @@ typedef unsigned char u8;
 #define HISTOGRAM_WIDGET 32u
 #define DEFAULT_DRAW 0x106eefb3u
 #define HISTOGRAM_DRAW 0x10521c39u
+#define EXTRA_UPDATE_INTERVAL 100u
 
 static u32 updating;
-static u32 last_unthrottled_update;
+static u32 last_extra_update_end;
 static _Alignas(64) u32 samples[256];
 static volatile u32 paint_visible;
 
 enum histogram_result {
     NO_TICK, OTHER_PAGE, PREVIOUS_PAGE, WRONG_CONTEXT, MENU_BLOCKED,
-    GUI_NOT_READY, UPDATE_BLOCKED, WIDGET_BLOCKED, LCD_INACTIVE,
+    GUI_NOT_READY, UPDATE_BLOCKED, WIDGET_BLOCKED, OUTPUT_INACTIVE,
     INVALID_OBJECT, CONTROL_BUSY, INELIGIBLE, MASK_MISMATCH, SAMPLE_BLOCKED,
     SAMPLE_FAILED, SAMPLE_EMPTY, LAYOUT_HIDDEN, PAINTER_MISMATCH,
     SUBMIT_FAILED, DRAWN, HISTOGRAM_RESULTS
@@ -61,6 +68,29 @@ static u32 native_sampling_allowed(void)
            !CALL(0x1062031d,u32,void)();
 }
 
+static u32 active_photo_output(void)
+{
+    u32 scene=BYTE(DISPLAY_SCENE);
+    u32 outputs=WORD(ACTIVE_OUTPUT_BITS)&7u;
+    if (scene==LCD_SCENE && (outputs&LCD_OUTPUT)) return LCD_OUTPUT;
+    /* The stock photo update selects scene 2 for the EVF. Require that
+     * scene to be active and leave secondary output routing to firmware. */
+    if (scene==EVF_SCENE && outputs==EVF_OUTPUT &&
+        CALL(0x10631947,u32,void)()==EVF_OUTPUT) return EVF_OUTPUT;
+    return 0;
+}
+
+static u32 display_work_pending(void)
+{
+    /* The stock abort callback polls queued display events and the requested
+     * output without consuming those events. Check before its render waits. */
+    if (CALL(0x106355a1,u32,void)()) return 1;
+    /* Match the busy conditions in the native render wait. This optional
+     * pass can yield to the next GUI update instead of entering that wait. */
+    return WORD(0xb181d3b0) &&
+           (WORD(0xb181d3b4) || CALL(0x1062e289,u32,void)());
+}
+
 static void layout_histogram(void)
 {
     CALL(0x1055503b,void,u32)(HISTOGRAM_WIDGET);
@@ -86,13 +116,15 @@ static enum histogram_result update_histogram(void)
 {
     if (BYTE(DISPLAY_SNAPSHOT+0x19e)!=3) return OTHER_PAGE;
     if (BYTE(LAST_DISPLAY_SNAPSHOT+0x19e)!=3) return PREVIOUS_PAGE;
-    if (BYTE(DISPLAY_SNAPSHOT+0x1a6) || BYTE(0xb1821b18) || BYTE(0xb181da91) ||
-        BYTE(0xb202e294)) return WRONG_CONTEXT;
+    if (BYTE(DISPLAY_SNAPSHOT+0x1a6) || BYTE(0xb1821b18) || BYTE(0xb202e294))
+        return WRONG_CONTEXT;
     if (CALL(0x104a9825,u32,void)()) return MENU_BLOCKED;
     if (!CALL(0x1052336b,u32,void)()) return GUI_NOT_READY;
     if (CALL(0x10630d23,u32,void)()==1) return UPDATE_BLOCKED;
     if (CALL(0x1061dd6d,u32,u32)(12)) return WIDGET_BLOCKED;
-    if (!CALL(0x10636b83,u32,u32)(1)) return LCD_INACTIVE;
+    u32 output=active_photo_output();
+    if (!output) return OUTPUT_INACTIVE;
+    if (display_work_pending()) return UPDATE_BLOCKED;
 
     u32 object=WORD(HISTOGRAM_CONTROL+0x24);
     if (object<0xb1800000u || object>=0xc0000000u || (object&3)) return INVALID_OBJECT;
@@ -113,13 +145,14 @@ static enum histogram_result update_histogram(void)
         if (bin) { total+=bin; ++count; }
     }
     if (!count) return SAMPLE_EMPTY;
+    if (active_photo_output()!=output || display_work_pending()) return UPDATE_BLOCKED;
     u32 scale=average(total,count)<<2;
     if (peak<scale) scale=peak;
     for (u32 i=0;i<256;++i) WORD(HISTOGRAM_BINS+4*i)=samples[i];
     WORD(HISTOGRAM_STATE+0x34)=scale;
     BYTE(HISTOGRAM_STATE+0x10)=1;
 
-    /* This runs on the GUI task after the stock LCD pass. The masks only
+    /* This runs on the GUI task after the stock display pass. The masks only
      * need to be extended during placement of this one widget. */
     BYTE(HISTOGRAM_CONTROL)=1;
     BYTE(HISTOGRAM_CONTROL+1)=1;
@@ -140,8 +173,8 @@ static enum histogram_result update_histogram(void)
             if (WORD(HISTOGRAM_CONTROL+0x24)!=object) return INVALID_OBJECT;
             CALL(0x10739a7d,u32,u32,u32)(object,DEFAULT_DRAW);
             if (drawn && paint_visible && BYTE(DISPLAY_SNAPSHOT+0x19e)==3 &&
-                !BYTE(0xb181da91)) {
-                /* The stock LCD path presents after all scene passes. */
+                active_photo_output()==output && !CALL(0x106355a1,u32,void)()) {
+                /* The stock present routine routes the current output. */
                 CALL(0x105218bb,void,void)();
 #ifdef Z72_HISTOGRAM_DIAGNOSTIC
                 ++present_requests;
@@ -164,20 +197,22 @@ static u32 gui_update(u32 a,u32 b,u32 c,u32 d)
 {
     u32 (*original)(u32,u32,u32,u32)=CALL(GUI_UPDATE,u32,u32,u32,u32,u32);
     if (__atomic_exchange_n(&updating,1,__ATOMIC_ACQUIRE)) return original(a,b,c,d);
-    u32 before=WORD(LCD_UPDATE_TICK);
+    u32 before=WORD(DISPLAY_UPDATE_TICK);
+    u32 output_before=WORD(ACTIVE_OUTPUT_BITS);
     u32 result=original(a,b,c,d);
-    u32 after=WORD(LCD_UPDATE_TICK);
+    u32 after=WORD(DISPLAY_UPDATE_TICK);
     enum histogram_result outcome=NO_TICK;
-    if (after && after!=before) {
-        outcome=update_histogram();
-    } else if (BYTE(DISPLAY_SNAPSHOT+0x19e)==3 &&
-               !CALL(0x1061e41d,u32,void)()) {
-        /* The native LCD path skips its timestamp write when its interval
-         * is zero. Rate-limit the extra pass against the same system clock. */
+    if (BYTE(DISPLAY_SNAPSHOT+0x19e)==3 &&
+        ((after && after!=before) || !CALL(0x1061e41d,u32,void)())) {
         u32 now=CALL(0x1062e59d,u32,void)();
-        if (now && (!last_unthrottled_update || now-last_unthrottled_update>=100u)) {
-            last_unthrottled_update=now;
+        if (output_before!=WORD(ACTIVE_OUTPUT_BITS)) {
+            last_extra_update_end=now;
+        } else if (now && (!last_extra_update_end ||
+                           now-last_extra_update_end>=EXTRA_UPDATE_INTERVAL)) {
             outcome=update_histogram();
+            /* Throttle both timestamp paths from completion so a slow
+             * sampling or render call cannot trigger an immediate retry. */
+            last_extra_update_end=CALL(0x1062e59d,u32,void)();
         }
     }
 #ifdef Z72_HISTOGRAM_DIAGNOSTIC

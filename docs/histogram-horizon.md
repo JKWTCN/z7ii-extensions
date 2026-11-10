@@ -1,20 +1,26 @@
 # Histogram and virtual horizon / 直方图与水平仪同显
 
-In photo mode, press DISP to select the virtual horizon page on the rear screen. The module adds the camera’s live histogram to that page and retains the framing grid and its saved settings.
+In photo mode, press DISP to select the virtual horizon page on the rear screen or in the electronic viewfinder. The module adds the camera’s live histogram to that page and retains the framing grid and its saved settings.
 
-在照片模式用后屏取景，按 DISP 切到水平仪页即可同时查看原厂实时直方图。组合版保留取景网格和已保存的网格设置。
+在照片模式使用后屏或电子取景器，按 DISP 切到水平仪页即可同时查看原厂实时直方图。组合版保留取景网格和已保存的网格设置。
 
-Use the [combined SD module](../releases/v0.1.0-preview.3/Z72APP.BIN) with the existing Z 7II C 1.70 SD loader host. Follow the installation steps in the [README](../README.md).
+Use the combined SD module with the existing Z 7II C 1.70 SD loader host. [Module download](../releases/v0.1.0-preview.4/Z72APP.BIN) · [Installation](../README.md#installation)
 
-已安装 Z 7II C 1.70 SD 加载宿主的相机可直接更换 [组合版 SD 模块](../releases/v0.1.0-preview.3/Z72APP.BIN)，无需更新宿主。安装步骤见 [中文 README](../README.zh-CN.md)。
+已安装 Z 7II C 1.70 SD 加载宿主的相机可直接更换卡上的组合版模块。[模块下载](../releases/v0.1.0-preview.4/Z72APP.BIN) · [安装步骤](../README.zh-CN.md#使用)
+
+The module limits the histogram refresh rate and skips extra draws while a display switch is pending or the renderer is busy.
+
+模块限制直方图的刷新频率，并在等待切换显示器或渲染繁忙时跳过追加绘制。
 
 ## Hardware verification / 实机验证
 
-On November 10, 2026, the tester confirmed simultaneous display on the rear screen. The original photo shows the histogram at lower right, the virtual horizon in the center, and the framing grid. EVF, video and HDMI were outside this test.
+On November 10, 2026, the tester confirmed the overlay on the rear screen and in the viewfinder in photo mode. The tester also passed the follow-up test of automatic switching between the two displays with the overlay active.
 
-2026-11-10，测试者实机确认后屏同显通过。原图可见右下方直方图、中央水平仪及取景网格。EVF、录像及 HDMI 不在本次验证范围内。
+2026-11-10，测试者确认照片模式下的后屏和电子取景器均可同显，开启同显后两者之间的自动切换也通过了实机复测。
 
 ![Histogram, virtual horizon, and framing grid on the Z 7II rear screen](images/z7ii-histogram-horizon-hardware-2026-11-10.jpg)
+
+![Histogram, virtual horizon, and framing grid in the Z 7II electronic viewfinder](images/z7ii-histogram-horizon-evf-hardware-2026-11-10.png)
 
 ## Build / 构建
 
