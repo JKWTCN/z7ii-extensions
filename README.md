@@ -11,6 +11,10 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 | [Framing grid](docs/framing-grid.md) | Off, 2×2, 3×3, 4×4, and Golden ratio, with persistent settings | Hardware verified |
 | [Histogram and virtual horizon](docs/histogram-horizon.md) | Live histogram and virtual horizon together on the rear screen and in the viewfinder in photo mode | Hardware verified |
 
+## Known issues
+
+- The framing grid may display incorrectly or disappear. If this happens, turn off the camera, remove and reinsert the battery, then turn the camera back on.
+
 ## Risk disclaimer
 
 **Flash at your own risk. Modified firmware and native modules may cause crashes, data loss, hardware damage, or an unbootable camera (bricking), potentially requiring professional repair.** Successful testing does not guarantee safety on every camera or in every situation.
