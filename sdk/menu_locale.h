@@ -8,6 +8,9 @@
 enum {
     Z72_TEXT_GRID_GOLDEN=Z72_MENU_STOCK_TEXTS,
     Z72_TEXT_AUTO_ROTATE,
+    Z72_TEXT_PHOTO_ZEBRA,
+    Z72_TEXT_PHOTO_THRESHOLD,
+    Z72_TEXT_PHOTO_PATTERN,
     Z72_MENU_TEXT_END
 };
 
@@ -22,7 +25,7 @@ struct z72_menu_locale {
     unsigned char text[];
 };
 
-/* Register both labels before exposing any menu rows that reference them. */
+/* Register labels before exposing any menu rows that reference them. */
 static inline int z72_menu_locale_install(void)
 {
     volatile z72_u32 *const tables=(volatile z72_u32 *)0xb1d60b68u;
@@ -35,10 +38,10 @@ static inline int z72_menu_locale_install(void)
         !z72_golden_font_ready()) return 0;
 
     /* The firmware stores consecutive UTF-16LE strings with byte offsets. */
-    static const unsigned short translations[][2][17]={
-        {u"Golden ratio",u"Auto rotate info"},
-        {u"黄金分割",u"自动旋转信息显示"},
-        {u"黃金分割",u"自動旋轉資訊顯示"}
+    static const unsigned short translations[][5][26]={
+        {u"Golden ratio",u"Auto rotate info",u"Photo shooting highlights",u"Highlight threshold",u"Display pattern"},
+        {u"黄金分割",u"自动旋转信息显示",u"照片拍摄加亮显示",u"加亮阈值",u"显示图案"},
+        {u"黃金分割",u"自動旋轉資訊顯示",u"照片拍攝加亮顯示",u"加亮閾值",u"顯示圖案"}
     };
     z72_u32 bytes=sizeof(struct z72_menu_locale)+Z72_MENU_LANGUAGES*sizeof(translations[0]);
     for (z72_u32 lang=0;lang<Z72_MENU_LANGUAGES;++lang)
@@ -51,6 +54,9 @@ static inline int z72_menu_locale_install(void)
     copy(locale->styles,styles,Z72_MENU_STOCK_TEXTS);
     locale->styles[Z72_TEXT_GRID_GOLDEN]=Z72_GOLDEN_STYLE;
     locale->styles[Z72_TEXT_AUTO_ROTATE]=styles[template];
+    locale->styles[Z72_TEXT_PHOTO_ZEBRA]=styles[template];
+    locale->styles[Z72_TEXT_PHOTO_THRESHOLD]=styles[template];
+    locale->styles[Z72_TEXT_PHOTO_PATTERN]=styles[template];
     z72_golden_font_prepare(&locale->golden,copy,styles[template]);
     unsigned char *text=locale->text;
     for (z72_u32 lang=0;lang<Z72_MENU_LANGUAGES;++lang) {

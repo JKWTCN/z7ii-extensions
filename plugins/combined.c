@@ -1,7 +1,13 @@
 /* SPDX-License-Identifier: MIT */
 #define Z72_GRID_2X2 1
 #define Z72_GRID_TRACE 0
+#define Z72_PORTRAIT_TRACE 0
 #define Z72_GRID_WITH_PORTRAIT 1
+#define Z72_PHOTO_ZEBRA 1
+#define Z72_MENU_EXTRA_ROWS 2u
+#ifndef Z72_ZEBRA_OBSERVE_ONLY
+#define Z72_ZEBRA_OBSERVE_ONLY 0
+#endif
 #include "grid_live.c"
 #include "portrait_menu.c"
 
@@ -12,5 +18,6 @@ z72_u32 z72_main(const struct z72_api *api)
     z72_u32 result=portrait_init(api);
     if (result) return result;
     grid_install(rotation_menu.title[0] ? Z72_TEXT_GRID_GOLDEN : 0);
+    zebra_producer_install();
     return 0;
 }

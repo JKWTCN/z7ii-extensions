@@ -20,6 +20,12 @@ typedef u32 (*handler)(void *,u32,u32,u32);
 #define PRIMARY_HANDLER 0x104d80cfu
 #define SECONDARY_HANDLER 0x10445713u
 
+#ifdef Z72_PHOTO_ZEBRA
+static void zebra_packet_update(u32 channel,const void *message);
+static void zebra_packet_complete(u32 command,u32 result);
+static u32 zebra_packet_cancel(const void *message);
+#endif
+
 volatile u32 selected_style;
 #if Z72_GRID_TRACE
 #define RECORDS 16u
@@ -113,6 +119,9 @@ static void capture(u32 channel,void *message,u32 mode,u32 immediate)
 
 u32 grid_primary(void *message,u32 a,u32 b,u32 c)
 {
+#ifdef Z72_PHOTO_ZEBRA
+    zebra_packet_update(0,message);
+#endif
     capture(0,message,0xffffffffu,0x42061004);
     u32 result=((handler)PRIMARY_HANDLER)(message,a,b,c);
     GRID_STAT(trace_banks[0].stats[6]=result);
@@ -121,9 +130,17 @@ u32 grid_primary(void *message,u32 a,u32 b,u32 c)
 
 u32 grid_secondary(void *message,u32 a,u32 b,u32 c)
 {
+#ifdef Z72_PHOTO_ZEBRA
+    zebra_packet_update(1,message);
+    if (zebra_packet_cancel(message)) return 1;
+    u32 zebra_command=ram((u32)message,24) ? ((const volatile u32 *)message)[4] : 0;
+#endif
     u32 mode=*(const volatile unsigned char *)0xb180854c;
     capture(1,message,mode,mode==0 ? 0x42060004u : mode==1 ? 0x42062004u : 0);
     u32 result=((handler)SECONDARY_HANDLER)(message,a,b,c);
+#ifdef Z72_PHOTO_ZEBRA
+    zebra_packet_complete(zebra_command,result);
+#endif
     GRID_STAT(trace_banks[1].stats[6]=result);
     return result;
 }

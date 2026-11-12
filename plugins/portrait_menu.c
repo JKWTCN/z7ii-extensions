@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 #include "z72.h"
 #include "config.h"
+#define Z72_MENU_SLOT 255u /* Grid labels use slots 250 through 254. */
 #include "menu.h"
 #include "menu_locale.h"
 
@@ -12,6 +13,9 @@ static z72_u32 portrait_draw(volatile z72_u32 *message,z72_u32 outputs,z72_u32 o
 static z72_u32 portrait_ready(void);
 static z72_u32 portrait_install_menu(void);
 static void portrait_install(void);
+#ifdef Z72_PHOTO_ZEBRA
+static void zebra_graphics_observe(void);
+#endif
 #if Z72_PORTRAIT_TRACE
 static z72_u32 portrait_sample(z72_u32 command,z72_u32 orientation,
                                const volatile z72_u32 *source,z72_u32 *geometry);
@@ -1150,7 +1154,11 @@ static u32 live_update(u32 a,u32 b,u32 c,u32 d)
     if (current_page()!=LIVE) {
         live_orientation=0;
         last_plot_orientation=0;
-        return CALL(LIVE_UPDATE_STOCK,u32,u32,u32,u32,u32)(a,b,c,d);
+        u32 result=CALL(LIVE_UPDATE_STOCK,u32,u32,u32,u32,u32)(a,b,c,d);
+#ifdef Z72_PHOTO_ZEBRA
+        z72_photo_zebra_update();
+#endif
+        return result;
     }
     u32 orientation=0;
     if (rotation_enabled() && (WORD(DISPLAY_OUTPUTS)&7u)==LCD_OUTPUT) {
@@ -1181,7 +1189,7 @@ static u32 portrait_ready(void)
 enum {
     /* Kind 2 slot zero is empty on C 1.70. */
     ROTATION_PAGE_ID=0, ROTATION_PAGE_WORDS=11, ROTATION_EVENTS=16,
-    ROTATION_ENABLE_ID=0x2ffdu, ROTATION_TITLE_ID=0x0a25u,
+    ROTATION_ENABLE_ID=0x2fe0u, ROTATION_TITLE_ID=0x0a25u,
     ROTATION_TITLE_WIDGET=2
 };
 #define ROTATION_PAGE 0xb2bb720cu
@@ -1191,6 +1199,10 @@ static struct {
     u32 header[6], title[24], rows[2][7], maps[2];
     u32 events[2][ROTATION_EVENTS][4], callbacks[5];
 } rotation_menu;
+#ifdef Z72_PHOTO_ZEBRA
+static u32 choice_localized;
+static u32 open_rotation_choice(void);
+#endif
 
 static u32 rotation_value(u32 enabled)
 {
@@ -1199,11 +1211,16 @@ static u32 rotation_value(u32 enabled)
 
 static void rotation_page_init(const u32 *page)
 {
-    if (!rotation_menu.title[0]) {
+    {
         u32 title=CALL(0x10634623u,u32,u32,u32,u32)(page[9],0,ROTATION_TITLE_WIDGET);
         if (title && WORD(title)==ROTATION_TITLE_ID) {
             CALL(0x106361c9u,void,u32,u32,u32)(title,0,0);
-            CALL(0x106361c9u,void,u32,u32,u32)(title,Z72_MENU_SLOT,2);
+            if (rotation_menu.title[0])
+                CALL(0x106361c9u,void,u32,u32,u32)(title,rotation_menu.title[0],1);
+            else {
+                u32 slot=Z72_MENU_SLOT;
+                CALL(0x106361c9u,void,u32,u32,u32)(title,slot,2);
+            }
         }
     }
     u32 id=ROTATION_ENABLE_ID+!rotation_enabled();
@@ -1215,25 +1232,30 @@ static void rotation_page_init(const u32 *page)
 static u32 open_rotation_menu(u32 a,u32 b,u32 c,u32 d)
 {
     (void)a; (void)b; (void)c; (void)d;
+#ifdef Z72_PHOTO_ZEBRA
+    return open_rotation_choice();
+#else
     if (WORD(ROTATION_PAGE)==2 && WORD(ROTATION_PAGE+0x28)==(u32)rotation_menu.header)
         CALL(0x1063ab75u,void,u32,u32)(2,ROTATION_PAGE_ID);
     return 0;
+#endif
 }
 
 static u32 apply_rotation(u32 enabled)
 {
     if (enabled==rotation_enabled() && !z72_config_pending) return 0;
     __atomic_store_n(&auto_rotate,enabled,__ATOMIC_RELEASE);
-    u32 value=rotation_value(enabled);
-    menu.rows[0][5]=value;
-    /* The parent can retain its widgets until the native transition back. */
-    u32 widgets=WORD(SETUP_PAGE+0x24);
-    if (widgets && CALL(0x1063464fu,u32,u32,u32,u32)(widgets,0,0)) {
-        u32 status=CALL(0x1063466du,u32,u32,u32,u32)(widgets,0,0);
-        if (status) CALL(0x106361cdu,void,u32,u32)(status,value);
-    }
+    u32 row=0;
     struct z72_config config=z72_config_current;
     config.auto_rotate=enabled;
+    u32 value=rotation_value(enabled);
+    menu.rows[row][5]=value;
+    /* The parent can retain its widgets until the native transition back. */
+    u32 widgets=WORD(SETUP_PAGE+0x24);
+    if (widgets && CALL(0x1063464fu,u32,u32,u32,u32)(widgets,0,row)) {
+        u32 status=CALL(0x1063466du,u32,u32,u32,u32)(widgets,0,row);
+        if (status) CALL(0x106361cdu,void,u32,u32)(status,value);
+    }
     z72_config_save(config);
     return 0;
 }
@@ -1249,6 +1271,10 @@ static u32 disable_rotation(u32 a,u32 b,u32 c,u32 d)
     (void)a; (void)b; (void)c; (void)d;
     return apply_rotation(0);
 }
+
+#ifdef Z72_PHOTO_ZEBRA
+#include "photo_zebra_menu.h"
+#endif
 
 static u32 portrait_install_menu(void)
 {
@@ -1303,6 +1329,9 @@ static u32 portrait_install_menu(void)
     auto_rotate=z72_config_current.auto_rotate;
     const struct z72_menu_row rows[]={
         {"Auto rotate info",open_rotation_menu,rotation_value(auto_rotate)},
+#ifdef Z72_PHOTO_ZEBRA
+        {"Photo shooting highlights",open_zebra_menu,rotation_value(z72_config_current.photo_zebra_pattern)},
+#endif
 #if Z72_PORTRAIT_TRACE
         {"Portrait probe: export log",export_probe,0xd7},
 #endif
@@ -1312,8 +1341,16 @@ static u32 portrait_install_menu(void)
     if (z72_menu_locale_install()) {
         menu.rows[0][0]=Z72_TEXT_AUTO_ROTATE;
         menu.rows[0][4]=0x1001;
+#ifdef Z72_PHOTO_ZEBRA
+        menu.rows[1][0]=Z72_TEXT_PHOTO_ZEBRA;
+        menu.rows[1][4]=0x1001;
+#endif
         rotation_menu.title[0]=Z72_TEXT_AUTO_ROTATE;
     }
+#ifdef Z72_PHOTO_ZEBRA
+    choice_localized=rotation_menu.title[0]!=0;
+    zebra_menu_prepare();
+#endif
     z72_menu_publish_rows(&menu,count);
     page[1]=WORD(SETUP_PAGE+4);
     page[4]=(u32)rotation_menu.callbacks;

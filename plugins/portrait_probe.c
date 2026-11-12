@@ -121,6 +121,9 @@ static void sample_lcd_draw(u32 command,u32 orientation,const volatile u32 *payl
 /* The native graphics task calls this slot for each dequeued message. */
 static void observe_draw(volatile u32 *message)
 {
+#ifdef Z72_PHOTO_ZEBRA
+    zebra_graphics_observe();
+#endif
     u32 command=message[4];
     if (command>=DRAW_FAMILY && command-DRAW_FAMILY<DRAW_CODES) {
         u32 outputs=WORD(DISPLAY_OUTPUTS)&7u;

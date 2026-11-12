@@ -1,5 +1,8 @@
 /* SPDX-License-Identifier: MIT */
 #include "z72.h"
+#ifdef Z72_PHOTO_ZEBRA
+#include "photo_zebra.h"
+#endif
 
 typedef z72_u32 u32;
 typedef unsigned char u8;
@@ -244,6 +247,9 @@ static u32 gui_update(u32 a,u32 b,u32 c,u32 d)
     if (hide) set_histogram_masks(0);
 #endif
     u32 result=original(a,b,c,d);
+#ifdef Z72_PHOTO_ZEBRA
+    z72_photo_zebra_update();
+#endif
 #ifdef Z72_PORTRAIT_HISTOGRAM
     if (hide) set_histogram_masks(0x444u);
     if (current_page()!=LIVE) {
