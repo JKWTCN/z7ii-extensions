@@ -48,14 +48,23 @@ python -B tools/module.py plugins/combined.c --output artifacts/Z72APP.BIN
 
 The host and module builder accept up to **1 MiB per `Z72APP.BIN` file** and **4 MiB for the image plus BSS**. The file limit includes the header and relocation table.
 
-`tools/build.py` generates the complete firmware update package and a JSON verification report. It requires the exact original C 1.70 update package and LLVM `llvm-objcopy` and `llvm-nm`:
+With Python 3.12, `tools/build-master.py` applies the verified host's binary patch to the original C 1.70 update package and generates a complete firmware update plus a JSON verification report:
+
+```powershell
+New-Item -ItemType Directory -Force artifacts | Out-Null
+python -B tools/build-master.py --stock-package "path/to/original/Z7_2_0170.bin" --output artifacts/Z7_2_0170.bin
+```
+
+This command reproduces the current release's 1 MiB / 4 MiB host using the embedded patch. It requires only Python's standard library.
+
+To compile the host source, `tools/build.py` generates the same complete firmware update package. It requires the exact original C 1.70 update package and LLVM `clang`, `ld.lld`, `llvm-objcopy`, and `llvm-nm`:
 
 ```powershell
 New-Item -ItemType Directory -Force artifacts | Out-Null
 python -B tools/build.py --stock-package "path/to/original/Z7_2_0170.bin" --output artifacts/Z7_2_0170.bin
 ```
 
-The script extracts the master internally; no separate master file or private packaging material is required. The builder reuses the public header digest from the verified release and requires exact SHA-256 matches for the inputs, built host, and complete output. It also decodes the result to check every member. Changed host builds are rejected because the fixed digest only applies to this release. Output files must not already exist. Original firmware and generated update packages are not included in the repository.
+Both scripts extract the master internally and reuse the verified release's public header digest. They require exact SHA-256 matches for the inputs, resulting host, and complete output, then decode the result to check every member. Changed host builds are rejected because the fixed digest only applies to this release. Output files must not already exist. Original firmware and generated update packages are not included in the repository.
 
 ## License
 

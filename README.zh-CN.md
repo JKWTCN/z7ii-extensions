@@ -48,14 +48,23 @@ python -B tools/module.py plugins/combined.c --output artifacts/Z72APP.BIN
 
 宿主和模块构建器支持最大 **1 MiB 的 `Z72APP.BIN` 文件**，镜像与 BSS 合计最大 **4 MiB**。文件上限包含文件头和重定位表。
 
-`tools/build.py` 生成完整固件升级包及 JSON 校验报告。需要精确匹配的原版 C 1.70 升级包，以及 LLVM `llvm-objcopy`、`llvm-nm`：
+使用 Python 3.12，`tools/build-master.py` 可直接对原版 C 1.70 升级包应用已验证宿主的二进制补丁，生成完整可刷入升级包及 JSON 校验报告：
+
+```powershell
+New-Item -ItemType Directory -Force artifacts | Out-Null
+python -B tools/build-master.py --stock-package "path/to/original/Z7_2_0170.bin" --output artifacts/Z7_2_0170.bin
+```
+
+此命令使用内置补丁复现当前发布的 1 MiB / 4 MiB 宿主，只依赖 Python 标准库。
+
+编译宿主源码可使用 `tools/build.py`，生成相同的完整固件升级包。需要精确匹配的原版 C 1.70 升级包，以及 LLVM `clang`、`ld.lld`、`llvm-objcopy`、`llvm-nm`：
 
 ```powershell
 New-Item -ItemType Directory -Force artifacts | Out-Null
 python -B tools/build.py --stock-package "path/to/original/Z7_2_0170.bin" --output artifacts/Z7_2_0170.bin
 ```
 
-脚本内部自动提取主固件，无需另行解包、提供主固件文件或私有打包材料。脚本复用已验证发布包的公开头部校验值，强制核对输入、编译后的宿主及完整输出的 SHA-256，并重新解包核对所有成员。固定校验值仅适用于当前发布版本，因此宿主构建发生变化时会拒绝输出。输出文件必须不存在。仓库不包含原版固件或生成的升级包。
+两个脚本都在内部提取主固件并复用已验证发布包的公开头部校验值，强制核对输入、生成的宿主及完整输出的 SHA-256，再重新解包核对所有成员。固定校验值仅适用于当前发布版本，因此宿主构建发生变化时会拒绝输出。输出文件必须不存在。仓库不包含原版固件或生成的升级包。
 
 ## 许可证
 

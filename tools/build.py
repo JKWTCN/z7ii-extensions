@@ -186,7 +186,7 @@ def build_package(stock_package, stock_master, candidate):
     return packed
 
 
-def main():
+def main(host_builder=build_host):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--stock-package', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True,
@@ -199,7 +199,7 @@ def main():
     if sha(stock_package) != STOCK_PACKAGE_SHA:
         raise ValueError('Requires the exact original C 1.70 update package')
     stock_master = extract_master(stock_package)
-    candidate, report = build_host(stock_master)
+    candidate, report = host_builder(stock_master)
     packed = build_package(stock_package, stock_master, candidate)
     report.update(stock_package_sha256=sha(stock_package), package_sha256=sha(packed),
                   package_bytes=len(packed), only_master_changed=True,
