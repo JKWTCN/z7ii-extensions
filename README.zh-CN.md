@@ -48,6 +48,18 @@ python -B tools/module.py plugins/combined.c --output artifacts/Z72APP.BIN
 
 宿主和模块构建器支持最大 **1 MiB 的 `Z72APP.BIN` 文件**，镜像与 BSS 合计最大 **4 MiB**。文件上限包含文件头和重定位表。
 
+独立 Windows 图形界面程序可直接下载 [build-master.exe](releases/build-master.exe)（[SHA-256 校验](releases/SHA256SUMS)）。程序按 Windows 显示语言自动选择中文或英文，提供原厂固件和输出位置选择，内置二进制补丁与升级包校验逻辑，生成完整升级包和 JSON 校验报告。Rust 源码位于 `tools/build-master`。
+
+在 Windows 上使用 Rust 编译桌面程序：
+
+```powershell
+Push-Location tools/build-master
+cargo build --release
+Pop-Location
+```
+
+运行 `tools/build-master/target/release/build-master.exe`，选择原版 C 1.70 升级包和新的输出文件名，点击“生成宿主固件”。Windows x64 MSVC 构建使用静态 C 运行库。
+
 使用 Python 3.12，`tools/build-master.py` 可直接对原版 C 1.70 升级包应用已验证宿主的二进制补丁，生成完整可刷入升级包及 JSON 校验报告：
 
 ```powershell

@@ -48,6 +48,18 @@ python -B tools/module.py plugins/combined.c --output artifacts/Z72APP.BIN
 
 The host and module builder accept up to **1 MiB per `Z72APP.BIN` file** and **4 MiB for the image plus BSS**. The file limit includes the header and relocation table.
 
+Download [build-master.exe](releases/build-master.exe) for the standalone Windows GUI ([SHA-256](releases/SHA256SUMS)). It selects Chinese or English from the Windows display language and provides file pickers for the original firmware and host firmware output. The executable contains the binary patch and package verification logic. It writes the complete update and a JSON verification report. Its Rust source is in `tools/build-master`.
+
+Build the desktop application with Rust on Windows:
+
+```powershell
+Push-Location tools/build-master
+cargo build --release
+Pop-Location
+```
+
+Run `tools/build-master/target/release/build-master.exe`, select the original C 1.70 update package and a new output filename, then click **Build host firmware**. The Windows x64 MSVC build links the C runtime statically.
+
 With Python 3.12, `tools/build-master.py` applies the verified host's binary patch to the original C 1.70 update package and generates a complete firmware update plus a JSON verification report:
 
 ```powershell
