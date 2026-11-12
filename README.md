@@ -11,11 +11,11 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 | [Framing grid](docs/framing-grid.md) | Off, 2×2, 3×3, 4×4, and Golden ratio, with persistent settings | Hardware verified |
 | [Histogram and virtual horizon](docs/histogram-horizon.md) | Live histogram and virtual horizon together on the rear screen and in the viewfinder in photo mode | Hardware verified |
 | [Portrait display](docs/portrait-ui.md) | Rear-screen shooting information, i menu, and histogram rotate with the camera | Hardware verified |
-| [Menu localization](docs/menu-localization.md) | English, Simplified Chinese, and Traditional Chinese labels for the extension settings | Hardware verified in English and Simplified Chinese |
+| [Menu localization](docs/menu-localization.md) | English, Simplified Chinese, and Traditional Chinese labels for the extension settings | Hardware verified |
 
 ## Known issues
 
-- The framing grid may display incorrectly or disappear. If this happens, turn off the camera, remove and reinsert the battery, then turn the camera back on.
+- The framing grid may display incorrectly or disappear, or extension features may fail to appear. If this happens, turn off the camera, remove and reinsert the battery, and wait until the card access lamp next to the **i** button goes out before turning the camera back on.
 
 ## Risk disclaimer
 
@@ -25,11 +25,15 @@ Proceed with caution: back up your data, verify the camera model, firmware versi
 
 ## Installation
 
-Install this repository's SD loader host before using extensions. See [Building](#building) to generate the firmware update package.
+Install this repository's SD loader host before using extensions. Subsequent extension updates only require replacing `Z72APP.BIN` on the SD card.
 
-1. Wait for card access to finish, turn off the camera, and remove the battery for about 30 seconds.
+The Windows GUI host firmware builder is available from [Releases](https://github.com/JKWTCN/z7ii-extensions/releases/tag/build-master).
+
+For instructions on building the firmware update package yourself, see [Building](#building).
+
+1. Wait for card access to finish, turn off the camera, and remove the memory card.
 2. Copy [Z72APP.BIN](releases/v0.1.0-preview.6/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
-3. Reinsert the card and battery, then turn on the camera.
+3. Reinsert the card and battery, wait until the card access lamp next to the **i** button goes out, then turn on the camera.
 
 Current release `v0.1.0-preview.6` · 18,480 bytes · [SHA-256 checksum](releases/v0.1.0-preview.6/SHA256SUMS)
 
