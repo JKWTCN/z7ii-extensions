@@ -5,11 +5,15 @@
 
 /* C 1.70 platform binding for owned rows prepended to the setup menu. */
 #define Z72_SETUP_MENU 0xb1853e64u
+#ifndef Z72_MENU_SLOT
 #define Z72_MENU_SLOT 255u /* Grid labels use slots 250 through 254. */
+#endif
 #define Z72_MENU_ROW_ID 0x2fffu
 #define Z72_MENU_ROWS 42u
 #define Z72_MENU_EVENTS 61u
+#ifndef Z72_MENU_EXTRA_ROWS
 #define Z72_MENU_EXTRA_ROWS 2u
+#endif
 typedef z72_u32 (*z72_menu_callback)(z72_u32,z72_u32,z72_u32,z72_u32);
 struct z72_menu_row {
     const char *label;

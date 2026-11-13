@@ -12,7 +12,11 @@ static u32 zebra_callbacks[5],zebra_view,zebra_root_row;
 static u32 zebra_header_owned(u32 header)
 {
     for (u32 i=0;i<3;++i) if (header==(u32)zebra_views[i].header) return 1;
+#ifdef Z72_CUSTOM_DISP
+    return disp_header_owned(header);
+#else
     return 0;
+#endif
 }
 
 static u32 zebra_pattern_value(u32 pattern)

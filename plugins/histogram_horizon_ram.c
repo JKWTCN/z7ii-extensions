@@ -146,8 +146,16 @@ static u32 average(u32 total,u32 count)
 
 static enum histogram_result update_histogram(void)
 {
-    if (BYTE(DISPLAY_SNAPSHOT+0x19e)!=3) return OTHER_PAGE;
-    if (BYTE(LAST_DISPLAY_SNAPSHOT+0x19e)!=3) return PREVIOUS_PAGE;
+    u32 page=3;
+#ifdef Z72_CUSTOM_DISP
+    u32 custom=disp_custom_live();
+    if (custom) {
+        page=BYTE(DISPLAY_SNAPSHOT+0x19e);
+        if ((page!=0 && page!=3) || !(disp_components()&Z72_DISP_HISTOGRAM)) return OTHER_PAGE;
+    }
+#endif
+    if (BYTE(DISPLAY_SNAPSHOT+0x19e)!=page) return OTHER_PAGE;
+    if (BYTE(LAST_DISPLAY_SNAPSHOT+0x19e)!=page) return PREVIOUS_PAGE;
     if (BYTE(DISPLAY_SNAPSHOT+0x1a6) || BYTE(0xb1821b18) || BYTE(0xb202e294))
         return WRONG_CONTEXT;
     if (CALL(0x104a9825,u32,void)()) return MENU_BLOCKED;
@@ -187,9 +195,23 @@ static enum histogram_result update_histogram(void)
      * need to be extended during placement of this one widget. */
     BYTE(HISTOGRAM_CONTROL)=1;
     BYTE(HISTOGRAM_CONTROL+1)=1;
-    set_histogram_masks(0xcccu);
+#ifdef Z72_CUSTOM_DISP
+    if (custom) {
+        WORD(HISTOGRAM_MASKS)=0x444u|(0x11u<<page);
+        WORD(HISTOGRAM_MASKS+12)=0x444u|(0x11u<<page);
+    }
+    else
+#endif
+        set_histogram_masks(0xcccu);
     layout_histogram();
-    set_histogram_masks(0x444u);
+#ifdef Z72_CUSTOM_DISP
+    if (custom) {
+        WORD(HISTOGRAM_MASKS)=0x444u;
+        WORD(HISTOGRAM_MASKS+12)=0x444u;
+    }
+    else
+#endif
+        set_histogram_masks(0x444u);
     enum histogram_result result=BYTE(HISTOGRAM_CONTROL+1)==1 ? PAINTER_MISMATCH : LAYOUT_HIDDEN;
     u32 painter=WORD(object+0x4c);
     if (BYTE(HISTOGRAM_CONTROL+1)==1 && WORD(HISTOGRAM_CONTROL+0x24)==object &&
@@ -209,7 +231,7 @@ static enum histogram_result update_histogram(void)
              * Restore the ordinary painter before another page can use it. */
             if (WORD(HISTOGRAM_CONTROL+0x24)!=object) return INVALID_OBJECT;
             CALL(0x10739a7d,u32,u32,u32)(object,DEFAULT_DRAW);
-            if (drawn && paint_visible && BYTE(DISPLAY_SNAPSHOT+0x19e)==3 &&
+            if (drawn && paint_visible && BYTE(DISPLAY_SNAPSHOT+0x19e)==page &&
                 active_photo_output()==output && !CALL(0x106355a1,u32,void)()) {
                 /* The stock present routine routes the current output. */
                 CALL(0x105218bb,void,void)();
@@ -239,7 +261,11 @@ static u32 gui_update(u32 a,u32 b,u32 c,u32 d)
 #ifdef Z72_PORTRAIT_HISTOGRAM
     u32 orientation=portrait_histogram_orientation();
     u32 page=BYTE(DISPLAY_SNAPSHOT+0x19e);
-    clear_portrait_histogram(page==2 || page==3 ? orientation : 0);
+    u32 histogram_page=page==2 || page==3;
+#ifdef Z72_CUSTOM_DISP
+    if (disp_custom_live()) histogram_page=!!(disp_components()&Z72_DISP_HISTOGRAM);
+#endif
+    clear_portrait_histogram(histogram_page ? orientation : 0);
     /* The stock sampler uses the DISP page directly. Suppress only the
      * landscape widget during this synchronous pass. */
     u32 hide=orientation && (page==2 || BYTE(LAST_DISPLAY_SNAPSHOT+0x19e)==2) &&
@@ -263,7 +289,11 @@ static u32 gui_update(u32 a,u32 b,u32 c,u32 d)
 #endif
     u32 after=WORD(DISPLAY_UPDATE_TICK);
     enum histogram_result outcome=NO_TICK;
-    if ((portrait_normal || BYTE(DISPLAY_SNAPSHOT+0x19e)==3) &&
+    u32 extra=portrait_normal || BYTE(DISPLAY_SNAPSHOT+0x19e)==3;
+#ifdef Z72_CUSTOM_DISP
+    if (disp_custom_live()) extra=!!(disp_components()&Z72_DISP_HISTOGRAM);
+#endif
+    if (extra &&
         ((after && after!=before) || !CALL(0x1061e41d,u32,void)())) {
         u32 now=CALL(0x1062e59d,u32,void)();
         if (output_before!=WORD(ACTIVE_OUTPUT_BITS)) {

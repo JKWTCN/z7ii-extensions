@@ -100,7 +100,16 @@ static void capture(u32 channel,void *message,u32 mode,u32 immediate)
          * its producer. A stack or shared scratch replacement is not valid.
          * Capturing is bounded, but transformation continues after saturation.
          */
-        u32 changed=grid_transform((void *)descriptor,style);
+        u32 changed;
+#ifdef Z72_CUSTOM_DISP
+        if ((code&0xffffff00u)==0x42060000u && !mode && disp_custom_live() &&
+            !(disp_components()&Z72_DISP_GRID)) {
+            volatile unsigned char *grid=(volatile unsigned char *)descriptor;
+            changed=grid[0x12] || grid[0x1e];
+            grid[0x12]=grid[0x1e]=0;
+        } else
+#endif
+            changed=grid_transform((void *)descriptor,style);
 #if Z72_GRID_TRACE
         transformed_counts[channel]+=changed;
         if(record) record[11]=changed;

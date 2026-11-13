@@ -4,6 +4,10 @@ In photo mode, press DISP to select the virtual horizon page on the rear screen 
 
 在照片模式使用后屏或电子取景器，按 DISP 切到水平仪页即可同时查看原厂实时直方图。组合版保留取景网格和已保存的网格设置。
 
+When [Custom DISP pages](custom-disp.md) is enabled, the rear LCD follows each preset's Histogram and Virtual horizon switches. The viewfinder keeps its native DISP cycle.
+
+启用[自定义 DISP 页面](custom-disp.md)后，后屏按每套预设的「直方图」「水平仪」开关显示；取景器仍使用原厂 DISP 循环。
+
 The module limits the histogram refresh rate and skips extra draws while a display switch is pending or the renderer is busy.
 
 模块限制直方图的刷新频率，并在等待切换显示器或渲染繁忙时跳过追加绘制。

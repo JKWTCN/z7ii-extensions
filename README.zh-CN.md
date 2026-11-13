@@ -12,6 +12,7 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 | [直方图与水平仪同显](docs/histogram-horizon.md) | 照片模式下，后屏和电子取景器均可同时显示实时直方图与水平仪 | 已实机验证 |
 | [后屏竖拍界面](docs/portrait-ui.md)             | 拍摄信息、i 菜单和直方图随相机方向转正                     | 已实机验证 |
 | [照片拍摄加亮显示](docs/photo-highlights.md)    | LCD 与取景器的独立照片斑马纹，支持两种图案和八档阈值       | 已实机验证 |
+| [自定义 DISP 页面](docs/custom-disp.md) | 照片 LCD 页面开关、四套预设、七项拍摄信息及原厂参数信息页 | 已实机验证 |
 | [菜单本地化](docs/menu-localization.md)         | 扩展设置支持简体中文、繁体中文和英文标签                   | 已实机验证 |
 
 ## 已知问题
@@ -33,10 +34,10 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 如果要自己构建固件升级包的生成方法见[构建](#构建)。
 
 1. 等待存储卡访问结束，关机并取出存储卡。
-2. 将 [Z72APP.BIN](releases/v0.1.0-preview.7/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.8/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
 3. 装回卡和电池，等待到 i 按键旁边的读取灯灭了再开机。
 
-当前版本为 `v0.1.0-preview.7`，模块 29,896 字节。[SHA-256 校验](releases/v0.1.0-preview.7/SHA256SUMS)
+当前版本为 `v0.1.0-preview.8`，模块 41,524 字节。[SHA-256 校验](releases/v0.1.0-preview.8/SHA256SUMS)
 
 这是试用版本，休眠唤醒和长期稳定性尚未单独确认。替换或移除模块请完整断电。只加载可信模块。
 

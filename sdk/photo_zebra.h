@@ -8,6 +8,17 @@
 #define Z72_ZEBRA_BYTE(a) (*(volatile unsigned char *)(a))
 #define Z72_ZEBRA_CALL(a, result, ...) ((result (*)(__VA_ARGS__))(a))
 
+/* Page visibility selects the existing photo pattern without changing its
+ * saved pattern or threshold, or the EVF/movie preferences. */
+static inline z72_u32 zebra_pattern(void)
+{
+#ifdef Z72_CUSTOM_DISP
+    if (disp_information_visible()) return 0;
+    if (disp_custom_live() && !(disp_components()&Z72_DISP_ZEBRA)) return 0;
+#endif
+    return z72_config_current.photo_zebra_pattern;
+}
+
 static volatile z72_u32 zebra_gui_calls,zebra_graphics_calls,zebra_probe_count;
 static volatile z72_u32 zebra_probe_records[16][24],zebra_probe_last[24],zebra_probe_sequence;
 static volatile z72_u32 zebra_packet_calls[2],zebra_packet_invalid[2];
@@ -80,7 +91,7 @@ static z72_u32 zebra_packet_cancel(const void *message)
     z72_u32 output=zebra_command_output(zebra_evf_message[4]);
     const volatile z72_u32 *row=zebra_packet_records[output==4 ? 2 : 0];
     if (zebra_photo_output()==output && !zebra_photo_context(Z72_ZEBRA_WORD(0xb25519b8u)) &&
-        row[37] && row[10]==z72_config_current.photo_zebra_pattern &&
+        row[37] && row[10]==zebra_pattern() &&
         row[11]==z72_config_current.photo_zebra_threshold) return 0;
     __atomic_store_n(&zebra_evf_pending,0,__ATOMIC_RELEASE);
     return 1;
@@ -95,9 +106,13 @@ static void zebra_evf_request(void)
 #if !Z72_ZEBRA_OBSERVE_ONLY
     z72_u32 mode=Z72_ZEBRA_WORD(0xb25519b8u);
     z72_u32 output=zebra_photo_output();
-    z72_u32 pattern=z72_config_current.photo_zebra_pattern;
+    z72_u32 pattern=zebra_pattern();
     z72_u32 threshold=z72_config_current.photo_zebra_threshold;
-    if (!output || (output==1 && !zebra_evf_completed) ||
+    z72_u32 lcd_request=0;
+#ifdef Z72_CUSTOM_DISP
+    lcd_request=disp_custom_live();
+#endif
+    if (!output || (output==1 && !zebra_evf_completed && !lcd_request) ||
         zebra_photo_context(mode) || pattern>2 || threshold>7) {
         zebra_evf_key=0; return;
     }
@@ -158,7 +173,7 @@ static z72_u32 zebra_producer(z72_u32 kind,z72_u32 context,z72_u32 a,z72_u32 b,z
     z72_u32 image=0,work=0,before=0xffffffffu,changed=0,reason=1;
     z72_u32 mode=Z72_ZEBRA_WORD(0xb25519b8u),state=Z72_ZEBRA_WORD(0xb1808580u);
     z72_u32 output=zebra_photo_output();
-    z72_u32 pattern=z72_config_current.photo_zebra_pattern,object=zebra_output_objects[output==4];
+    z72_u32 pattern=zebra_pattern(),object=zebra_output_objects[output==4];
     const volatile z72_u32 *row=zebra_packet_records[output==4 ? 2 : 0];
     if (!zebra_photo_context(mode) &&
         pattern && pattern<=2 && row[37] && row[10]==pattern &&
@@ -249,7 +264,7 @@ static void zebra_source_update(z72_u32 event)
 #if !Z72_ZEBRA_OBSERVE_ONLY
     ++zebra_source_calls;
     if (zebra_photo_context(Z72_ZEBRA_WORD(0xb25519b8u))) return;
-    z72_u32 pattern=z72_config_current.photo_zebra_pattern;
+    z72_u32 pattern=zebra_pattern();
     z72_u32 output=zebra_photo_output(),root=output==4 ? 0xb1d6ad3cu : 0xb1d697dcu;
     z72_u32 state=Z72_ZEBRA_WORD(0xb1808580u),object=zebra_output_objects[output==4];
     z72_u32 active=Z72_ZEBRA_BYTE(root+0x5d8),capacity=Z72_ZEBRA_WORD(root+0xc);
@@ -305,7 +320,7 @@ static void zebra_pending_update(void)
 #if !Z72_ZEBRA_OBSERVE_ONLY
     if (zebra_photo_context(Z72_ZEBRA_WORD(0xb25519b8u))) return;
     z72_u32 output=zebra_photo_output();
-    z72_u32 pattern=z72_config_current.photo_zebra_pattern;
+    z72_u32 pattern=zebra_pattern();
     const volatile z72_u32 *row=zebra_packet_records[output==4 ? 2 : 0];
     if (!pattern || pattern>2 || !row[37] || row[10]!=pattern ||
         row[11]!=z72_config_current.photo_zebra_threshold) return;
@@ -359,7 +374,7 @@ static void zebra_frame_update(const volatile z72_u32 *msg)
         z72_u32 mode=Z72_ZEBRA_WORD(0xb25519b8u);
         if (mode) continue;
         z72_u32 before=Z72_ZEBRA_WORD(descriptor+0x30),reason=0;
-        z72_u32 pattern=z72_config_current.photo_zebra_pattern;
+        z72_u32 pattern=zebra_pattern();
 #if !Z72_ZEBRA_OBSERVE_ONLY
         reason=zebra_photo_context(mode);
         if (!reason && (!pattern || pattern>2)) reason=pattern ? 6u : 9u;
@@ -426,7 +441,7 @@ static void zebra_commit(z72_u32 state,z72_u32 result)
     z72_u32 format=Z72_ZEBRA_BYTE(state+0x268);
     if ((phase!=3 && phase!=4) || format>4) return;
     z72_u32 enabled=Z72_ZEBRA_WORD(state+0x28);
-    z72_u32 pattern=z72_config_current.photo_zebra_pattern;
+    z72_u32 pattern=zebra_pattern();
     if (enabled>1 || pattern>2 || z72_config_current.photo_zebra_threshold>7) return;
     if (pattern) {
         /* Require our current parameters, not an inherited movie request. */
@@ -479,7 +494,7 @@ static void zebra_packet_complete(z72_u32 command,z72_u32 result)
     zebra_post_record[8]=Z72_ZEBRA_BYTE(0xb1d178dcu);
     zebra_post_record[9]=mode; zebra_post_record[10]=valid;
     zebra_post_record[11]=Z72_ZEBRA_WORD(0xb181d3a4u);
-    zebra_post_record[12]=z72_config_current.photo_zebra_pattern;
+    zebra_post_record[12]=zebra_pattern();
     zebra_post_record[13]=z72_config_current.photo_zebra_threshold;
     z72_u32 object=zebra_last_object;
     zebra_post_record[14]=!(object&3u) && object>=0xb0000000u && object<=0xc0000000u-0x84u ?
@@ -542,7 +557,7 @@ static void zebra_packet_update(z72_u32 channel,const void *message)
     row[4]=mode; row[5]=menu; row[6]=Z72_ZEBRA_BYTE(0xb1828174u);
     row[7]=Z72_ZEBRA_WORD(0xb181d3a4u);
     row[8]=Z72_ZEBRA_BYTE(0xb202be70u); row[9]=Z72_ZEBRA_BYTE(0xb202c00eu);
-    row[10]=z72_config_current.photo_zebra_pattern;
+    row[10]=zebra_pattern();
     row[11]=z72_config_current.photo_zebra_threshold;
     /* Disabled requests define only their first word; do not read stale fields. */
     row[12]=enabled;
@@ -579,7 +594,7 @@ static void zebra_probe_snapshot(z72_u32 *row)
             row[15]=Z72_ZEBRA_WORD(object+0x5c); row[16]=Z72_ZEBRA_BYTE(object+0x80);
         }
     }
-    row[17]=z72_config_current.photo_zebra_pattern;
+    row[17]=zebra_pattern();
     row[18]=z72_config_current.photo_zebra_threshold;
     row[19]=property(0x169a); row[20]=property(0x118e); row[21]=property(0x118f);
     row[22]=Z72_ZEBRA_WORD(0xb181dd90u); row[23]=Z72_ZEBRA_OBSERVE_ONLY;

@@ -125,6 +125,9 @@ static enum page current_page(void)
     u32 menu_state=BYTE(MENU_TASK_STATE), playback_state=BYTE(PLAYBACK_TASK_STATE);
     if (WORD(MENU_REQUEST) || (menu_state>=1 && menu_state<=3) ||
         (playback_state>=1 && playback_state<=3)) return NATIVE_SCREEN;
+#ifdef Z72_CUSTOM_DISP
+    if (app==15 && WORD(APP_ROOTS+15*4)==DISP_INFORMATION_APP) return NATIVE_SCREEN;
+#endif
     if (app && app==__atomic_load_n(&external_app,__ATOMIC_ACQUIRE)) {
         u32 root=external_root(app);
         if (root && WORD(APP_ROOTS+app*4)==root) return EXTERNAL_SETTING;
@@ -1118,6 +1121,9 @@ static void clear_portrait_histogram(u32 orientation)
 __attribute__((target("hwdiv")))
 static u32 draw_portrait_histogram(u32 orientation)
 {
+#ifdef Z72_CUSTOM_DISP
+    if (disp_custom_live() && !(disp_components()&Z72_DISP_HISTOGRAM)) return 0;
+#endif
     u32 scale=WORD(HISTOGRAM_STATE+0x34);
     if (!scale || !BYTE(HISTOGRAM_STATE+0x10) || portrait_histogram_orientation()!=orientation)
         return 0;
@@ -1151,6 +1157,17 @@ static u32 draw_portrait_histogram(u32 orientation)
 
 static u32 live_update(u32 a,u32 b,u32 c,u32 d)
 {
+#ifdef Z72_CUSTOM_DISP
+    disp_update();
+    if (BYTE(APP_CURRENT)==15) {
+        live_orientation=0;
+        last_plot_orientation=0;
+#ifdef Z72_PHOTO_ZEBRA
+        z72_photo_zebra_update();
+#endif
+        return 0; /* The native parameter app now owns the GUI update. */
+    }
+#endif
     if (current_page()!=LIVE) {
         live_orientation=0;
         last_plot_orientation=0;
@@ -1273,7 +1290,13 @@ static u32 disable_rotation(u32 a,u32 b,u32 c,u32 d)
 }
 
 #ifdef Z72_PHOTO_ZEBRA
+#ifdef Z72_CUSTOM_DISP
+static u32 disp_header_owned(u32 header);
+#endif
 #include "photo_zebra_menu.h"
+#endif
+#ifdef Z72_CUSTOM_DISP
+#include "disp_menu.h"
 #endif
 
 static u32 portrait_install_menu(void)
@@ -1332,6 +1355,9 @@ static u32 portrait_install_menu(void)
 #ifdef Z72_PHOTO_ZEBRA
         {"Photo shooting highlights",open_zebra_menu,rotation_value(z72_config_current.photo_zebra_pattern)},
 #endif
+#ifdef Z72_CUSTOM_DISP
+        {"Custom DISP pages",open_disp_menu,rotation_value(z72_config_current.disp_enabled&Z72_DISP_CUSTOM)},
+#endif
 #if Z72_PORTRAIT_TRACE
         {"Portrait probe: export log",export_probe,0xd7},
 #endif
@@ -1346,10 +1372,17 @@ static u32 portrait_install_menu(void)
         menu.rows[1][4]=0x1001;
 #endif
         rotation_menu.title[0]=Z72_TEXT_AUTO_ROTATE;
+#ifdef Z72_CUSTOM_DISP
+        menu.rows[2][0]=Z72_TEXT_DISP_TITLE;
+        menu.rows[2][4]=0x1001;
+#endif
     }
 #ifdef Z72_PHOTO_ZEBRA
     choice_localized=rotation_menu.title[0]!=0;
     zebra_menu_prepare();
+#endif
+#ifdef Z72_CUSTOM_DISP
+    disp_menu_prepare();
 #endif
     z72_menu_publish_rows(&menu,count);
     page[1]=WORD(SETUP_PAGE+4);

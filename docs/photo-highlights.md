@@ -19,6 +19,10 @@ Preferences are saved alongside the framing-grid and automatic-rotation settings
 
 设置与取景网格、自动旋转信息显示一同保存。LCD 与取景器共用照片加亮设置，切换显示设备时恢复对应参数。临时诊断菜单和日志导出已移除。
 
+On the rear LCD, [Custom DISP pages](custom-disp.md) can additionally hide or allow photo highlights for each preset without changing the saved pattern or threshold.
+
+后屏的[自定义 DISP 页面](custom-disp.md)还可逐页关闭或允许显示照片加亮，不改变已保存的图案和阈值。
+
 ## Verification / 验证
 
 Photo highlight display on LCD and EVF has been verified on a Z 7II. The Simplified Chinese and English Setup Menu entries, pattern indicator and numeric threshold have also been hardware verified. This does not establish that every pattern/threshold combination or long-term stability has been tested.
