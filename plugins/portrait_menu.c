@@ -1220,6 +1220,9 @@ static u32 draw_portrait_histogram(u32 orientation)
 
 static u32 live_update(u32 a,u32 b,u32 c,u32 d)
 {
+#ifdef Z72_AF_SHORTCUT
+    af_shortcut_update();
+#endif
 #ifdef Z72_CUSTOM_DISP
     disp_update();
     if (BYTE(APP_CURRENT)==15) {
@@ -1353,6 +1356,9 @@ static u32 disable_rotation(u32 a,u32 b,u32 c,u32 d)
 }
 
 #ifdef Z72_PHOTO_ZEBRA
+#ifdef Z72_AF_SHORTCUT
+static u32 af_menu_header_owned(u32 header);
+#endif
 #ifdef Z72_CUSTOM_DISP
 static u32 disp_header_owned(u32 header);
 #endif
