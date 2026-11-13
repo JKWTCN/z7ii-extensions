@@ -31,9 +31,9 @@ static u32 battery_owned_object(void)
 __attribute__((noinline)) static void battery_prepare(void)
 {
     if ((z72_config_current.disp_enabled&Z72_BATTERY_PERCENT_ON) || !battery_text_object) return;
-    if (display_work_pending()) return;
     u32 object=battery_owned_object();
     if (!object || !WORD(object+0x28)) return;
+    if (display_work_pending()) return;
     /* Retire the overlay BEFORE native painting, then let the stock battery
      * layers restore the hatch. A hidden dirty text node drawn last would
      * erase part of that newly restored icon. */
@@ -117,6 +117,12 @@ static u32 battery_painter(u32 object,u32 next,u32 c,u32 d)
 
 __attribute__((noinline)) static void battery_update(u32 output_before,u32 orientation)
 {
+    /* battery_prepare retires the owned overlay before the native pass. No
+     * container, icon, readiness or clock queries are needed while disabled. */
+    if (!(z72_config_current.disp_enabled&Z72_BATTERY_PERCENT_ON)) {
+        battery_sampled=0;
+        return;
+    }
     u32 container=WORD(0xb202ce20u);
     if (container<0xb1800000u || container>=0xc0000000u || (container&3u)) return;
     if (*(volatile unsigned short *)(container+4)<=BATTERY_POOL_SLOT) return;
@@ -134,7 +140,7 @@ __attribute__((noinline)) static void battery_update(u32 output_before,u32 orien
         !(menu>=1 && menu<=3) && !(playback>=1 && playback<=3);
     u32 icon=0;
     for (u32 i=0;i<10;++i) icon|=BYTE(0xb2bb22e9u+48*i);
-    visible=visible && icon && (z72_config_current.disp_enabled&Z72_BATTERY_PERCENT_ON);
+    visible=visible && icon;
     if (display_work_pending() || !CALL(0x1052336bu,u32,void)()) return;
     if (!visible) {
         if (object) CALL(0x106361b7u,u32,u32,u32)(object,0);

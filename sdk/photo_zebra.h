@@ -8,6 +8,16 @@
 #define Z72_ZEBRA_BYTE(a) (*(volatile unsigned char *)(a))
 #define Z72_ZEBRA_CALL(a, result, ...) ((result (*)(__VA_ARGS__))(a))
 
+/* Opt in only for diagnostic builds; normal display callbacks keep no trace. */
+#ifndef Z72_ZEBRA_DIAGNOSTIC
+#define Z72_ZEBRA_DIAGNOSTIC 0
+#endif
+#if Z72_ZEBRA_DIAGNOSTIC
+#define Z72_ZEBRA_DIAG(statement) do { statement; } while (0)
+#else
+#define Z72_ZEBRA_DIAG(statement) do { } while (0)
+#endif
+
 /* Page visibility selects the existing photo pattern without changing its
  * saved pattern or threshold, or the EVF/movie preferences. */
 static inline z72_u32 zebra_pattern(void)
@@ -19,14 +29,14 @@ static inline z72_u32 zebra_pattern(void)
     return z72_config_current.photo_zebra_pattern;
 }
 
+#if Z72_ZEBRA_DIAGNOSTIC
 static volatile z72_u32 zebra_gui_calls,zebra_graphics_calls,zebra_probe_count;
 static volatile z72_u32 zebra_probe_records[16][24],zebra_probe_last[24],zebra_probe_sequence;
 static volatile z72_u32 zebra_packet_calls[2],zebra_packet_invalid[2];
 static volatile z72_u32 zebra_packet_counts[4],zebra_packet_menus[4];
-static volatile z72_u32 zebra_packet_sequence[4],zebra_packet_records[4][40];
+static volatile z72_u32 zebra_packet_sequence[4];
 static volatile z72_u32 zebra_packet_applied;
 static volatile z72_u32 zebra_last_object,zebra_last_palette;
-static volatile z72_u32 zebra_output_objects[2];
 static volatile z72_u32 zebra_frame_batches,zebra_frame_images,zebra_frame_changed;
 static volatile z72_u32 zebra_frame_sequence,zebra_frame_record[12];
 static volatile z72_u32 zebra_frame_snapshot[236];
@@ -38,6 +48,9 @@ static volatile z72_u32 zebra_source_sequence;
 static volatile z72_u32 zebra_source_calls,zebra_source_changed,zebra_source_record[38];
 static volatile z72_u32 zebra_history_sequence,zebra_history_count,zebra_history[16][4];
 static z72_u32 zebra_history_command,zebra_history_before;
+#endif
+/* Parameter state is also used for cancellation and output restoration. */
+static volatile z72_u32 zebra_packet_records[4][40],zebra_output_objects[2];
 static z72_u32 zebra_packet_apply(volatile z72_u32 *data,z72_u32 mode,z72_u32 command,
                                  z72_u32 pattern,z72_u32 threshold);
 static z72_u32 zebra_evf_message[7],zebra_evf_payload[26],zebra_evf_key;
@@ -122,14 +135,16 @@ static void zebra_evf_request(void)
     if ((state&3u) || state<0xb0000000u || state>0xc0000000u-0x26cu ||
         (Z72_ZEBRA_BYTE(0xb1d178dcu)!=3 && Z72_ZEBRA_BYTE(0xb1d178dcu)!=4) ||
         Z72_ZEBRA_BYTE(state+0x268)>4) return;
-    z72_u32 object=Z72_ZEBRA_CALL(0x1068cf07u,z72_u32,z72_u32,z72_u32,z72_u32)(0,output,0);
-    if ((object&3u) || object<0xb0000000u || object>0xc0000000u-0x84u ||
-        Z72_ZEBRA_BYTE(object+0x80)) return;
     const volatile z72_u32 *row=zebra_packet_records[output==4 ? 2 : 0];
     if (__atomic_load_n(&zebra_evf_applied_generation,__ATOMIC_ACQUIRE)==zebra_evf_generation &&
         row[37] && row[10]==pattern && row[11]==threshold &&
         Z72_ZEBRA_WORD(state+0x28)==(pattern!=0) &&
         (!pattern || Z72_ZEBRA_BYTE(state+0x88)==(output==4 ? 2u : 0u))) return;
+    /* A settled request needs no object lookup. Revalidate before queuing any
+     * new request, including restoration after a native state change. */
+    z72_u32 object=Z72_ZEBRA_CALL(0x1068cf07u,z72_u32,z72_u32,z72_u32,z72_u32)(0,output,0);
+    if ((object&3u) || object<0xb0000000u || object>0xc0000000u-0x84u ||
+        Z72_ZEBRA_BYTE(object+0x80)) return;
     if (__atomic_exchange_n(&zebra_evf_pending,1,__ATOMIC_ACQ_REL)) return;
     for (z72_u32 i=0;i<7;++i) zebra_evf_message[i]=0;
     for (z72_u32 i=0;i<26;++i) zebra_evf_payload[i]=0;
@@ -147,6 +162,7 @@ static void zebra_evf_request(void)
 #endif
 }
 
+#if Z72_ZEBRA_DIAGNOSTIC
 static z72_u32 zebra_state_flags(z72_u32 state)
 {
     return (Z72_ZEBRA_WORD(state+0x20)&255u) |
@@ -154,26 +170,38 @@ static z72_u32 zebra_state_flags(z72_u32 state)
            ((Z72_ZEBRA_WORD(state+0x28)&255u)<<16) |
            ((Z72_ZEBRA_WORD(state+0x24)&255u)<<24);
 }
+#endif
 
 /* These callbacks precede the native metadata copy into the live source queues.
  * Change the frame template only during the original callback, then restore it. */
-static volatile z72_u32 zebra_producer_busy,zebra_producer_calls,zebra_producer_changed;
+static volatile z72_u32 zebra_producer_busy;
+#if Z72_ZEBRA_DIAGNOSTIC
+static volatile z72_u32 zebra_producer_calls,zebra_producer_changed;
 static volatile z72_u32 zebra_producer_restored,zebra_producer_skipped,zebra_producer_hooks;
 static volatile z72_u32 zebra_producer_sequence,zebra_producer_record[16];
+#endif
 static const z72_u32 zebra_producer_native[]={0x1026968bu,0x102697cfu,0x10269a55u,0x10269d37u};
 
 static z72_u32 zebra_producer(z72_u32 kind,z72_u32 context,z72_u32 a,z72_u32 b,z72_u32 c)
 {
     z72_u32 original=zebra_producer_native[kind];
-    __atomic_fetch_add(&zebra_producer_calls,1,__ATOMIC_RELAXED);
+    Z72_ZEBRA_DIAG(__atomic_fetch_add(&zebra_producer_calls,1,__ATOMIC_RELAXED));
+    z72_u32 pattern=zebra_pattern();
+#if !Z72_ZEBRA_DIAGNOSTIC
+    if (!pattern)
+        return Z72_ZEBRA_CALL(original,z72_u32,z72_u32,z72_u32,z72_u32,z72_u32)(context,a,b,c);
+#endif
     if (__atomic_exchange_n(&zebra_producer_busy,1,__ATOMIC_ACQUIRE)) {
-        __atomic_fetch_add(&zebra_producer_skipped,1,__ATOMIC_RELAXED);
+        Z72_ZEBRA_DIAG(__atomic_fetch_add(&zebra_producer_skipped,1,__ATOMIC_RELAXED));
         return Z72_ZEBRA_CALL(original,z72_u32,z72_u32,z72_u32,z72_u32,z72_u32)(context,a,b,c);
     }
-    z72_u32 image=0,work=0,before=0xffffffffu,changed=0,reason=1;
+    z72_u32 image=0,work=0,before=0xffffffffu,changed=0;
+#if Z72_ZEBRA_DIAGNOSTIC
+    z72_u32 reason=1;
+#endif
     z72_u32 mode=Z72_ZEBRA_WORD(0xb25519b8u),state=Z72_ZEBRA_WORD(0xb1808580u);
     z72_u32 output=zebra_photo_output();
-    z72_u32 pattern=zebra_pattern(),object=zebra_output_objects[output==4];
+    z72_u32 object=zebra_output_objects[output==4];
     const volatile z72_u32 *row=zebra_packet_records[output==4 ? 2 : 0];
     if (!zebra_photo_context(mode) &&
         pattern && pattern<=2 && row[37] && row[10]==pattern &&
@@ -184,7 +212,7 @@ static z72_u32 zebra_producer(z72_u32 kind,z72_u32 context,z72_u32 a,z72_u32 b,z
         Z72_ZEBRA_BYTE(state+0x88)==(output==4 ? 2u : 0u) &&
         !(object&3u) && object>=0xb0000000u && object<=0xc0000000u-0x84u &&
         !Z72_ZEBRA_BYTE(object+0x80)) {
-        reason=2;
+        Z72_ZEBRA_DIAG(reason=2);
         if (!(context&3u) && context>=0xb0000000u && context<=0xc0000000u-0x78u &&
             !Z72_ZEBRA_WORD(context+4) && !Z72_ZEBRA_BYTE(context+0x74)) {
             work=Z72_ZEBRA_WORD(context+0xc);
@@ -192,11 +220,12 @@ static z72_u32 zebra_producer(z72_u32 kind,z72_u32 context,z72_u32 a,z72_u32 b,z
                 z72_u32 candidate=Z72_ZEBRA_WORD(work+0x144);
                 if (!(candidate&3u) && candidate>=0xb0000000u && candidate<=0xc0000000u-0x46cu) {
                     image=candidate; before=Z72_ZEBRA_WORD(image+0x468);
-                    reason=before>1 ? 3 : 0;
+                    Z72_ZEBRA_DIAG(reason=before>1 ? 3 : 0);
                     if (!before) {
                         Z72_ZEBRA_WORD(image+0x468)=1;
                         __asm__ volatile("dmb sy" ::: "memory");
-                        changed=1; ++zebra_producer_changed;
+                        changed=1;
+                        Z72_ZEBRA_DIAG(++zebra_producer_changed);
                     }
                 }
             }
@@ -207,8 +236,9 @@ static z72_u32 zebra_producer(z72_u32 kind,z72_u32 context,z72_u32 a,z72_u32 b,z
     if (changed && after==1) {
         Z72_ZEBRA_WORD(image+0x468)=before;
         __asm__ volatile("dmb sy" ::: "memory");
-        ++zebra_producer_restored;
+        Z72_ZEBRA_DIAG(++zebra_producer_restored);
     }
+#if Z72_ZEBRA_DIAGNOSTIC
     __atomic_fetch_add(&zebra_producer_sequence,1,__ATOMIC_ACQ_REL);
     zebra_producer_record[0]=kind; zebra_producer_record[1]=context;
     zebra_producer_record[2]=work; zebra_producer_record[3]=image;
@@ -221,6 +251,7 @@ static z72_u32 zebra_producer(z72_u32 kind,z72_u32 context,z72_u32 a,z72_u32 b,z
     zebra_producer_record[13]=changed; zebra_producer_record[14]=pattern;
     zebra_producer_record[15]=z72_config_current.photo_zebra_threshold;
     __atomic_fetch_add(&zebra_producer_sequence,1,__ATOMIC_RELEASE);
+#endif
     __atomic_store_n(&zebra_producer_busy,0,__ATOMIC_RELEASE);
     return result;
 }
@@ -248,7 +279,7 @@ static void zebra_producer_install(void)
     for (z72_u32 i=0;i<sizeof(slots)/sizeof(slots[0]);++i) {
         if (Z72_ZEBRA_WORD(slots[i][0])!=zebra_producer_native[slots[i][1]]) continue;
         Z72_ZEBRA_WORD(slots[i][0])=handlers[slots[i][1]];
-        ++zebra_producer_hooks;
+        Z72_ZEBRA_DIAG(++zebra_producer_hooks);
     }
     __asm__ volatile("dmb sy" ::: "memory");
 #else
@@ -262,9 +293,12 @@ static void zebra_producer_install(void)
 static void zebra_source_update(z72_u32 event)
 {
 #if !Z72_ZEBRA_OBSERVE_ONLY
-    ++zebra_source_calls;
+    Z72_ZEBRA_DIAG(++zebra_source_calls);
     if (zebra_photo_context(Z72_ZEBRA_WORD(0xb25519b8u))) return;
     z72_u32 pattern=zebra_pattern();
+#if !Z72_ZEBRA_DIAGNOSTIC
+    if (!pattern || pattern>2) return;
+#endif
     z72_u32 output=zebra_photo_output(),root=output==4 ? 0xb1d6ad3cu : 0xb1d697dcu;
     z72_u32 state=Z72_ZEBRA_WORD(0xb1808580u),object=zebra_output_objects[output==4];
     z72_u32 active=Z72_ZEBRA_BYTE(root+0x5d8),capacity=Z72_ZEBRA_WORD(root+0xc);
@@ -277,6 +311,9 @@ static void zebra_source_update(z72_u32 event)
         Z72_ZEBRA_BYTE(state+0x268)<=4 && Z72_ZEBRA_WORD(state+0x28)==1 &&
         Z72_ZEBRA_BYTE(state+0x88)==(output==4 ? 2u : 0u) &&
         object_valid && !Z72_ZEBRA_BYTE(object+0x80) && capacity==8 && active && active<=2;
+#if !Z72_ZEBRA_DIAGNOSTIC
+    if (!eligible) return;
+#else
     z72_u32 changed=0,first=0,before=0xffffffffu,seen=0;
     __atomic_fetch_add(&zebra_source_sequence,1,__ATOMIC_ACQ_REL);
     zebra_source_record[8]=capacity; zebra_source_record[9]=active;
@@ -288,18 +325,23 @@ static void zebra_source_update(z72_u32 event)
     zebra_source_record[13]=eligible;
     zebra_source_record[14]=Z72_ZEBRA_WORD(root+0x70);
     zebra_source_record[15]=Z72_ZEBRA_WORD(root+0x74);
+#endif
     for (z72_u32 i=0;i<11;++i) {
         z72_u32 source=Z72_ZEBRA_WORD(root+(i<8 ? 0x10+i*4 : 0x714+(i-8)*4));
-        zebra_source_record[16+i]=source;
-        zebra_source_record[27+i]=0xffffffffu;
+        Z72_ZEBRA_DIAG(zebra_source_record[16+i]=source);
+        Z72_ZEBRA_DIAG(zebra_source_record[27+i]=0xffffffffu);
         if (source<root+0xf8 || source>=root+0x538 ||
             (source-root-0xf8)%0x88u) continue;
         z72_u32 flag=Z72_ZEBRA_WORD(source+0x68);
-        zebra_source_record[27+i]=flag;
-        if (!first) { first=source; before=flag; }
-        ++seen;
-        if (eligible && !flag) { Z72_ZEBRA_WORD(source+0x68)=1; ++changed; }
+        Z72_ZEBRA_DIAG(zebra_source_record[27+i]=flag);
+        Z72_ZEBRA_DIAG(if (!first) { first=source; before=flag; });
+        Z72_ZEBRA_DIAG(++seen);
+        if (eligible && !flag) {
+            Z72_ZEBRA_WORD(source+0x68)=1;
+            Z72_ZEBRA_DIAG(++changed);
+        }
     }
+#if Z72_ZEBRA_DIAGNOSTIC
     zebra_source_changed+=changed;
     zebra_source_record[0]=event; zebra_source_record[1]=seen;
     zebra_source_record[2]=changed; zebra_source_record[3]=first;
@@ -308,6 +350,9 @@ static void zebra_source_update(z72_u32 event)
     zebra_source_record[6]=valid ? Z72_ZEBRA_WORD(state+0x20) : 0xffffffffu;
     zebra_source_record[7]=valid ? Z72_ZEBRA_WORD(state+0x1c) : 0xffffffffu;
     __atomic_fetch_add(&zebra_source_sequence,1,__ATOMIC_RELEASE);
+#else
+    (void)event;
+#endif
 #else
     (void)event;
 #endif
@@ -334,18 +379,29 @@ static void zebra_pending_update(void)
     if ((object&3u) || object<0xb0000000u || object>0xc0000000u-0x84u ||
         Z72_ZEBRA_BYTE(object+0x80)) return;
     z72_u32 pending=Z72_ZEBRA_WORD(0xb1d0da48u),cached=0;
+#if Z72_ZEBRA_DIAGNOSTIC
     z72_u32 before=0xffffffffu,cache_before=0xffffffffu;
     __atomic_fetch_add(&zebra_pending_sequence,1,__ATOMIC_ACQ_REL);
     ++zebra_pending_calls;
+#endif
     if (!(pending&3u) && pending>=0xb0000000u && pending<=0xc0000000u-0x34u) {
-        before=Z72_ZEBRA_WORD(pending+0x30);
-        if (!before) { Z72_ZEBRA_WORD(pending+0x30)=1; ++zebra_pending_changed; }
+        z72_u32 flag=Z72_ZEBRA_WORD(pending+0x30);
+        Z72_ZEBRA_DIAG(before=flag);
+        if (!flag) {
+            Z72_ZEBRA_WORD(pending+0x30)=1;
+            Z72_ZEBRA_DIAG(++zebra_pending_changed);
+        }
     }
     if (Z72_ZEBRA_BYTE(state+0x51c)==1 && !Z72_ZEBRA_BYTE(state+0x520)) {
         cached=state+0x524;
-        cache_before=Z72_ZEBRA_WORD(cached+0x30);
-        if (!cache_before) { Z72_ZEBRA_WORD(cached+0x30)=1; ++zebra_cached_changed; }
+        z72_u32 flag=Z72_ZEBRA_WORD(cached+0x30);
+        Z72_ZEBRA_DIAG(cache_before=flag);
+        if (!flag) {
+            Z72_ZEBRA_WORD(cached+0x30)=1;
+            Z72_ZEBRA_DIAG(++zebra_cached_changed);
+        }
     }
+#if Z72_ZEBRA_DIAGNOSTIC
     zebra_pending_record[0]=pending; zebra_pending_record[1]=before;
     zebra_pending_record[2]=before==0 ? 1 : before;
     zebra_pending_record[3]=cached; zebra_pending_record[4]=cache_before;
@@ -354,13 +410,17 @@ static void zebra_pending_update(void)
     zebra_pending_record[7]=Z72_ZEBRA_WORD(state+0x1c);
     __atomic_fetch_add(&zebra_pending_sequence,1,__ATOMIC_RELEASE);
 #endif
+#endif
 }
 
 /* The native image consumer copies descriptor+0x30 to its per-frame gate,
  * independently of the highlight parameters carried by command 0x07. */
 static void zebra_frame_update(const volatile z72_u32 *msg)
 {
-    ++zebra_frame_batches;
+    Z72_ZEBRA_DIAG(++zebra_frame_batches);
+#if !Z72_ZEBRA_DIAGNOSTIC
+    if (!zebra_pattern()) return;
+#endif
     z72_u32 batch=msg[5];
     if ((batch&3u) || batch<0xb0000000u || batch>0xc0000000u-8u) return;
     z72_u32 count=Z72_ZEBRA_WORD(batch),entries=Z72_ZEBRA_WORD(batch+4);
@@ -370,7 +430,7 @@ static void zebra_frame_update(const volatile z72_u32 *msg)
         if ((Z72_ZEBRA_WORD(entries+i*8)&255u)!=0) continue;
         z72_u32 descriptor=Z72_ZEBRA_WORD(entries+i*8+4);
         if ((descriptor&3u) || descriptor<0xb0000000u || descriptor>0xc0000000u-0x34u) continue;
-        ++zebra_frame_images;
+        Z72_ZEBRA_DIAG(++zebra_frame_images);
         z72_u32 mode=Z72_ZEBRA_WORD(0xb25519b8u);
         if (mode) continue;
         z72_u32 before=Z72_ZEBRA_WORD(descriptor+0x30),reason=0;
@@ -394,6 +454,7 @@ static void zebra_frame_update(const volatile z72_u32 *msg)
         }
         if (!reason) { Z72_ZEBRA_WORD(descriptor+0x30)=1; reason=1; }
 #endif
+#if Z72_ZEBRA_DIAGNOSTIC
         z72_u32 after=Z72_ZEBRA_WORD(descriptor+0x30);
         if (after!=before) ++zebra_frame_changed;
         /* Keep the last normal photo view when menu/zoom packets arrive later. */
@@ -424,6 +485,7 @@ static void zebra_frame_update(const volatile z72_u32 *msg)
             zebra_frame_snapshot[234]=Z72_ZEBRA_BYTE(0xb1d178dcu);
         }
         __atomic_fetch_add(&zebra_frame_sequence,1,__ATOMIC_RELEASE);
+#endif
     }
 }
 
@@ -456,8 +518,10 @@ static void zebra_commit(z72_u32 state,z72_u32 result)
     } else if (enabled) return;
     if (!Z72_ZEBRA_WORD(state+0x24) &&
         Z72_ZEBRA_WORD(state+0x1c)==enabled) return;
-    ++zebra_commit_count;
-    zebra_commit_result=Z72_ZEBRA_CALL(0x10448251u,z72_u32,z72_u32)(format);
+    Z72_ZEBRA_DIAG(++zebra_commit_count);
+    z72_u32 committed=Z72_ZEBRA_CALL(0x10448251u,z72_u32,z72_u32)(format);
+    Z72_ZEBRA_DIAG(zebra_commit_result=committed);
+    (void)committed;
 #endif
 }
 
@@ -473,8 +537,11 @@ static void zebra_packet_complete(z72_u32 command,z72_u32 result)
     if (zebra_photo_context(mode)) return;
     z72_u32 state=Z72_ZEBRA_WORD(0xb1808580u);
     z72_u32 valid=!(state&3u) && state>=0xb0000000u && state<=0xc0000000u-0x26cu;
+#if Z72_ZEBRA_DIAGNOSTIC
     z72_u32 native_flags=valid ? zebra_state_flags(state) : 0xffffffffu;
+#endif
     if (valid && local!=0x4206001eu && local!=0x4206001fu) zebra_commit(state,result);
+#if Z72_ZEBRA_DIAGNOSTIC
     if (valid && zebra_history_command==command) {
         __atomic_fetch_add(&zebra_history_sequence,1,__ATOMIC_ACQ_REL);
         volatile z72_u32 *entry=zebra_history[zebra_history_count&15u];
@@ -502,22 +569,27 @@ static void zebra_packet_complete(z72_u32 command,z72_u32 result)
     zebra_post_record[15]=zebra_packet_applied;
     ++zebra_post_count;
     __atomic_fetch_add(&zebra_post_sequence,1,__ATOMIC_RELEASE);
+#endif
 }
 
 /* Preserve the message and completion callback. Both LCD and EVF packets
  * arrive on the secondary display task; the primary task handles HDMI. */
 static void zebra_packet_update(z72_u32 channel,const void *message)
 {
-    ++zebra_packet_calls[channel];
+#if !Z72_ZEBRA_DIAGNOSTIC
+    if (channel!=1) return; /* The primary/HDMI path was observation only. */
+#endif
+    Z72_ZEBRA_DIAG(++zebra_packet_calls[channel]);
     z72_u32 address=(z72_u32)message;
     if ((address&3u) || address<0xb0000000u || address>0xc0000000u-24u) {
-        ++zebra_packet_invalid[channel]; return;
+        Z72_ZEBRA_DIAG(++zebra_packet_invalid[channel]); return;
     }
     const volatile z72_u32 *msg=message;
     z72_u32 command=msg[4];
     z72_u32 output=zebra_command_output(command);
     z72_u32 local=command-(output==4 ? 0x2000u : 0u);
     z72_u32 selected=output && output==zebra_photo_output();
+#if Z72_ZEBRA_DIAGNOSTIC
     if (channel==1) {
         zebra_history_command=0;
         if (selected && (local==0x42060007u || local==0x42060004u || local==0x42060005u ||
@@ -530,6 +602,7 @@ static void zebra_packet_update(z72_u32 channel,const void *message)
             }
         }
     }
+#endif
     if (channel==1 && selected && (local==0x4206001eu || local==0x4206001fu)) {
         zebra_source_update(command);
         zebra_pending_update(); return;
@@ -539,41 +612,52 @@ static void zebra_packet_update(z72_u32 channel,const void *message)
     }
     if (channel!=1 || (command!=0x42060007u && command!=0x42062007u)) return;
     z72_u32 mode=Z72_ZEBRA_WORD(0xb25519b8u);
-    if (mode>1) { ++zebra_packet_invalid[channel]; return; }
+    if (mode>1) { Z72_ZEBRA_DIAG(++zebra_packet_invalid[channel]); return; }
     z72_u32 bank=(command==0x42062007u ? 2u : 0u)+mode;
+#if Z72_ZEBRA_DIAGNOSTIC
     z72_u32 count=++zebra_packet_counts[bank];
+#endif
     z72_u32 menu=Z72_ZEBRA_BYTE(0xb1824f0cu);
-    if (menu>=1 && menu<=3) { ++zebra_packet_menus[bank]; return; }
+    if (menu>=1 && menu<=3) { Z72_ZEBRA_DIAG(++zebra_packet_menus[bank]); return; }
     z72_u32 payload=msg[5];
     if ((payload&3u) || payload<0xb0000000u || payload>0xc0000000u-100u) {
-        ++zebra_packet_invalid[channel]; return;
+        Z72_ZEBRA_DIAG(++zebra_packet_invalid[channel]); return;
     }
     volatile z72_u32 *data=(volatile z72_u32 *)payload;
     z72_u32 enabled=data[0];
-    if (enabled>1) { ++zebra_packet_invalid[channel]; return; }
-    __atomic_fetch_add(&zebra_packet_sequence[bank],1,__ATOMIC_ACQ_REL);
+    if (enabled>1) { Z72_ZEBRA_DIAG(++zebra_packet_invalid[channel]); return; }
+    Z72_ZEBRA_DIAG(__atomic_fetch_add(&zebra_packet_sequence[bank],1,__ATOMIC_ACQ_REL));
     volatile z72_u32 *row=zebra_packet_records[bank];
+#if Z72_ZEBRA_DIAGNOSTIC
     row[0]=count; row[1]=command; row[2]=address; row[3]=payload;
     row[4]=mode; row[5]=menu; row[6]=Z72_ZEBRA_BYTE(0xb1828174u);
     row[7]=Z72_ZEBRA_WORD(0xb181d3a4u);
     row[8]=Z72_ZEBRA_BYTE(0xb202be70u); row[9]=Z72_ZEBRA_BYTE(0xb202c00eu);
+#endif
     row[10]=zebra_pattern();
     row[11]=z72_config_current.photo_zebra_threshold;
     /* Disabled requests define only their first word; do not read stale fields. */
+#if Z72_ZEBRA_DIAGNOSTIC
     row[12]=enabled;
     for (z72_u32 i=1;i<25;++i) row[12+i]=enabled ? data[i] : 0;
+#endif
     row[39]=zebra_packet_apply(data,mode,command,row[10],row[11]);
     row[37]=row[39]==1;
-    row[38]=data[0];
-    if (row[37]) ++zebra_packet_applied;
-    __atomic_fetch_add(&zebra_packet_sequence[bank],1,__ATOMIC_RELEASE);
+    Z72_ZEBRA_DIAG(row[38]=data[0]);
+    Z72_ZEBRA_DIAG(if (row[37]) ++zebra_packet_applied);
+    Z72_ZEBRA_DIAG(__atomic_fetch_add(&zebra_packet_sequence[bank],1,__ATOMIC_RELEASE));
+#if !Z72_ZEBRA_DIAGNOSTIC
+    /* Keep publication ordering for the state read by the GUI/producer tasks. */
+    __asm__ volatile("dmb sy" ::: "memory");
+#endif
 }
 
 static void zebra_graphics_observe(void)
 {
-    ++zebra_graphics_calls;
+    Z72_ZEBRA_DIAG(++zebra_graphics_calls);
 }
 
+#if Z72_ZEBRA_DIAGNOSTIC
 static void zebra_probe_snapshot(z72_u32 *row)
 {
     z72_u32 (*property)(z72_u32)=Z72_ZEBRA_CALL(0x1063c7d5u,z72_u32,z72_u32);
@@ -618,6 +702,7 @@ static void zebra_probe_capture(void)
         __atomic_fetch_add(&zebra_probe_sequence,1,__ATOMIC_RELEASE);
     }
 }
+#endif
 
 /* Native 36-byte highlight request. Only live-view output state is changed. */
 struct z72_zebra_request {
@@ -661,17 +746,17 @@ static z72_u32 zebra_packet_apply(volatile z72_u32 *data,z72_u32 mode,z72_u32 co
     if (!output || output!=zebra_photo_output()) return 3;
     z72_u32 context=zebra_photo_context(mode);
     if (context) return context;
-    zebra_last_object=zebra_last_palette=0;
+    Z72_ZEBRA_DIAG(zebra_last_object=zebra_last_palette=0);
     zebra_output_objects[output==4]=0;
     if (pattern>2 || threshold>7) return 6;
     if (!pattern) { data[0]=0; return 1; }
     z72_u32 object=Z72_ZEBRA_CALL(0x1068cf07u,z72_u32,z72_u32,z72_u32,z72_u32)(0,output,0);
-    zebra_last_object=object;
+    Z72_ZEBRA_DIAG(zebra_last_object=object);
     zebra_output_objects[output==4]=object;
     if ((object&3u) || object<0xb0000000u || object>0xc0000000u-0x84u) return 7;
     if (Z72_ZEBRA_BYTE(object+0x80)) return 5;
     z72_u32 palette=Z72_ZEBRA_CALL(0x1068f3efu,z72_u32,z72_u32,z72_u32)(1,0);
-    zebra_last_palette=palette;
+    Z72_ZEBRA_DIAG(zebra_last_palette=palette);
     /* The native getter supplies a mapped display address, not a heap pointer. */
     if (!palette || (palette&3u)) return 8;
     struct z72_zebra_request request;
@@ -690,6 +775,8 @@ static inline void z72_photo_zebra_update(void)
 {
     zebra_producer_install();
     zebra_evf_request();
+#if Z72_ZEBRA_DIAGNOSTIC
     zebra_probe_capture();
+#endif
 }
 #endif

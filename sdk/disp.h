@@ -222,8 +222,12 @@ static void disp_advance(void)
 
 static z72_u32 disp_key(z72_u32 key,z72_u32 a,z72_u32 b,z72_u32 c)
 {
+    /* Ordinary shooting keys go straight to the native handler. The GUI task
+     * already applies settings; only DISP needs layout sync before advancing. */
+    if (key!=0x28)
+        return DISP_CALL(DISP_KEY_NATIVE,z72_u32,z72_u32,z72_u32,z72_u32,z72_u32)(key,a,b,c);
     disp_update();
-    if (key==0x28 && disp_can_change()) {
+    if (disp_can_change()) {
         disp_advance();
         return 0x101;
     }

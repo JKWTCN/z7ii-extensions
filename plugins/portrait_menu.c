@@ -1185,6 +1185,7 @@ static u32 draw_portrait_histogram(u32 orientation)
 
     /* The native LCD graph groups its 256 input bins into 100 columns. */
     u32 index=0;
+    int run_start=0,run_height=0;
     for (int column=0;column<PLOT_W/2;++column) {
         u32 count=2+(!(column&1) || column%9==0);
         u32 peak=0;
@@ -1195,9 +1196,19 @@ static u32 draw_portrait_histogram(u32 orientation)
         u32 divisor=scale;
         if (divisor>0xffffffffu/PLOT_H) { divisor>>=7; peak>>=7; }
         int height=peak>=divisor ? PLOT_H : (int)(peak*PLOT_H/divisor);
-        if (height)
-            histogram_rectangle((struct box){PLOT_X+2*column,PLOT_Y+PLOT_H-height,2,height},orientation,1);
+        /* Adjacent columns of equal height have the same pixels. Submit one
+         * wider rectangle without changing sampling, scale or refresh rate. */
+        if (height!=run_height) {
+            if (run_height)
+                histogram_rectangle((struct box){PLOT_X+2*run_start,PLOT_Y+PLOT_H-run_height,
+                    2*(column-run_start),run_height},orientation,1);
+            run_start=column;
+            run_height=height;
+        }
     }
+    if (run_height)
+        histogram_rectangle((struct box){PLOT_X+2*run_start,PLOT_Y+PLOT_H-run_height,
+            PLOT_W-2*run_start,run_height},orientation,1);
     histogram_rectangle((struct box){PLOT_X,PLOT_Y,PLOT_W,1},orientation,0x2d9);
     histogram_rectangle((struct box){PLOT_X,PLOT_Y+PLOT_H-1,PLOT_W,1},orientation,0x2d9);
     histogram_rectangle((struct box){PLOT_X,PLOT_Y,1,PLOT_H},orientation,0x2d9);
