@@ -5,7 +5,8 @@
 enum { DISP_TITLE_SLOT=6, DISP_MASTER_SLOT=7, DISP_PRESET_SLOT=8,
        DISP_ENABLED_SLOT=12, DISP_COMPONENT_SLOT=13, DISP_RESET_SLOT=18,
        DISP_ENABLE_SLOT=19, DISP_DISABLE_SLOT=20, DISP_SUBTITLE_SLOT=21,
-       DISP_INFORMATION_SLOT=22, DISP_INFO_SLOT=23 };
+       DISP_INFORMATION_SLOT=22, DISP_INFO_SLOT=23,
+       DISP_BATTERY_SLOT=32, DISP_BATTERY_CHOICE=16 }; /* Slot 286 holds live battery text. */
 
 /* The native page transition disposes of the previous view's widgets before
  * constructing the target. Keep every view's records alive until power-off. */
@@ -29,6 +30,8 @@ static u32 disp_header_owned(u32 header)
 static u32 disp_choice_value(void)
 {
     if (!disp_choice_target) return !!(z72_config_current.disp_enabled&16u);
+    if (disp_choice_target==DISP_BATTERY_CHOICE)
+        return !!(z72_config_current.disp_enabled&Z72_BATTERY_PERCENT_ON);
     if (disp_choice_target==7) return !!(z72_config_current.disp_enabled&Z72_DISP_INFORMATION);
     if (disp_choice_target==1) return !!(z72_config_current.disp_enabled&(1u<<disp_preset));
     if (disp_choice_target>=8)
@@ -44,6 +47,7 @@ static void disp_menu_values(void)
     for (u32 i=0;i<Z72_DISP_PAGES;++i)
         disp_views[0].rows[i+1][5]=rotation_value(enabled&(1u<<i));
     disp_views[0].rows[5][5]=rotation_value(enabled&Z72_DISP_INFORMATION);
+    disp_views[0].rows[6][5]=rotation_value(enabled&Z72_BATTERY_PERCENT_ON);
     disp_views[1].rows[0][5]=rotation_value(enabled&(1u<<disp_preset));
     disp_views[1].rows[1][5]=0xd7; /* Native -- marks the information submenu. */
     for (u32 i=1;i<5;++i)
@@ -81,8 +85,13 @@ static u32 disp_show(u32 view)
         static const u32 ids[]={Z72_TEXT_DISP_MASTER,Z72_TEXT_DISP_PAGE_ENABLED,
             Z72_TEXT_DISP_SHOOTING_INFO,Z72_TEXT_DISP_FRAMING_GRID,Z72_TEXT_DISP_HISTOGRAM,
             Z72_TEXT_DISP_HORIZON,Z72_TEXT_DISP_PHOTO_HIGHLIGHTS,Z72_TEXT_DISP_INFORMATION};
-        subtitle=disp_choice_target>=8 ? disp_info_names[disp_choice_target-8] : labels[disp_choice_target];
-        subtitle_id=disp_choice_target>=8 ? Z72_TEXT_DISP_SHUTTER+disp_choice_target-8 : ids[disp_choice_target];
+        if (disp_choice_target==DISP_BATTERY_CHOICE) {
+            subtitle="Battery percentage display";
+            subtitle_id=Z72_TEXT_BATTERY_PERCENT;
+        } else {
+            subtitle=disp_choice_target>=8 ? disp_info_names[disp_choice_target-8] : labels[disp_choice_target];
+            subtitle_id=disp_choice_target>=8 ? Z72_TEXT_DISP_SHUTTER+disp_choice_target-8 : ids[disp_choice_target];
+        }
     }
     if (choice_localized && view) {
         disp_views[view].title[8]=subtitle_id;
@@ -124,6 +133,9 @@ static u32 disp_select(u32 row)
         struct z72_config config=z72_config_current;
         u32 value=row==0;
         if (!disp_choice_target) config.disp_enabled=(config.disp_enabled&~16u)|(value<<4);
+        else if (disp_choice_target==DISP_BATTERY_CHOICE)
+            config.disp_enabled=(config.disp_enabled&~Z72_BATTERY_PERCENT_ON)|
+                                (value ? Z72_BATTERY_PERCENT_ON : 0);
         else if (disp_choice_target==1 || disp_choice_target==7) {
             u32 pages=config.disp_enabled&Z72_DISP_ENABLED;
             u32 bit=disp_choice_target==7 ? Z72_DISP_INFORMATION : 1u<<disp_preset;
@@ -154,8 +166,13 @@ static u32 disp_select(u32 row)
         return disp_show(2);
     }
     if (!disp_view) {
-        if (row>Z72_DISP_PAGES+1) return 1;
+        if (row>Z72_DISP_PAGES+2) return 1;
         disp_root_row=row;
+        if (row==Z72_DISP_PAGES+2) {
+            disp_choice_target=DISP_BATTERY_CHOICE;
+            disp_choice_parent=0;
+            return disp_show(2);
+        }
         if (row==Z72_DISP_PAGES+1) {
             disp_choice_target=7;
             disp_choice_parent=0;
@@ -212,12 +229,13 @@ static void disp_menu_prepare(void)
     static const char *const labels[]={"Custom DISP pages","Custom pages","Standard","Minimal",
         "Composition","Exposure","Page enabled","Shooting info","Framing grid","Histogram",
         "Virtual horizon","Photo highlights","Reset preset","Enable","Disable"};
-    static const u32 counts[]={6,7,2,Z72_DISP_INFO_GROUPS};
+    static const u32 counts[]={7,7,2,Z72_DISP_INFO_GROUPS};
     const z72_menu_callback picks[]={disp_pick_0,disp_pick_1,disp_pick_2,disp_pick_3,
                                    disp_pick_4,disp_pick_5,disp_pick_6,disp_pick_7};
     const u32 *events=(const u32 *)WORD(0x118111bcu);
     for (u32 i=0;i<sizeof(labels)/sizeof(labels[0]);++i) z72_menu_set_label(DISP_TITLE_SLOT+i,labels[i]);
     z72_menu_set_label(DISP_INFORMATION_SLOT,"Information display");
+    z72_menu_set_label(DISP_BATTERY_SLOT,"Battery percentage display");
     for (u32 i=0;i<Z72_DISP_INFO_GROUPS;++i) z72_menu_set_label(DISP_INFO_SLOT+i,disp_info_names[i]);
     const u32 *setup=(const u32 *)Z72_SETUP_MENU;
     const u32 *setup_layout=(const u32 *)setup[1];
@@ -253,9 +271,10 @@ static void disp_menu_prepare(void)
         for (u32 row=0;row<counts[view];++row) {
             u32 *item=disp_views[view].rows[row];
             for (u32 i=0;i<7;++i) item[i]=stock_rows[i];
-            u32 label=view==0 ? (row==5 ? DISP_INFORMATION_SLOT : DISP_MASTER_SLOT+row) :
+            u32 label=view==0 ? (row==6 ? DISP_BATTERY_SLOT : row==5 ? DISP_INFORMATION_SLOT : DISP_MASTER_SLOT+row) :
                       view==1 ? DISP_ENABLED_SLOT+row : view==3 ? DISP_INFO_SLOT+row : DISP_ENABLE_SLOT+row;
             item[0]=choice_localized ? (view==3 ? Z72_TEXT_DISP_SHUTTER+row :
+                    view==0 && row==6 ? Z72_TEXT_BATTERY_PERCENT :
                     view==0 && row==5 ? Z72_TEXT_DISP_INFORMATION :
                     Z72_TEXT_DISP_TITLE+label-DISP_TITLE_SLOT) : Z72_MENU_SLOT+label;
             item[1]=item[2]=0xffff;

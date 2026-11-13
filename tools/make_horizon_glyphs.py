@@ -1,4 +1,4 @@
-"""Convert only 仪/儀 from a local TrueType font to native HIF simple outlines.
+"""Convert 仪/儀 or the battery label subset to native HIF simple outlines.
 
 Requires fontTools. Pass a font with 2048 units/em, as in the C 1.70 CJK face.
 The native decoder accepts little-endian endpoint indices, on-curve bits and
@@ -44,9 +44,12 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--font',required=True)
     parser.add_argument('--font-number',type=int,default=0)
+    parser.add_argument('--battery',action='store_true',help='Emit the battery menu label subset instead')
     args=parser.parse_args()
     font=TTFont(args.font,fontNumber=args.font_number)
-    for character,name in (('仪','instrument_simplified'),('儀','instrument_traditional')):
+    glyphs=tuple((ch,f'battery_u{ord(ch):04x}') for ch in '显比电百示量電顯') if args.battery else (
+        ('仪','instrument_simplified'),('儀','instrument_traditional'))
+    for character,name in glyphs:
         data=outline(font,character)
         print(f'    /* {character}: {len(data)} bytes, converted from a local TrueType outline. */')
         print(f'    static const unsigned char {name}[]={{')

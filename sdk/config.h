@@ -11,6 +11,7 @@
 #define Z72_DISP_PAGES 4u
 #define Z72_DISP_CHOICES 5u
 #define Z72_DISP_ENABLED 47u /* Four live presets plus the native information page. */
+#define Z72_BATTERY_PERCENT_ON 64u /* Global style, disabled by default and in legacy CFGs. */
 #define Z72_DISP_INFO_GROUPS 8u
 #define Z72_DISP_INFO_ALL 255u
 #define Z72_DISP_INFO_DETAIL 32u
@@ -81,13 +82,13 @@ static inline struct z72_config z72_config_load(void)
     if(size==32 && data[1]==3 && (data[2]<=4 || data[2]==Z72_CFG_NO_GRID) &&
        data[4]<=1 && data[5]==~data[4] && data[6]<=1 && data[7]==~data[6])
         { config.grid_style=data[2]; config.auto_rotate=data[4]; config.photo_zebra_pattern=data[6]; }
-    if(((size==40 && data[1]==4) || (size==80 && data[1]>=5 && data[1]<=8)) &&
+    if(((size==40 && data[1]==4) || (size==80 && data[1]>=5 && data[1]<=9)) &&
        (data[2]<=4 || data[2]==Z72_CFG_NO_GRID) &&
        data[4]<=1 && data[5]==~data[4] && data[6]<=2 && data[7]==~data[6] &&
        data[8]<=7 && data[9]==~data[8])
     {
         if(size==80) {
-            z72_u32 maximum=data[1]>=6 ? 63u : 31u;
+            z72_u32 maximum=data[1]>=9 ? 127u : data[1]>=6 ? 63u : 31u;
             z72_u32 pages=data[1]>=6 ? Z72_DISP_ENABLED : 15u;
             if(data[10]>maximum || !(data[10]&pages) || data[11]!=~data[10]) return config;
             for(z72_u32 i=0;i<Z72_DISP_PAGES;++i)
@@ -129,7 +130,8 @@ static inline z72_u32 z72_config_save(struct z72_config config)
         if(config.disp_components[i]!=defaults[i]) custom=1;
         if(config.disp_components[i]&Z72_DISP_INFO_DETAIL) detail=1;
     }
-    z72_u32 version=detail ? 8 : config.disp_enabled&Z72_DISP_INFORMATION ? 6 : custom ? 5 :
+    z72_u32 version=config.disp_enabled&Z72_BATTERY_PERCENT_ON ? 9 :
+                    detail ? 8 : config.disp_enabled&Z72_DISP_INFORMATION ? 6 : custom ? 5 :
                     config.photo_zebra_pattern || config.photo_zebra_threshold!=1 ? 4 :
                     config.auto_rotate && config.grid_style!=Z72_CFG_NO_GRID ? 1 : 2;
     z72_u32 size=version==1 ? 16 : version==2 ? 24 : version==4 ? 40 : 80,actual=0;

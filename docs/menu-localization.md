@@ -14,6 +14,10 @@
 
 「自定义DISP页面」及八项细分拍摄信息也支持上述语言，包括「焦距显示／焦距顯示／Focal length display」。「水平仪／水平儀」补齐原厂字库缺少的字形。本次组合更新已实机验证，见[自定义 DISP 页面](custom-disp.md)。
 
+The global **Battery percentage display／电量百分比显示／電量百分比顯示** label uses supplemental glyphs where the stock Chinese fonts are incomplete. Simplified Chinese and English menus are hardware verified; see [Battery percentage display](battery-percent.md). Local language checks cover 36 banks, 900 labels, and 187 decoded glyph outlines.
+
+全局「电量百分比显示／電量百分比顯示／Battery percentage display」补齐原厂中文字库缺失的字形。简体中文和英文菜单已实机验证，见[电量百分比显示](battery-percent.md)。本地语言检查覆盖 36 个语言表、900 条标签及 187 个解码后的字形轮廓。
+
 Both labels were verified on a Z 7II in Simplified Chinese and English. The photos below are from that test.
 
 两个标签均已在 Z 7II 实机上验证简体中文和英文。以下为本次实机照片。

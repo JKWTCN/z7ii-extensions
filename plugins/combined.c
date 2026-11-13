@@ -7,6 +7,7 @@
 #define Z72_MENU_EXTRA_ROWS 3u
 #define Z72_CUSTOM_DISP 1
 #define Z72_FOCAL_LENGTH 1
+#define Z72_BATTERY_PERCENT 1
 #include "disp.h"
 #ifndef Z72_ZEBRA_OBSERVE_ONLY
 #define Z72_ZEBRA_OBSERVE_ONLY 0
@@ -17,7 +18,7 @@
 z72_u32 z72_main(const struct z72_api *api)
 {
     if (!grid_ready(api) || !z72_grid_menu_ready() || !histogram_horizon_ready(api) || !disp_ready() ||
-        !focal_ready())
+        !focal_ready() || !battery_ready())
         return 1;
     z72_u32 result=portrait_init(api);
     if (result) return result;

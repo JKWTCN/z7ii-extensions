@@ -18,6 +18,10 @@ In photo mode on the rear LCD, choose which pages participate in the DISP cycle 
 
 「自定义页面」是总开关，关闭后恢复原厂 DISP 循环。每套预设分别设置「页面启用」「拍摄信息」「取景网格」「直方图」「水平仪」「照片加亮」。「恢复预设」恢复该页默认组件，保留页面启用状态。「参数信息页」有独立开关，也可作为唯一启用的页面，内容和方向沿用原厂界面。
 
+Immediately after Information display, the root menu includes a global **Battery percentage display** switch, **off by default**. It shows ON/OFF and opens Enable/Disable. This setting is independent of the four presets and the Custom pages master switch; it does not participate in the page cycle or change when a preset is reset. See [Battery percentage display](battery-percent.md).
+
+主菜单的「参数信息页」下方新增全局「电量百分比显示」，**默认关闭**，右侧显示 ON／OFF，点开选择启用／禁用。此项独立于四套预设和「自定义页面」总开关，不参加 DISP 循环，「恢复预设」也不改变此项。见[电量百分比显示](battery-percent.md)。
+
 ## Shooting information / 拍摄信息
 
 **Shooting info** opens eight independent switches. Each preset saves its own selection; the parent row always shows `--` to indicate a submenu, while its child switches show ON/OFF. Minimal starts with the three exposure fields but can also display other groups when selected. Labels and status values use the native Setup Menu columns. Seven rows are visible at once, and the native scrollbar indicates the additional page containing the eighth option.
@@ -48,6 +52,10 @@ Preferences share `Z72APP.CFG` with the other extensions. Existing v1–v7 recor
 设置与其他扩展共用 `Z72APP.CFG`。v1–v7 旧配置保留原有显示效果；v7 的焦距开关迁移时继承原「其他信息」状态。编辑细分信息组后使用 80 字节的 v8 格式，修改其他扩展设置时也会保留这些选择。按 DISP 切页不会写卡保存当前页面。「水平仪／水平儀」使用小型补充字库，避免缺字方框。
 
 ## Verification / 验证
+
+**Hardware verified:** on November 13, 2026, the user confirmed the 47,708-byte complete combined build, including the global battery percentage switch. The seven-item root menu and Chinese/English labels are shown in the [battery percentage verification photos](battery-percent.md#verification--验证). Enabling the setting saves the 80-byte v9 configuration; v1–v8 records leave it off and retain the existing page selections. Local menu/configuration and native icon-restoration checks passed.
+
+**已实机验证：** 2026-11-13，用户确认包含全局电量百分比开关的 47,708 字节完整组合版本通过实机验证。七项主菜单及中英文标签见[电量百分比验证照片](battery-percent.md#verification--验证)。启用后采用 80 字节的 v9 配置，v1–v8 旧配置默认关闭此项并保留已有页面选择。本地菜单、配置和原厂电量图标恢复检查通过。
 
 On November 13, 2026, the user confirmed the 42,748-byte combined build passed testing on a Z 7II. This update adds the independent focal-length switch, corrected native list columns and scrollbar, and the `--` submenu indicator to the previously verified custom DISP cycle, native information page, focus-operation masks, and horizon label.
 

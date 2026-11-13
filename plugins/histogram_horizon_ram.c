@@ -121,6 +121,9 @@ static void layout_histogram(void)
 #ifdef Z72_FOCAL_LENGTH
 #include "focal_length.h"
 #endif
+#ifdef Z72_BATTERY_PERCENT
+#include "battery_percent.h"
+#endif
 
 static u32 histogram_masks_match(void)
 {
@@ -276,9 +279,15 @@ static u32 gui_update(u32 a,u32 b,u32 c,u32 d)
              histogram_masks_match();
     if (hide) set_histogram_masks(0);
 #endif
+#ifdef Z72_BATTERY_PERCENT
+    battery_prepare();
+#endif
     u32 result=original(a,b,c,d);
 #ifdef Z72_FOCAL_LENGTH
     focal_update(output_before&7u);
+#endif
+#ifdef Z72_BATTERY_PERCENT
+    battery_update(output_before&7u,live_orientation);
 #endif
 #ifdef Z72_PHOTO_ZEBRA
     z72_photo_zebra_update();

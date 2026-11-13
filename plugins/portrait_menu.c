@@ -82,6 +82,9 @@ static u32 auto_rotate=1;
 static volatile u32 portrait_counts[10];
 #endif
 static u32 live_orientation;
+#ifdef Z72_BATTERY_PERCENT
+static volatile u32 battery_painting;
+#endif
 /* Owned by the graphics task. The orientation records the strip to erase on exit. */
 static u32 footer_orientation, footer_dirty;
 static u32 dial_orientation;
@@ -183,6 +186,16 @@ static void clear_band(struct box box,u32 orientation)
     u32 args[7]={(u32)dest.x,(u32)(LCD_H-dest.y-dest.h),(u32)dest.w,(u32)dest.h,0,0,0};
     CALL(OSD_CLEAR,void,const u32 *)(args);
 }
+
+#ifdef Z72_BATTERY_PERCENT
+static void battery_clear(u32 orientation)
+{
+    struct box box={2,396,60,32};
+    if (orientation) { box.x+=380; box.y+=191; box=lcd_box(box,orientation); }
+    u32 args[7]={(u32)box.x,(u32)(LCD_H-box.y-box.h),(u32)box.w,(u32)box.h,0,0,0};
+    CALL(OSD_CLEAR,void,const u32 *)(args);
+}
+#endif
 
 static void begin_footer(u32 orientation)
 {
@@ -358,6 +371,12 @@ static u32 movie_meter_segment(struct box box)
 static enum placement relocate_live(struct box *box)
 {
     int x=box->x, y=box->y;
+#ifdef Z72_BATTERY_PERCENT
+    if (__atomic_load_n(&battery_painting,__ATOMIC_ACQUIRE)) {
+        box->x+=380; box->y+=191;
+        return NORMAL;
+    }
+#endif
     /* The top status rows form a single strip. Keep their stock spacing,
      * including independently drawn symbols and their clear rectangles. */
     if (y>=0 && y+box->h<=112 && x>=0 && x+box->w<=LCD_W+4) {
@@ -593,6 +612,20 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
         (width<=0 || width>LCD_W || height<=0 || height>LCD_H)))
         return hint || child_hint ? 0 : render(context,options,origin,metrics,bounds);
     struct box stock={x,y,width,height}, dest;
+    u32 battery=0;
+#ifdef Z72_BATTERY_PERCENT
+    battery=__atomic_load_n(&battery_painting,__ATOMIC_ACQUIRE);
+    int battery_scale=3*UNIT_SCALE/4;
+    if (battery) {
+        while (width*battery_scale>44*UNIT_SCALE || height*battery_scale>18*UNIT_SCALE)
+            battery_scale-=UNIT_SCALE/64;
+        /* y is the baseline. Center the measured, scaled glyph extent in the
+         * inset, not the original full-sized text object's alignment box. */
+        dest=(struct box){34-width*battery_scale/(2*UNIT_SCALE),
+                         412+height*battery_scale/(2*UNIT_SCALE),width,height};
+        if (text_orientation==1 || text_orientation==2) { dest.x+=380; dest.y+=191; }
+    }
+#endif
     int anchor=y;
     if (grid_page(text_page)) {
         int left=desc[0x5e/2], bottom=LCD_H-desc[0x60/2];
@@ -601,7 +634,9 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
             anchor=bottom<OLD_TOP ? bottom : OLD_TOP-1;
     }
     enum placement place=UNMAPPED;
-    if (hint) {
+    if (battery) {
+        place=NORMAL;
+    } else if (hint) {
         dest=(struct box){x,y-height,width,height};
         if (!relocate_hint(&dest,0)) return 0;
         begin_footer(text_orientation);
@@ -621,6 +656,9 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
     int sx=hint ? FOOTER_SCALE : place==HUD ? HUD_SCALE :
            place==FIT_WIDTH || place==FIT_PAGE ? WIDTH_SCALE : UNIT_SCALE;
     int sy=hint ? FOOTER_SCALE : place==HUD ? HUD_SCALE : place==FIT_PAGE ? WIDTH_SCALE : UNIT_SCALE;
+#ifdef Z72_BATTERY_PERCENT
+    if (battery) sx=sy=battery_scale;
+#endif
     int child_shift=text_page==SETTING ? SETTING_SHIFT : EXTERNAL_SHIFT;
     int dx=hint ? FOOTER_DX*UNIT_SCALE : child_hint ? 0 : dest.x*UNIT_SCALE-x*sx;
     int dy=hint ? FOOTER_DY*UNIT_SCALE : child_hint ? child_shift*UNIT_SCALE :
@@ -634,11 +672,18 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
         matrix[2]=(u32)ty;
         matrix[3]=(u32)ax;
         matrix[5]=(u32)tx;
-    } else {
+    } else if (text_orientation==1) {
         matrix[1]=(u32)ay;
         matrix[2]=(u32)(LCD_W*UNIT_SCALE-ty);
         matrix[3]=(u32)-ax;
         matrix[5]=(u32)(LCD_H*UNIT_SCALE-tx);
+    } else {
+        matrix[0]=(u32)ax;
+        matrix[1]=matrix[3]=0;
+        matrix[2]=(u32)tx;
+        matrix[4]=(u32)ay;
+        matrix[5]=(u32)(LCD_H*UNIT_SCALE-ty);
+        matrix[6]=saved[6];
     }
     /* The stock inline bitmap provider uses only the glyph translation.
      * Settings dialogs can place button hints anywhere in the panel. */
@@ -721,9 +766,16 @@ static u32 consume_draw(volatile u32 *message)
 
 static u32 portrait_draw(volatile u32 *message,u32 outputs,u32 orientation)
 {
+    u32 command=message[4]-DRAW_FAMILY, target=BYTE(DRAW_TARGET), words;
+#ifdef Z72_BATTERY_PERCENT
+    /* The battery font also needs scaling in landscape and with automatic
+     * rotation disabled. Only our synchronous painter takes this path. */
+    if (__atomic_load_n(&battery_painting,__ATOMIC_ACQUIRE) && outputs==1 && target==2 &&
+        (command==0x34 || command==0x37 || command==0x38))
+        return portrait_text(message,LIVE,live_orientation,command==0x38 ? 3 : 2);
+#endif
     enum page page=outputs==1 ? current_page() : OTHER;
     if (page!=NATIVE_SCREEN && !rotation_enabled()) page=OTHER;
-    u32 command=message[4]-DRAW_FAMILY, target=BYTE(DRAW_TARGET), words;
     u32 grid=grid_page(page);
     if (page==NATIVE_SCREEN) footer_orientation=footer_dirty=dial_orientation=0;
     if (!grid && outputs==1 && target==2 && footer_orientation) {

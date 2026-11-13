@@ -2,14 +2,17 @@
 #ifndef Z72_MENU_GOLDEN_FONT_H
 #define Z72_MENU_GOLDEN_FONT_H
 #include "z72.h"
+#include "menu_battery_glyphs.h"
 
-/* C 1.70 private font for golden-ratio and horizon labels. */
+/* C 1.70 private font for golden-ratio, horizon and battery labels. */
 enum {
     Z72_GOLDEN_FACE=24, Z72_GOLDEN_STYLE=18,
-    Z72_GOLDEN_GLYPHS=10, Z72_GOLDEN_HEADER=0x40,
+    Z72_GOLDEN_GLYPHS=18, Z72_GOLDEN_HEADER=0x40,
     Z72_GOLDEN_INDEX=Z72_GOLDEN_HEADER+8+Z72_GOLDEN_GLYPHS*6,
     Z72_GOLDEN_OUTLINES=Z72_GOLDEN_INDEX+10+(Z72_GOLDEN_GLYPHS+1)*2,
-    Z72_GOLDEN_FONT_BYTES=Z72_GOLDEN_OUTLINES+2860
+    Z72_GOLDEN_FONT_BYTES=Z72_GOLDEN_OUTLINES+2860+
+        sizeof(battery_u663e)+sizeof(battery_u6bd4)+sizeof(battery_u7535)+sizeof(battery_u767e)+
+        sizeof(battery_u793a)+sizeof(battery_u91cf)+sizeof(battery_u96fb)+sizeof(battery_u986f)
 };
 #define Z72_MENU_FONT_ROOTS ((volatile z72_u32 *)0xb1d60b58u)
 #define Z72_MENU_STYLE_CLASSES (*(volatile z72_u32 *)0xb1d60b7cu)
@@ -127,8 +130,16 @@ static inline void z72_golden_font_prepare(struct z72_golden_font *font,
         {0x5206,252,0x109e2fe2u+0x1ee35u}, /* 分 */
         {0x5272,277,0x10b664adu+0x188d2u}, /* 割 */
         {0x5e73,162,0x109e2fe2u+0x31629u}, /* 平 */
+        {0x663e,sizeof(battery_u663e),(z72_u32)battery_u663e}, /* 显 */
+        {0x6bd4,sizeof(battery_u6bd4),(z72_u32)battery_u6bd4}, /* 比 */
         {0x6c34,245,0x109e2fe2u+0x38586u}, /* 水 */
+        {0x7535,sizeof(battery_u7535),(z72_u32)battery_u7535}, /* 电 */
+        {0x767e,sizeof(battery_u767e),(z72_u32)battery_u767e}, /* 百 */
+        {0x793a,sizeof(battery_u793a),(z72_u32)battery_u793a}, /* 示 */
+        {0x91cf,sizeof(battery_u91cf),(z72_u32)battery_u91cf}, /* 量 */
         {0x91d1,303,0x10972c2cu+0x26691u}, /* 金 */
+        {0x96fb,sizeof(battery_u96fb),(z72_u32)battery_u96fb}, /* 電 */
+        {0x986f,sizeof(battery_u986f),(z72_u32)battery_u986f}, /* 顯 */
         {0x9ec3,349,0x10972c2cu+0x3ef35u}, /* 黃 */
         {0x9ec4,312,0x109e2fe2u+0x2444au}  /* 黄 */
     };
