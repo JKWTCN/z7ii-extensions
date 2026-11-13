@@ -12,7 +12,8 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 | [Histogram and virtual horizon](docs/histogram-horizon.md) | Live histogram and virtual horizon together on the rear screen and in the viewfinder in photo mode | Hardware verified |
 | [Portrait display](docs/portrait-ui.md) | Rear-screen shooting information, i menu, and histogram rotate with the camera | Hardware verified |
 | [Photo shooting highlights](docs/photo-highlights.md) | Independent photo highlight stripes on LCD and EVF, with two patterns and eight thresholds | Hardware verified |
-| [Custom DISP pages](docs/custom-disp.md) | Photo LCD page selection, four presets, seven shooting-information controls, and the native information display | Hardware verified |
+| [Custom DISP pages](docs/custom-disp.md) | Photo LCD page selection, four presets, eight shooting-information controls, native scrolling lists, and the native information display | Hardware verified |
+| [Focal length display](docs/focal-length.md) | Live focal length for electronically reporting manual-zoom lenses, with an independent DISP switch | Hardware verified |
 | [Menu localization](docs/menu-localization.md) | English, Simplified Chinese, and Traditional Chinese labels for the extension settings | Hardware verified |
 
 ## Known issues
@@ -34,10 +35,10 @@ The Windows GUI host firmware builder is available from [Releases](https://githu
 For instructions on building the firmware update package yourself, see [Building](#building).
 
 1. Wait for card access to finish, turn off the camera, and remove the memory card.
-2. Copy [Z72APP.BIN](releases/v0.1.0-preview.8/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
+2. Copy [Z72APP.BIN](releases/v0.1.0-preview.9/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
 3. Reinsert the card and battery, wait until the card access lamp next to the **i** button goes out, then turn on the camera.
 
-Current release `v0.1.0-preview.8` · 41,524 bytes · [SHA-256 checksum](releases/v0.1.0-preview.8/SHA256SUMS)
+Current release `v0.1.0-preview.9` · 42,748 bytes · [SHA-256 checksum](releases/v0.1.0-preview.9/SHA256SUMS)
 
 This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
 

@@ -147,7 +147,7 @@ static void disp_update(void)
             [13]=Z72_DISP_STATUS,[14]=Z72_DISP_STATUS,[16]=Z72_DISP_STATUS,[17]=Z72_DISP_STATUS,
             [26]=Z72_DISP_STATUS,[27]=Z72_DISP_STATUS,[34]=Z72_DISP_STATUS,[38]=Z72_DISP_STATUS,
             [41]=Z72_DISP_STATUS,[44]=Z72_DISP_STATUS,[46]=Z72_DISP_STATUS,[50]=Z72_DISP_STATUS,
-            [53]=Z72_DISP_STATUS};
+            [53]=Z72_DISP_STATUS,[60]=Z72_DISP_FOCAL};
         for (z72_u32 i=0;i<DISP_WIDGETS;++i) {
             if (i==32) continue; /* Histogram uses its guarded extra pass. */
             z72_u32 ordinary=information_groups[i];

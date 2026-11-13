@@ -118,6 +118,10 @@ static void layout_histogram(void)
     CALL(0x10522ec9,void,u32)(HISTOGRAM_WIDGET);
 }
 
+#ifdef Z72_FOCAL_LENGTH
+#include "focal_length.h"
+#endif
+
 static u32 histogram_masks_match(void)
 {
     for (u32 i=0;i<9;++i)
@@ -273,6 +277,9 @@ static u32 gui_update(u32 a,u32 b,u32 c,u32 d)
     if (hide) set_histogram_masks(0);
 #endif
     u32 result=original(a,b,c,d);
+#ifdef Z72_FOCAL_LENGTH
+    focal_update(output_before&7u);
+#endif
 #ifdef Z72_PHOTO_ZEBRA
     z72_photo_zebra_update();
 #endif

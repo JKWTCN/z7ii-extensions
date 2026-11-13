@@ -11,8 +11,8 @@
 #define Z72_DISP_PAGES 4u
 #define Z72_DISP_CHOICES 5u
 #define Z72_DISP_ENABLED 47u /* Four live presets plus the native information page. */
-#define Z72_DISP_INFO_GROUPS 7u
-#define Z72_DISP_INFO_ALL 127u
+#define Z72_DISP_INFO_GROUPS 8u
+#define Z72_DISP_INFO_ALL 255u
 #define Z72_DISP_INFO_DETAIL 32u
 #define Z72_DISP_INFO_FIELDS (Z72_DISP_INFO_ALL<<6)
 enum { Z72_DISP_INFO=1u, Z72_DISP_GRID=2u, Z72_DISP_HISTOGRAM=4u,
@@ -23,7 +23,7 @@ enum { Z72_DISP_INFO=1u, Z72_DISP_GRID=2u, Z72_DISP_HISTOGRAM=4u,
 
 enum { Z72_DISP_SHUTTER=1u, Z72_DISP_APERTURE=2u, Z72_DISP_ISO=4u,
        Z72_DISP_SHOOTING=8u, Z72_DISP_RELEASE=16u,
-       Z72_DISP_FOCUS=32u, Z72_DISP_STATUS=64u };
+       Z72_DISP_FOCUS=32u, Z72_DISP_STATUS=64u, Z72_DISP_FOCAL=128u };
 
 /* Legacy information On means all groups, except Minimal's exposure fields.
  * Detailed selections retain the original five component bits and CFG size. */
@@ -81,7 +81,7 @@ static inline struct z72_config z72_config_load(void)
     if(size==32 && data[1]==3 && (data[2]<=4 || data[2]==Z72_CFG_NO_GRID) &&
        data[4]<=1 && data[5]==~data[4] && data[6]<=1 && data[7]==~data[6])
         { config.grid_style=data[2]; config.auto_rotate=data[4]; config.photo_zebra_pattern=data[6]; }
-    if(((size==40 && data[1]==4) || (size==80 && data[1]>=5 && data[1]<=7)) &&
+    if(((size==40 && data[1]==4) || (size==80 && data[1]>=5 && data[1]<=8)) &&
        (data[2]<=4 || data[2]==Z72_CFG_NO_GRID) &&
        data[4]<=1 && data[5]==~data[4] && data[6]<=2 && data[7]==~data[6] &&
        data[8]<=7 && data[9]==~data[8])
@@ -91,10 +91,18 @@ static inline struct z72_config z72_config_load(void)
             z72_u32 pages=data[1]>=6 ? Z72_DISP_ENABLED : 15u;
             if(data[10]>maximum || !(data[10]&pages) || data[11]!=~data[10]) return config;
             for(z72_u32 i=0;i<Z72_DISP_PAGES;++i)
-                if((data[1]==7 ? !z72_disp_components_valid(data[12+2*i]) : data[12+2*i]>31) ||
+                if((data[1]>=7 ? !z72_disp_components_valid(data[12+2*i]) : data[12+2*i]>31) ||
+                   (data[1]==7 && data[12+2*i]>8191u) ||
                    data[13+2*i]!=~data[12+2*i]) return config;
             config.disp_enabled=data[10];
-            for(z72_u32 i=0;i<Z72_DISP_PAGES;++i) config.disp_components[i]=data[12+2*i];
+            for(z72_u32 i=0;i<Z72_DISP_PAGES;++i) {
+                z72_u32 components=data[12+2*i];
+                /* v7 grouped focal length under Other information. Preserve
+                 * that choice when splitting it into an independent switch. */
+                if(data[1]==7 && (components&Z72_DISP_INFO_DETAIL) &&
+                   (components&(Z72_DISP_STATUS<<6))) components|=Z72_DISP_FOCAL<<6;
+                config.disp_components[i]=components;
+            }
         }
         config.grid_style=data[2]; config.auto_rotate=data[4];
         config.photo_zebra_pattern=data[6]; config.photo_zebra_threshold=data[8];
@@ -121,7 +129,7 @@ static inline z72_u32 z72_config_save(struct z72_config config)
         if(config.disp_components[i]!=defaults[i]) custom=1;
         if(config.disp_components[i]&Z72_DISP_INFO_DETAIL) detail=1;
     }
-    z72_u32 version=detail ? 7 : config.disp_enabled&Z72_DISP_INFORMATION ? 6 : custom ? 5 :
+    z72_u32 version=detail ? 8 : config.disp_enabled&Z72_DISP_INFORMATION ? 6 : custom ? 5 :
                     config.photo_zebra_pattern || config.photo_zebra_threshold!=1 ? 4 :
                     config.auto_rotate && config.grid_style!=Z72_CFG_NO_GRID ? 1 : 2;
     z72_u32 size=version==1 ? 16 : version==2 ? 24 : version==4 ? 40 : 80,actual=0;

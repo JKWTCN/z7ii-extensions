@@ -10,9 +10,9 @@
 
 「照片拍摄加亮显示」「显示图案」和「加亮阈值」也支持上述语言，简体中文和英文菜单已实机验证，见[照片拍摄加亮显示](photo-highlights.md)。
 
-**Custom DISP pages** and its seven shooting-information controls also use localized labels. The horizon label is **水平仪／水平儀**, with supplemental glyphs for characters missing from the stock fonts. The combined update was hardware verified; see [Custom DISP pages](custom-disp.md).
+**Custom DISP pages** and its eight shooting-information controls also use localized labels, including **Focal length display／焦距显示／焦距顯示**. The horizon label is **水平仪／水平儀**, with supplemental glyphs for characters missing from the stock fonts. The combined update was hardware verified; see [Custom DISP pages](custom-disp.md).
 
-「自定义DISP页面」及七项细分拍摄信息也支持上述语言。「水平仪／水平儀」补齐原厂字库缺少的字形。本次组合更新已实机验证，见[自定义 DISP 页面](custom-disp.md)。
+「自定义DISP页面」及八项细分拍摄信息也支持上述语言，包括「焦距显示／焦距顯示／Focal length display」。「水平仪／水平儀」补齐原厂字库缺少的字形。本次组合更新已实机验证，见[自定义 DISP 页面](custom-disp.md)。
 
 Both labels were verified on a Z 7II in Simplified Chinese and English. The photos below are from that test.
 

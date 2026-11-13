@@ -10,14 +10,15 @@ enum { DISP_TITLE_SLOT=6, DISP_MASTER_SLOT=7, DISP_PRESET_SLOT=8,
 /* The native page transition disposes of the previous view's widgets before
  * constructing the target. Keep every view's records alive until power-off. */
 static struct {
-    u32 header[6],title[32],rows[7][7],maps[7],events[7][ROTATION_EVENTS][4];
+    u32 header[6],title[32],rows[8][7],maps[8],events[8][ROTATION_EVENTS][4];
 } disp_views[4];
 static u32 disp_callbacks[5],disp_view,disp_preset,disp_root_row,disp_editor_row;
 static u32 disp_choice_target,disp_choice_parent,disp_info_row;
+static u32 disp_list_layout[4];
 static const u32 disp_preset_defaults[]={3,1,10,21};
 static const char *const disp_preset_names[]={"Standard","Minimal","Composition","Exposure"};
 static const char *const disp_info_names[]={"Shutter speed","Aperture","ISO sensitivity",
-    "Shooting mode","Release mode","Focus information","Other information"};
+    "Shooting mode","Release mode","Focus information","Other information","Focal length display"};
 
 static u32 disp_header_owned(u32 header)
 {
@@ -44,7 +45,8 @@ static void disp_menu_values(void)
         disp_views[0].rows[i+1][5]=rotation_value(enabled&(1u<<i));
     disp_views[0].rows[5][5]=rotation_value(enabled&Z72_DISP_INFORMATION);
     disp_views[1].rows[0][5]=rotation_value(enabled&(1u<<disp_preset));
-    for (u32 i=0;i<5;++i)
+    disp_views[1].rows[1][5]=0xd7; /* Native -- marks the information submenu. */
+    for (u32 i=1;i<5;++i)
         disp_views[1].rows[i+1][5]=rotation_value(z72_config_current.disp_components[disp_preset]&(1u<<i));
     u32 information=z72_disp_information(z72_config_current.disp_components[disp_preset],disp_preset);
     for (u32 i=0;i<Z72_DISP_INFO_GROUPS;++i)
@@ -195,6 +197,7 @@ Z72_DISP_PICK(3)
 Z72_DISP_PICK(4)
 Z72_DISP_PICK(5)
 Z72_DISP_PICK(6)
+Z72_DISP_PICK(7)
 #undef Z72_DISP_PICK
 
 static u32 open_disp_menu(u32 a,u32 b,u32 c,u32 d)
@@ -211,17 +214,27 @@ static void disp_menu_prepare(void)
         "Virtual horizon","Photo highlights","Reset preset","Enable","Disable"};
     static const u32 counts[]={6,7,2,Z72_DISP_INFO_GROUPS};
     const z72_menu_callback picks[]={disp_pick_0,disp_pick_1,disp_pick_2,disp_pick_3,
-                                   disp_pick_4,disp_pick_5,disp_pick_6};
+                                   disp_pick_4,disp_pick_5,disp_pick_6,disp_pick_7};
     const u32 *events=(const u32 *)WORD(0x118111bcu);
     for (u32 i=0;i<sizeof(labels)/sizeof(labels[0]);++i) z72_menu_set_label(DISP_TITLE_SLOT+i,labels[i]);
     z72_menu_set_label(DISP_INFORMATION_SLOT,"Information display");
     for (u32 i=0;i<Z72_DISP_INFO_GROUPS;++i) z72_menu_set_label(DISP_INFO_SLOT+i,disp_info_names[i]);
+    const u32 *setup=(const u32 *)Z72_SETUP_MENU;
+    const u32 *setup_layout=(const u32 *)setup[1];
+    /* The subtitle occupies the first native Setup row. Reuse its remaining
+     * seven rows, including separate label/status columns and scrollbar bounds. */
+    disp_list_layout[0]=7;
+    for (u32 i=1;i<4;++i) disp_list_layout[i]=setup_layout[i]+8;
     for (u32 view=0;view<4;++view) {
         const u32 *stock=(const u32 *)(view==2 ? 0xb18545fcu : 0xb18512e4u);
         const u32 *stock_title=(const u32 *)stock[2];
-        const u32 *stock_rows=(const u32 *)stock[3];
+        const u32 *stock_rows=(const u32 *)(view==2 ? stock[3] : setup[3]);
         u32 *header=disp_views[view].header,*title=disp_views[view].title;
         for (u32 i=0;i<6;++i) header[i]=stock[i];
+        if (view!=2) {
+            header[0]=setup[0];
+            header[1]=view ? (u32)disp_list_layout : setup[1];
+        }
         for (u32 i=0;i<8;++i) title[i]=rotation_menu.title[i];
         title[0]=choice_localized ? (view==3 ? Z72_TEXT_DISP_SHOOTING_INFO : Z72_TEXT_DISP_TITLE) :
                  Z72_MENU_SLOT+(view==3 ? DISP_COMPONENT_SLOT : DISP_TITLE_SLOT);
@@ -235,7 +248,8 @@ static void disp_menu_prepare(void)
         const u32 *native_back=view==2 ? stock_title+8 : stock_title+24;
         for (u32 i=0;i<8;++i) title[back+i]=native_back[i];
         header[2]=(u32)title; header[3]=(u32)disp_views[view].rows; header[4]=(u32)disp_views[view].maps;
-        header[5]=(counts[view]<<16)|counts[view];
+        u32 visible=counts[view]>7 ? 7u : counts[view];
+        header[5]=(visible<<16)|counts[view];
         for (u32 row=0;row<counts[view];++row) {
             u32 *item=disp_views[view].rows[row];
             for (u32 i=0;i<7;++i) item[i]=stock_rows[i];
