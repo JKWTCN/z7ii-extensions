@@ -12,6 +12,9 @@ static u32 zebra_callbacks[5],zebra_view,zebra_root_row;
 static u32 zebra_header_owned(u32 header)
 {
     for (u32 i=0;i<3;++i) if (header==(u32)zebra_views[i].header) return 1;
+#ifdef Z72_WIFI_5GHZ
+    if (wifi_header_owned(header)) return 1;
+#endif
 #ifdef Z72_AF_SHORTCUT
     if (af_menu_header_owned(header)) return 1;
 #endif

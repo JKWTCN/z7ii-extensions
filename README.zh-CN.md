@@ -16,6 +16,7 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 | [焦距显示](docs/focal-length.md) | 手动变焦镜头的实时焦距（需电子通信），支持独立 DISP 开关 | 已实机验证 |
 | [电量百分比显示](docs/battery-percent.md) | 照片 LCD 电池框内透明底百分比，提供默认关闭的全局开关 | 已实机验证 |
 | [AF 区域快捷切换](docs/af-area-shortcut.md) | 原厂自定义控制中为五个按键分配照片 AF 区域，按一次切换并保持 | 已实机验证 |
+| [Wi-Fi 地区](docs/wifi-region.md) | 中国大陆／美国／跟随机身，支持 5 GHz STA 与 5 GHz Wi-Fi 5 AP | 已实机验证 |
 | [菜单本地化](docs/menu-localization.md)         | 扩展设置支持简体中文、繁体中文和英文标签                   | 已实机验证 |
 
 ## 已知问题
@@ -28,6 +29,8 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 
 操作前请备份数据，核对机型、固件版本及文件校验值，确保电量充足，切勿中断固件更新。如果无法理解或接受上述风险，请勿刷入或使用。使用风险由使用者自行承担；本项目不提供任何担保，详见 [MIT 许可证](LICENSE)。
 
+实验性的 Wi-Fi 地区功能另有[使用限制与风险声明](docs/wifi-region.md#important-limits-and-risk-notice--使用限制与风险声明)。请按实际使用地选择地区；实机测试不构成无线合规认证。
+
 ## 使用
 
 使用扩展前须安装本仓库提供的 SD 加载宿主。之后只需要更改 SD 卡中的 Z72APP.BIN 文件即可,无需再次刷入固件。
@@ -37,10 +40,10 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 如果要自己构建固件升级包的生成方法见[构建](#构建)。
 
 1. 等待存储卡访问结束，关机并取出存储卡。
-2. 将 [Z72APP.BIN](releases/v0.1.0-preview.11/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.12/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
 3. 装回卡和电池，等待到 i 按键旁边的读取灯灭了再开机。
 
-当前版本为 `v0.1.0-preview.11`，模块 50,140 字节。[SHA-256 校验](releases/v0.1.0-preview.11/SHA256SUMS)
+当前版本为 `v0.1.0-preview.12`，模块 54,340 字节。[SHA-256 校验](releases/v0.1.0-preview.12/SHA256SUMS)
 
 这是试用版本，休眠唤醒和长期稳定性尚未单独确认。替换或移除模块请完整断电。只加载可信模块。
 

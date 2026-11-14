@@ -72,6 +72,9 @@ static u32 disp_show(u32 view)
 {
     u32 header=WORD(ROTATION_PAGE+0x28);
     u32 owned=disp_header_owned(header),known=owned || header==(u32)rotation_menu.header;
+#ifdef Z72_WIFI_5GHZ
+    known=known || wifi_header_owned(header);
+#endif
 #ifdef Z72_AF_SHORTCUT
     known=known || af_menu_header_owned(header);
 #endif

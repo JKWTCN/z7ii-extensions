@@ -26,9 +26,9 @@ Assign a photo AF-area shortcut through the camera's native **f2 → Custom cont
 - 此功能只切换区域，不启动自动对焦；把 AF-ON 改为此功能后，该键不再执行原来的 AF-ON 动作。
 - 适用于照片 LCD 和取景器取景。菜单、回放、参数信息页、放大取景及视频保留原厂按键行为。继续遵守原厂 AF 区域可用性规则，包括微点及动态区域与对焦模式之间的限制。
 
-Labels and symbols use the camera's native language resources. The choices share `Z72APP.CFG` with the other extensions: assigning a shortcut uses the 120-byte v10 format, while v1–v9 remain readable and default to no shortcuts. Saving other extension settings preserves the assignments. The shortcut configuration belongs to the SD module rather than the camera's native user-settings backup.
+Labels and symbols use the camera's native language resources. The choices share `Z72APP.CFG` with the other extensions: assigning a shortcut uses the 120-byte v10 format when Wi-Fi region is Follow camera; an explicit Wi-Fi region uses 128-byte v12 and preserves the assignments. v1–v9 remain readable and default to no shortcuts. Saving other extension settings preserves the assignments. The shortcut configuration belongs to the SD module rather than the camera's native user-settings backup.
 
-名称和图标复用相机原厂语言资源。设置与其他扩展共用 `Z72APP.CFG`；存在快捷分配时采用 120 字节 v10，兼容读取 v1–v9，旧配置默认不分配快捷功能。保存其他扩展设置时保留按键分配。快捷目标保存在 SD 模块配置中，不属于原厂用户设置备份。
+名称和图标复用相机原厂语言资源。设置与其他扩展共用 `Z72APP.CFG`；存在快捷分配且 Wi-Fi 地区为「跟随机身」时采用 120 字节 v10；选择显式 Wi-Fi 地区时采用 128 字节 v12，并保留快捷分配。兼容读取 v1–v9，旧配置默认不分配快捷功能。保存其他扩展设置时保留按键分配。快捷目标保存在 SD 模块配置中，不属于原厂用户设置备份。
 
 ## Verification / 验证
 

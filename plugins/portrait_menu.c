@@ -1282,8 +1282,10 @@ static struct {
     u32 header[6], title[24], rows[2][7], maps[2];
     u32 events[2][ROTATION_EVENTS][4], callbacks[5];
 } rotation_menu;
-#ifdef Z72_PHOTO_ZEBRA
+#if defined(Z72_PHOTO_ZEBRA) || defined(Z72_WIFI_5GHZ)
 static u32 choice_localized;
+#endif
+#ifdef Z72_PHOTO_ZEBRA
 static u32 open_rotation_choice(void);
 #endif
 
@@ -1355,6 +1357,9 @@ static u32 disable_rotation(u32 a,u32 b,u32 c,u32 d)
     return apply_rotation(0);
 }
 
+#ifdef Z72_WIFI_5GHZ
+static u32 wifi_header_owned(u32 header);
+#endif
 #ifdef Z72_PHOTO_ZEBRA
 #ifdef Z72_AF_SHORTCUT
 static u32 af_menu_header_owned(u32 header);
@@ -1366,6 +1371,9 @@ static u32 disp_header_owned(u32 header);
 #endif
 #ifdef Z72_CUSTOM_DISP
 #include "disp_menu.h"
+#endif
+#ifdef Z72_WIFI_5GHZ
+#include "wifi_menu.h"
 #endif
 
 static u32 portrait_install_menu(void)
@@ -1419,6 +1427,9 @@ static u32 portrait_install_menu(void)
 
     z72_config_current=z72_config_load();
     auto_rotate=z72_config_current.auto_rotate;
+#ifdef Z72_WIFI_5GHZ
+    wifi_set_region(z72_config_current.wifi_region);
+#endif
     const struct z72_menu_row rows[]={
         {"Auto rotate info",open_rotation_menu,rotation_value(auto_rotate)},
 #ifdef Z72_PHOTO_ZEBRA
@@ -1426,6 +1437,9 @@ static u32 portrait_install_menu(void)
 #endif
 #ifdef Z72_CUSTOM_DISP
         {"Custom DISP pages",open_disp_menu,rotation_value(z72_config_current.disp_enabled&Z72_DISP_CUSTOM)},
+#endif
+#ifdef Z72_WIFI_5GHZ
+        {"Wi-Fi region",open_wifi_menu,0xd7u},
 #endif
 #if Z72_PORTRAIT_TRACE
         {"Portrait probe: export log",export_probe,0xd7},
@@ -1445,13 +1459,22 @@ static u32 portrait_install_menu(void)
         menu.rows[2][0]=Z72_TEXT_DISP_TITLE;
         menu.rows[2][4]=0x1001;
 #endif
+#ifdef Z72_WIFI_5GHZ
+        menu.rows[WIFI_MENU_ROW][0]=Z72_TEXT_WIFI_REGION;
+        menu.rows[WIFI_MENU_ROW][4]=0x1001;
+#endif
     }
-#ifdef Z72_PHOTO_ZEBRA
+#if defined(Z72_PHOTO_ZEBRA) || defined(Z72_WIFI_5GHZ)
     choice_localized=rotation_menu.title[0]!=0;
+#endif
+#ifdef Z72_PHOTO_ZEBRA
     zebra_menu_prepare();
 #endif
 #ifdef Z72_CUSTOM_DISP
     disp_menu_prepare();
+#endif
+#ifdef Z72_WIFI_5GHZ
+    wifi_menu_prepare();
 #endif
     z72_menu_publish_rows(&menu,count);
     page[1]=WORD(SETUP_PAGE+4);

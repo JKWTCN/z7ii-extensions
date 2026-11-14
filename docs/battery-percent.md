@@ -18,9 +18,9 @@ Show the camera-reported battery percentage inside the battery outline in photo 
 - 每秒检查一次读数，仅接受 0–100。能否获取有效读数取决于电池是否向机身报告电量。
 - 原厂参数信息页、菜单、回放、视频及取景器保留各自的电量显示方式。
 
-The setting is saved with the other preferences in `Z72APP.CFG`. Enabling it uses the 80-byte v9 format when no AF-area shortcut is assigned; shortcut assignments use v10 and preserve this setting. v1–v8 records remain readable and leave this option off. Other page and component selections are preserved. Labels are available in English, Simplified Chinese, and Traditional Chinese; a small supplemental font supplies missing Chinese glyphs.
+The setting is saved with the other preferences in `Z72APP.CFG`. Enabling it uses the 80-byte v9 format when no AF-area shortcut is assigned and Wi-Fi region is Follow camera; shortcut assignments use v10. An explicit Wi-Fi region uses 128-byte v12. All preserve this setting. v1–v8 records remain readable and leave this option off. Other page and component selections are preserved. Labels are available in English, Simplified Chinese, and Traditional Chinese; a small supplemental font supplies missing Chinese glyphs.
 
-设置与其他扩展共用 `Z72APP.CFG`。未分配 AF 区域快捷功能时，启用后采用 80 字节 v9；存在快捷分配时采用 v10，并保留本开关。兼容读取 v1–v8 旧配置，该选项默认关闭，原页面及组件选择保留。菜单支持简体中文、繁体中文和英文，缺少的中文字形由模块的小型补充字库提供。
+设置与其他扩展共用 `Z72APP.CFG`。未分配 AF 区域快捷功能且 Wi-Fi 地区为「跟随机身」时，启用后采用 80 字节 v9；存在快捷分配时采用 v10；选择显式 Wi-Fi 地区时采用 128 字节 v12，均保留本开关。兼容读取 v1–v8 旧配置，该选项默认关闭，原页面及组件选择保留。菜单支持简体中文、繁体中文和英文，缺少的中文字形由模块的小型补充字库提供。
 
 ## Verification / 验证
 

@@ -3,16 +3,18 @@
 #define Z72_MENU_GOLDEN_FONT_H
 #include "z72.h"
 #include "menu_battery_glyphs.h"
+#include "menu_region_glyphs.h"
 
-/* C 1.70 private font for golden-ratio, horizon and battery labels. */
+/* C 1.70 private font for golden-ratio, horizon, battery and region labels. */
 enum {
     Z72_GOLDEN_FACE=24, Z72_GOLDEN_STYLE=18,
-    Z72_GOLDEN_GLYPHS=18, Z72_GOLDEN_HEADER=0x40,
+    Z72_GOLDEN_GLYPHS=31, Z72_GOLDEN_HEADER=0x40,
     Z72_GOLDEN_INDEX=Z72_GOLDEN_HEADER+8+Z72_GOLDEN_GLYPHS*6,
     Z72_GOLDEN_OUTLINES=Z72_GOLDEN_INDEX+10+(Z72_GOLDEN_GLYPHS+1)*2,
     Z72_GOLDEN_FONT_BYTES=Z72_GOLDEN_OUTLINES+2860+
         sizeof(battery_u663e)+sizeof(battery_u6bd4)+sizeof(battery_u7535)+sizeof(battery_u767e)+
-        sizeof(battery_u793a)+sizeof(battery_u91cf)+sizeof(battery_u96fb)+sizeof(battery_u986f)
+        sizeof(battery_u793a)+sizeof(battery_u91cf)+sizeof(battery_u96fb)+sizeof(battery_u986f)+
+        2922+sizeof(region_u570b)+sizeof(region_u7f8e)+sizeof(region_u9646)+sizeof(region_u9678)
 };
 #define Z72_MENU_FONT_ROOTS ((volatile z72_u32 *)0xb1d60b58u)
 #define Z72_MENU_STYLE_CLASSES (*(volatile z72_u32 *)0xb1d60b7cu)
@@ -125,19 +127,32 @@ static inline void z72_golden_font_prepare(struct z72_golden_font *font,
         z72_u32 address;
     } glyphs[Z72_GOLDEN_GLYPHS]={
         {0x0000,207,0x109e2fe2u+0x10a52u}, /* .notdef */
+        {0x4e2d,122,0x109e2fe2u+0x481a6u}, /* 中 */
         {0x4eea,sizeof(instrument_simplified),(z72_u32)instrument_simplified}, /* 仪 */
         {0x5100,sizeof(instrument_traditional),(z72_u32)instrument_traditional}, /* 儀 */
         {0x5206,252,0x109e2fe2u+0x1ee35u}, /* 分 */
         {0x5272,277,0x10b664adu+0x188d2u}, /* 割 */
+        {0x56fd,175,0x109e2fe2u+0x2260cu}, /* 国 */
+        {0x570b,sizeof(region_u570b),(z72_u32)region_u570b}, /* 國 */
+        {0x5927,177,0x109e2fe2u+0x1ad8eu}, /* 大 */
         {0x5e73,162,0x109e2fe2u+0x31629u}, /* 平 */
         {0x663e,sizeof(battery_u663e),(z72_u32)battery_u663e}, /* 显 */
+        {0x673a,249,0x109e2fe2u+0x24ec8u}, /* 机 */
+        {0x6a5f,675,0x10972c2cu+0x50079u}, /* 機 */
         {0x6bd4,sizeof(battery_u6bd4),(z72_u32)battery_u6bd4}, /* 比 */
         {0x6c34,245,0x109e2fe2u+0x38586u}, /* 水 */
         {0x7535,sizeof(battery_u7535),(z72_u32)battery_u7535}, /* 电 */
         {0x767e,sizeof(battery_u767e),(z72_u32)battery_u767e}, /* 百 */
         {0x793a,sizeof(battery_u793a),(z72_u32)battery_u793a}, /* 示 */
+        {0x7f8e,sizeof(region_u7f8e),(z72_u32)region_u7f8e}, /* 美 */
+        {0x8ddf,335,0x109e2fe2u+0x213cbu}, /* 跟 */
+        {0x8eab,240,0x109e2fe2u+0x35e4au}, /* 身 */
         {0x91cf,sizeof(battery_u91cf),(z72_u32)battery_u91cf}, /* 量 */
         {0x91d1,303,0x10972c2cu+0x26691u}, /* 金 */
+        {0x9646,sizeof(region_u9646),(z72_u32)region_u9646}, /* 陆 */
+        {0x9678,sizeof(region_u9678),(z72_u32)region_u9678}, /* 陸 */
+        {0x968f,428,0x109e2fe2u+0x39416u}, /* 随 */
+        {0x96a8,521,0x10972c2cu+0x51fa2u}, /* 隨 */
         {0x96fb,sizeof(battery_u96fb),(z72_u32)battery_u96fb}, /* 電 */
         {0x986f,sizeof(battery_u986f),(z72_u32)battery_u986f}, /* 顯 */
         {0x9ec3,349,0x10972c2cu+0x3ef35u}, /* 黃 */
