@@ -37,7 +37,7 @@ def header(image, report):
              f'#define WIFI_AUX_BSS_BYTES {report["bss_bytes"]}u',
              f'#define WIFI_AUX_AP_OFFSET {symbols["wifi_aux_ap"] & ~1}u',
              f'#define WIFI_AUX_STA_OFFSET {symbols["wifi_aux_sta"] & ~1}u',
-             f'#define WIFI_AUX_REGION_OFFSET {symbols["wifi_aux_region"]}u',
+             f'#define WIFI_AUX_CONTROL_OFFSET {symbols["wifi_aux_control"]}u',
              f'#define WIFI_AUX_RELOCATION_COUNT {len(report["relocations"])}u',
              'static const unsigned char wifi_aux_blob[]={']
     for offset in range(0,len(image),16):

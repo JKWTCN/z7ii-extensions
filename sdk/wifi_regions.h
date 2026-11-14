@@ -9,6 +9,8 @@ enum {
     Z72_WIFI_REGION_BODY,
     Z72_WIFI_REGION_COUNT
 };
+#define Z72_WIFI_REGION_MASK 3u
+#define Z72_WIFI_80MHZ_ON 4u
 #define Z72_WIFI_COUNTRIES {"CN","US"}
 #define Z72_WIFI_COUNTRY_REVISIONS {38u,0u}
 #endif

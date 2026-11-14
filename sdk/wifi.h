@@ -23,22 +23,33 @@ _Alignas(64) static unsigned char wifi_aux[WIFI_AUX_IMAGE_BYTES+WIFI_AUX_BSS_BYT
 /* Read only by the native wireless task; changing the setting applies at the
  * next initialization, without restarting a connection from the GUI task. */
 static volatile z72_u32 wifi_region=Z72_WIFI_REGION_BODY;
+static volatile z72_u32 wifi_80mhz;
 static const unsigned char wifi_countries[Z72_WIFI_REGION_BODY][3]=Z72_WIFI_COUNTRIES;
 static const z72_u32 wifi_country_revisions[Z72_WIFI_REGION_BODY]=Z72_WIFI_COUNTRY_REVISIONS;
 static z72_u32 wifi_aux_installed;
 
-static void wifi_aux_set_region(z72_u32 region)
+static void wifi_aux_publish(void)
 {
-    *(volatile z72_u32 *)(wifi_aux+WIFI_AUX_REGION_OFFSET)=region;
+    *(volatile z72_u32 *)(wifi_aux+WIFI_AUX_CONTROL_OFFSET)=
+        __atomic_load_n(&wifi_region,__ATOMIC_ACQUIRE)|
+        (__atomic_load_n(&wifi_80mhz,__ATOMIC_ACQUIRE) ? Z72_WIFI_80MHZ_ON : 0u);
     Z72_WIFI_CALL(0x1034f9edu,void,void *,z72_u32)(
-        wifi_aux+WIFI_AUX_REGION_OFFSET,4);
+        wifi_aux+WIFI_AUX_CONTROL_OFFSET,4);
 }
 
 static void wifi_set_region(z72_u32 region)
 {
     if (region<Z72_WIFI_REGION_COUNT) {
         __atomic_store_n(&wifi_region,region,__ATOMIC_RELEASE);
-        if (__atomic_load_n(&wifi_aux_installed,__ATOMIC_ACQUIRE)) wifi_aux_set_region(region);
+        if (__atomic_load_n(&wifi_aux_installed,__ATOMIC_ACQUIRE)) wifi_aux_publish();
+    }
+}
+
+static void wifi_set_80mhz(z72_u32 enabled)
+{
+    if (enabled<=1u) {
+        __atomic_store_n(&wifi_80mhz,enabled,__ATOMIC_RELEASE);
+        if (__atomic_load_n(&wifi_aux_installed,__ATOMIC_ACQUIRE)) wifi_aux_publish();
     }
 }
 
@@ -89,8 +100,9 @@ static void wifi_install(void)
         z72_u32 *target=(z72_u32 *)(wifi_aux+wifi_aux_relocations[i]);
         *target+=(z72_u32)wifi_aux;
     }
-    *(z72_u32 *)(wifi_aux+WIFI_AUX_REGION_OFFSET)=
-        __atomic_load_n(&wifi_region,__ATOMIC_ACQUIRE);
+    *(z72_u32 *)(wifi_aux+WIFI_AUX_CONTROL_OFFSET)=
+        __atomic_load_n(&wifi_region,__ATOMIC_ACQUIRE)|
+        (__atomic_load_n(&wifi_80mhz,__ATOMIC_ACQUIRE) ? Z72_WIFI_80MHZ_ON : 0u);
     /* The loader cleans to PoU; publish this cross-CPU image to PoC too. */
     Z72_WIFI_CALL(0x1034f9edu,void,void *,z72_u32)(wifi_aux,sizeof(wifi_aux));
     Z72_WIFI_WORD(Z72_WIFI_AP_SLOT)=((z72_u32)wifi_aux+WIFI_AUX_AP_OFFSET)|1u;

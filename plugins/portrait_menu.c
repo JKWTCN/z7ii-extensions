@@ -1429,6 +1429,7 @@ static u32 portrait_install_menu(void)
     auto_rotate=z72_config_current.auto_rotate;
 #ifdef Z72_WIFI_5GHZ
     wifi_set_region(z72_config_current.wifi_region);
+    wifi_set_80mhz(z72_config_current.wifi_80mhz);
 #endif
     const struct z72_menu_row rows[]={
         {"Auto rotate info",open_rotation_menu,rotation_value(auto_rotate)},
@@ -1439,7 +1440,7 @@ static u32 portrait_install_menu(void)
         {"Custom DISP pages",open_disp_menu,rotation_value(z72_config_current.disp_enabled&Z72_DISP_CUSTOM)},
 #endif
 #ifdef Z72_WIFI_5GHZ
-        {"Wi-Fi region",open_wifi_menu,0xd7u},
+        {"Wi-Fi settings",open_wifi_settings,0xd7u},
 #endif
 #if Z72_PORTRAIT_TRACE
         {"Portrait probe: export log",export_probe,0xd7},
@@ -1460,7 +1461,7 @@ static u32 portrait_install_menu(void)
         menu.rows[2][4]=0x1001;
 #endif
 #ifdef Z72_WIFI_5GHZ
-        menu.rows[WIFI_MENU_ROW][0]=Z72_TEXT_WIFI_REGION;
+        menu.rows[WIFI_MENU_ROW][0]=Z72_TEXT_WIFI_SETTINGS;
         menu.rows[WIFI_MENU_ROW][4]=0x1001;
 #endif
     }
