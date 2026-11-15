@@ -66,15 +66,13 @@ The explicit regions are not interchangeable promises about permitted channels o
 
 ## Use / 使用
 
-1. Fully power down after card access finishes, then install the [current combined module](../releases/v0.1.0-preview.13/Z72APP.BIN). Keep `Z72APP.CFG`. An already-installed SD loader host does not need another firmware update.
-2. Open **Setup menu → Wi-Fi settings**, choose the actual region, and set **Enable 80 MHz WiFi** as required.
-3. Close the existing wireless connection and create a new hotspot or native **Connect to PC → Network settings** infrastructure connection. If the camera reuses its previous initialization, turn Wi-Fi off and back on, or power-cycle.
-4. Continue using the native SSID/password, profile, and transfer workflow. Inspect an actual connected client to check its band/protocol/rate.
+1. Open **Setup menu → Wi-Fi settings**, choose the actual region, and set **Enable 80 MHz WiFi** as required.
+2. Close the existing wireless connection and create a new hotspot or native **Connect to PC → Network settings** infrastructure connection. If the camera reuses its previous initialization, turn Wi-Fi off and back on, or power-cycle.
+3. Continue using the native SSID/password, profile, and transfer workflow. Inspect an actual connected client to check its band/protocol/rate.
 
-1. 等待存储卡访问结束并完整关机，替换[当前完整组合模块](../releases/v0.1.0-preview.13/Z72APP.BIN)，保留 `Z72APP.CFG`；已有SD加载宿主无需再次刷机。
-2. 进入 **设定菜单 → Wi-Fi 设置**，选择实际使用地区，并按需设置 **开启80 MHz WiFi**。
-3. 退出已有连接，再新建相机热点或原厂 **连接到PC → 网络设定** 基础结构连接；若仍复用旧初始化，关闭Wi-Fi再开启，必要时关机重启。
-4. SSID、密码、配置与传输继续按原厂流程操作。使用实际连接状态核对频段／协议／速率。
+1. 进入 **设定菜单 → Wi-Fi 设置**，选择实际使用地区，并按需设置 **开启80 MHz WiFi**。
+2. 退出已有连接，再新建相机热点或原厂 **连接到PC → 网络设定** 基础结构连接；若仍复用旧初始化，关闭Wi-Fi再开启，必要时关机重启。
+3. SSID、密码、配置与传输继续按原厂流程操作。使用实际连接状态核对频段／协议／速率。
 
 Preferences are saved in `Z72APP.CFG` and apply to the next wireless connection. Changing a setting does not restart an active connection. Existing configurations and other extension preferences are preserved; older configurations default the new switch to off. These settings are separate from the camera's native user-settings backup.
 
@@ -162,11 +160,11 @@ Mainland China, 80 MHz on / 中国大陆，80 MHz开启：
 - 已验证兼容的5 GHz WPA2-Personal／CCMP STA连接，WPA3-only网络的兼容性尚未确认。路由器显示802.11ax不代表相机支持Wi-Fi 6。
 - Wi-Fi设置由SD模块提供；已有支持的SD加载宿主时，更新只需替换模块文件。
 
-## Release / 发布版本
+## Verification / 验证
 
-**Release `v0.1.0-preview.13` passed hardware verification on November 14, 2026.** The module is **57,556 bytes**. Its [SHA-256](../releases/v0.1.0-preview.13/SHA256SUMS) is `faa51983cf816686a041db8c7c4757a3992f10d0bdc23738fa33014ddb868b08`.
+**Wi-Fi settings passed hardware verification on November 14, 2026.**
 
-**`v0.1.0-preview.13` 已于2026-11-14通过实机验证。** 模块为 **57,556字节**，[SHA-256](../releases/v0.1.0-preview.13/SHA256SUMS) 为 `faa51983cf816686a041db8c7c4757a3992f10d0bdc23738fa33014ddb868b08`。
+**Wi-Fi 设置已于2026-11-14通过实机验证。**
 
 Verified features include the grouped Wi-Fi settings menu, 5 GHz STA and Wi-Fi 5 AP operation for Mainland China and United States, and an 80 MHz AP connection with an observed 433.3 Mbps client link rate. The operating limits and risk notices above still apply.
 

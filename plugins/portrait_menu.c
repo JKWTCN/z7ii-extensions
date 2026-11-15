@@ -354,7 +354,7 @@ static u32 relocate_tile(struct box *box,u32 image)
 
 static int movie_meter_top(struct box box)
 {
-    if (!onscreen(box,138,LCD_H) || WORD(SHOOTING_MODE)!=0) return 0;
+    if (!onscreen(box,138,LCD_H) || WORD(SHOOTING_MODE)!=1) return 0;
     /* Video has two native meter positions. The backgrounds, L/R labels and
      * the individual segments share the same bounds at each position. */
     if (box.y>=352 && box.y+box.h<=392) return 354;
@@ -383,10 +383,19 @@ static enum placement relocate_live(struct box *box)
         scale_box(box,HUD_SCALE,HUD_SCALE,10,8);
         return HUD;
     }
+    /* The native tracking/OK/exit strip contains several child labels. Keep
+     * their shared spacing, including its full-width background and clears. */
+    if (x>=195 && x+box->w<=523 && y>=372 && y+box->h<=420) {
+        box->x-=119; box->y+=98;
+        return NORMAL;
+    }
     if (box->w>240 || box->h>155) return 0;
     int meter_top=movie_meter_top(*box);
     if (meter_top) { box->x+=8; box->y+=374-meter_top; }
-    else if (x<95 && y>=90 && y<232) { box->x+=3; box->y+=365; }
+    else if (x>=0 && x+box->w<=74 && y>=270 && y+box->h<=306) {
+        /* Native microphone indicators, including WIDE. */
+        box->x+=8; box->y+=60;
+    } else if (x<95 && y>=90 && y<232) { box->x+=3; box->y+=365; }
     else if (x>=655 && y>=120 && y<=185) { box->x-=243; box->y+=366; }
     else if (x>=680 && y>=225 && y<440) { box->x-=240; box->y+=13; }
     else if (x<45 && y>=300 && y<=355) { box->x+=4; box->y+=108; }
@@ -400,6 +409,67 @@ static enum placement relocate_live(struct box *box)
     box->x=clamp(box->x,0,LCD_H-box->w);
     box->y=clamp(box->y,0,LCD_W-box->h);
     return NORMAL;
+}
+
+/* Native meter fills bypass portrait_draw. Move the entire LCD control before
+ * its GUI update, including the label rectangles used by its clear path. */
+#define MOVIE_METER_CONTROL 0xb2bb2948u
+static short movie_meter_rects[68][4];
+static u32 movie_meter_saved, movie_meter_orientation;
+
+static void movie_meter_layout(u32 orientation)
+{
+    if (!rotation_enabled() || current_page()!=LIVE || WORD(SHOOTING_MODE)!=1 ||
+        (WORD(DISPLAY_OUTPUTS)&7u)!=1 || BYTE(0xb181da91u)!=0) orientation=0;
+    if (WORD(0x1094aa88u)!=0xb181f42cu ||
+        WORD(0xb181f454u)!=68 || WORD(0xb181f458u)!=MOVIE_METER_CONTROL) return;
+    if (!movie_meter_saved) {
+        if (!orientation) return;
+        const volatile short *first=(const volatile short *)(MOVIE_METER_CONTROL+4);
+        const volatile short *alternate=(const volatile short *)(MOVIE_METER_CONTROL+34*48+4);
+        if (first[0]!=18 || first[1]!=374 || first[2]!=134 || first[3]!=388 ||
+            alternate[0]!=18 || alternate[1]!=244 || alternate[2]!=134 || alternate[3]!=258) return;
+        for (u32 row=0;row<68;++row) {
+            const volatile short *rect=(const volatile short *)(MOVIE_METER_CONTROL+row*48+4);
+            for (u32 i=0;i<4;++i) movie_meter_rects[row][i]=rect[i];
+        }
+        movie_meter_saved=1;
+    }
+    if (orientation==movie_meter_orientation) return;
+    for (u32 row=0;row<68;++row) {
+        const short *source=movie_meter_rects[row];
+        struct box dest={source[0],source[1],source[2]-source[0],source[3]-source[1]};
+        if (orientation) {
+            dest.x+=8;
+            dest.y+=374-(row<34 ? 354 : 224);
+            dest=lcd_box(dest,orientation);
+        }
+        volatile short *rect=(volatile short *)(MOVIE_METER_CONTROL+row*48+4);
+        rect[0]=dest.x; rect[1]=dest.y;
+        rect[2]=dest.x+dest.w; rect[3]=dest.y+dest.h;
+    }
+    movie_meter_orientation=orientation;
+}
+
+static u32 movie_meter_label(struct box physical,struct box *logical,u32 orientation)
+{
+    if (!orientation || orientation!=movie_meter_orientation || WORD(SHOOTING_MODE)!=1) return 0;
+    if (physical.w<=0 || physical.h<=0) return 0;
+    for (u32 label=0;label<8;++label) {
+        u32 row=2+(label/4)*34+label%4;
+        const volatile short *rect=(const volatile short *)(MOVIE_METER_CONTROL+row*48+4);
+        /* Native text alignment can tighten the glyph box inside the control,
+         * or extend a font's em height two pixels beyond its rotated slot. */
+        int cx=physical.x+physical.w/2, cy=physical.y+physical.h/2;
+        if (cx<rect[0] || cx>=rect[2] || cy<rect[1] || cy>=rect[3] ||
+            physical.x<rect[0]-2 || physical.y<rect[1]-2 ||
+            physical.x+physical.w>rect[2]+2 || physical.y+physical.h>rect[3]+2) continue;
+        const short *source=movie_meter_rects[row];
+        *logical=(struct box){source[0]+8,source[1]+374-(row<34 ? 354 : 224),
+                             source[2]-source[0],source[3]-source[1]};
+        return 1;
+    }
+    return 0;
 }
 
 static enum placement relocate_box(struct box *box,enum page page,u32 image)
@@ -612,6 +682,12 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
         (width<=0 || width>LCD_W || height<=0 || height>LCD_H)))
         return hint || child_hint ? 0 : render(context,options,origin,metrics,bounds);
     struct box stock={x,y,width,height}, dest;
+    struct box meter;
+    u32 meter_label=text_page==LIVE && movie_meter_label((struct box){desc[0x5e/2],
+        LCD_H-desc[0x64/2],desc[0x62/2]-desc[0x5e/2],desc[0x64/2]-desc[0x60/2]},
+        &meter,text_orientation);
+    if (meter_label)
+        dest=(struct box){meter.x+(meter.w-width)/2,meter.y+(meter.h+height)/2,width,height};
     u32 battery=0;
 #ifdef Z72_BATTERY_PERCENT
     battery=__atomic_load_n(&battery_painting,__ATOMIC_ACQUIRE);
@@ -634,7 +710,7 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
             anchor=bottom<OLD_TOP ? bottom : OLD_TOP-1;
     }
     enum placement place=UNMAPPED;
-    if (battery) {
+    if (battery || meter_label) {
         place=NORMAL;
     } else if (hint) {
         dest=(struct box){x,y-height,width,height};
@@ -685,10 +761,10 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
         matrix[5]=(u32)(LCD_H*UNIT_SCALE-ty);
         matrix[6]=saved[6];
     }
-    /* The stock inline bitmap provider uses only the glyph translation.
-     * Settings dialogs can place button hints anywhere in the panel. */
+    /* Inline bitmap glyphs need the same rotation as ordinary text, including
+     * live-view status symbols and OK/exit hints. */
     u32 provider_slot=0, provider=0, local_provider[5];
-    if (hint || setting_page(text_page) || dial) {
+    if (hint || setting_page(text_page) || dial || text_page==LIVE) {
         u32 state=context[0x45d8/4];
         if (ram_words(state,0xbc/4) && WORD(state+0xb4)==1) {
             provider=WORD(state+0xb8);
@@ -698,7 +774,7 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
                 local_provider[3]=(u32)draw_menu_symbol;
                 text_symbol_sx=sx;
                 text_symbol_sy=sy;
-                text_symbol_top=hint ? FOOTER_Y : dial ? DIAL_TOP : child_shift;
+                text_symbol_top=text_page==LIVE ? 0 : hint ? FOOTER_Y : dial ? DIAL_TOP : child_shift;
                 text_symbol_bottom=dial ? GRID_TOP : LCD_W;
                 provider_slot=state+0xb8;
                 WORD(provider_slot)=(u32)local_provider;
@@ -864,6 +940,8 @@ static u32 portrait_draw(volatile u32 *message,u32 outputs,u32 orientation)
     }
     if (page==LIVE && ((image && command!=0x1c && focus_color(source[8])) ||
         (command==0x13 && focus_color(source[4]))) && !movie_meter_segment(stock)) return 0;
+    struct box meter;
+    if (page==LIVE && !image && movie_meter_label(stock,&meter,layout)) return 0;
 
     u32 backdrop=grid && (command==0x13 || command==0x17) && stock.x==0 && stock.y==OLD_TOP &&
                  stock.w==LCD_W && stock.h==2*CELL_H;
@@ -1227,6 +1305,7 @@ static u32 live_update(u32 a,u32 b,u32 c,u32 d)
     disp_update();
     if (BYTE(APP_CURRENT)==15) {
         live_orientation=0;
+        movie_meter_layout(0);
         last_plot_orientation=0;
 #ifdef Z72_PHOTO_ZEBRA
         z72_photo_zebra_update();
@@ -1236,6 +1315,7 @@ static u32 live_update(u32 a,u32 b,u32 c,u32 d)
 #endif
     if (current_page()!=LIVE) {
         live_orientation=0;
+        movie_meter_layout(0);
         last_plot_orientation=0;
         u32 result=CALL(LIVE_UPDATE_STOCK,u32,u32,u32,u32,u32)(a,b,c,d);
 #ifdef Z72_PHOTO_ZEBRA
@@ -1255,6 +1335,7 @@ static u32 live_update(u32 a,u32 b,u32 c,u32 d)
             CALL(0x10554cf9,void,void)();
         }
     }
+    movie_meter_layout(live_orientation);
     return gui_update(a,b,c,d);
 }
 
