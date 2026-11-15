@@ -22,6 +22,10 @@ Immediately after Information display, the root menu includes a global **Battery
 
 主菜单的「参数信息页」下方新增全局「电量百分比显示」，**默认关闭**，右侧显示 ON／OFF，点开选择启用／禁用。此项独立于四套预设和「自定义页面」总开关，不参加 DISP 循环，「恢复预设」也不改变此项。见[电量百分比显示](battery-percent.md)。
 
+The global battery percentage setting also applies to movie LCD standby and recording. Recording-time display was hardware verified on November 15, 2026; custom DISP page selection and components remain photo-LCD features.
+
+全局电量百分比开关也适用于视频 LCD 的待机和录制，录制期间保持显示已于 2026-11-15 通过实机验证；自定义 DISP 页面选择及组件设置仍面向照片 LCD。
+
 ## Shooting information / 拍摄信息
 
 **Shooting info** opens eight independent switches. Each preset saves its own selection; the parent row always shows `--` to indicate a submenu, while its child switches show ON/OFF. Minimal starts with the three exposure fields but can also display other groups when selected. Labels and status values use the native Setup Menu columns. Seven rows are visible at once, and the native scrollbar indicates the additional page containing the eighth option.
