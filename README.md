@@ -15,6 +15,7 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 | [Custom DISP pages](docs/custom-disp.md) | Photo LCD page selection, four presets, eight shooting-information controls, native scrolling lists, and the native information display | Hardware verified |
 | [Focal length display](docs/focal-length.md) | Live focal length for electronically reporting manual-zoom lenses, with an independent DISP switch | Hardware verified |
 | [Battery percentage display](docs/battery-percent.md) | Transparent in-frame percentage on the photo and movie LCD, with a global switch that defaults to off | Hardware verified |
+| [Extended movie recording](docs/movie-recording-limit.md) | Ordinary movies beyond 29:59; 38:52 continuous recording verified at 1080/60p | Hardware verified |
 | [AF-area shortcuts](docs/af-area-shortcut.md) | Assign photo AF-area shortcuts to five buttons through native Custom controls; press once to switch and keep the selected area | Hardware verified |
 | [Wi-Fi settings](docs/wifi-settings.md) | One submenu for region selection and an optional 80 MHz AP switch; 5 GHz STA and Wi-Fi 5 AP | Hardware verified |
 | [Menu localization](docs/menu-localization.md) | English, Simplified Chinese, and Traditional Chinese labels for the extension settings | Hardware verified |
@@ -31,6 +32,8 @@ Proceed with caution: back up your data, verify the camera model, firmware versi
 
 See the Wi-Fi settings [operating-region limits and risk notices](docs/wifi-settings.md#important-limits-and-risk-notice--使用限制与风险声明). Choose the actual operating region; hardware tests do not certify wireless compliance.
 
+Extended recording can still stop or cause the camera to shut down because of overheating; see the [feature documentation](docs/movie-recording-limit.md).
+
 ## Installation
 
 Install this repository's SD loader host before using extensions. Subsequent extension updates only require replacing `Z72APP.BIN` on the SD card.
@@ -40,10 +43,10 @@ The Windows GUI host firmware builder is available from [Releases](https://githu
 For instructions on building the firmware update package yourself, see [Building](#building).
 
 1. Wait for card access to finish, turn off the camera, and remove the memory card.
-2. Copy [Z72APP.BIN](releases/v0.1.0-preview.15/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
+2. Copy [Z72APP.BIN](releases/v0.1.0-preview.16/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
 3. Reinsert the card and battery, wait until the card access lamp next to the **i** button goes out, then turn on the camera.
 
-Current release `v0.1.0-preview.15` · 58,452 bytes · [SHA-256 checksum](releases/v0.1.0-preview.15/SHA256SUMS)
+Current release `v0.1.0-preview.16` · 59,220 bytes · [SHA-256 checksum](releases/v0.1.0-preview.16/SHA256SUMS)
 
 This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
 
