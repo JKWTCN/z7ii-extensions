@@ -4,17 +4,24 @@
 #include "z72.h"
 #include "menu_battery_glyphs.h"
 #include "menu_region_glyphs.h"
+#ifdef Z72_MENU_SOUND_FONT
+#include "menu_sound_glyphs.h"
+enum { Z72_SOUND_GLYPHS=9, Z72_SOUND_FONT_BYTES=1894+sizeof(sound_u542c)+sizeof(sound_u807d) };
+#else
+enum { Z72_SOUND_GLYPHS=0, Z72_SOUND_FONT_BYTES=0 };
+#endif
 
 /* C 1.70 private font for golden-ratio, horizon, battery and region labels. */
 enum {
     Z72_GOLDEN_FACE=24, Z72_GOLDEN_STYLE=18,
-    Z72_GOLDEN_GLYPHS=31, Z72_GOLDEN_HEADER=0x40,
+    Z72_GOLDEN_GLYPHS=31+Z72_SOUND_GLYPHS, Z72_GOLDEN_HEADER=0x40,
     Z72_GOLDEN_INDEX=Z72_GOLDEN_HEADER+8+Z72_GOLDEN_GLYPHS*6,
     Z72_GOLDEN_OUTLINES=Z72_GOLDEN_INDEX+10+(Z72_GOLDEN_GLYPHS+1)*2,
     Z72_GOLDEN_FONT_BYTES=Z72_GOLDEN_OUTLINES+2860+
         sizeof(battery_u663e)+sizeof(battery_u6bd4)+sizeof(battery_u7535)+sizeof(battery_u767e)+
         sizeof(battery_u793a)+sizeof(battery_u91cf)+sizeof(battery_u96fb)+sizeof(battery_u986f)+
-        2922+sizeof(region_u570b)+sizeof(region_u7f8e)+sizeof(region_u9646)+sizeof(region_u9678)
+        2922+sizeof(region_u570b)+sizeof(region_u7f8e)+sizeof(region_u9646)+sizeof(region_u9678)+
+        Z72_SOUND_FONT_BYTES
 };
 #define Z72_MENU_FONT_ROOTS ((volatile z72_u32 *)0xb1d60b58u)
 #define Z72_MENU_STYLE_CLASSES (*(volatile z72_u32 *)0xb1d60b7cu)
@@ -131,20 +138,38 @@ static inline void z72_golden_font_prepare(struct z72_golden_font *font,
         {0x4eea,sizeof(instrument_simplified),(z72_u32)instrument_simplified}, /* 仪 */
         {0x5100,sizeof(instrument_traditional),(z72_u32)instrument_traditional}, /* 儀 */
         {0x5206,252,0x109e2fe2u+0x1ee35u}, /* 分 */
+#ifdef Z72_MENU_SOUND_FONT
+        {0x524d,251,0x109e2fe2u+0x32616u}, /* 前 */
+#endif
         {0x5272,277,0x10b664adu+0x188d2u}, /* 割 */
+#ifdef Z72_MENU_SOUND_FONT
+        {0x542c,sizeof(sound_u542c),(z72_u32)sound_u542c}, /* 听 */
+#endif
         {0x56fd,175,0x109e2fe2u+0x2260cu}, /* 国 */
         {0x570b,sizeof(region_u570b),(z72_u32)region_u570b}, /* 國 */
         {0x5927,177,0x109e2fe2u+0x1ad8eu}, /* 大 */
         {0x5e73,162,0x109e2fe2u+0x31629u}, /* 平 */
+#ifdef Z72_MENU_SOUND_FONT
+        {0x5f53,166,0x109e2fe2u+0x1b4e6u}, /* 当 */
+        {0x6548,422,0x109e2fe2u+0x3f0d7u}, /* 效 */
+#endif
         {0x663e,sizeof(battery_u663e),(z72_u32)battery_u663e}, /* 显 */
         {0x673a,249,0x109e2fe2u+0x24ec8u}, /* 机 */
         {0x6a5f,675,0x10972c2cu+0x50079u}, /* 機 */
         {0x6bd4,sizeof(battery_u6bd4),(z72_u32)battery_u6bd4}, /* 比 */
         {0x6c34,245,0x109e2fe2u+0x38586u}, /* 水 */
         {0x7535,sizeof(battery_u7535),(z72_u32)battery_u7535}, /* 电 */
+#ifdef Z72_MENU_SOUND_FONT
+        {0x76ee,114,0x10972c2cu+0x1b481u}, /* 目 */
+#endif
         {0x767e,sizeof(battery_u767e),(z72_u32)battery_u767e}, /* 百 */
         {0x793a,sizeof(battery_u793a),(z72_u32)battery_u793a}, /* 示 */
         {0x7f8e,sizeof(region_u7f8e),(z72_u32)region_u7f8e}, /* 美 */
+#ifdef Z72_MENU_SOUND_FONT
+        {0x807d,sizeof(sound_u807d),(z72_u32)sound_u807d}, /* 聽 */
+        {0x8a66,436,0x10972c2cu+0x42c38u}, /* 試 */
+        {0x8bd5,302,0x109e2fe2u+0x3745bu}, /* 试 */
+#endif
         {0x8ddf,335,0x109e2fe2u+0x213cbu}, /* 跟 */
         {0x8eab,240,0x109e2fe2u+0x35e4au}, /* 身 */
         {0x91cf,sizeof(battery_u91cf),(z72_u32)battery_u91cf}, /* 量 */
@@ -154,6 +179,9 @@ static inline void z72_golden_font_prepare(struct z72_golden_font *font,
         {0x968f,428,0x109e2fe2u+0x39416u}, /* 随 */
         {0x96a8,521,0x10972c2cu+0x51fa2u}, /* 隨 */
         {0x96fb,sizeof(battery_u96fb),(z72_u32)battery_u96fb}, /* 電 */
+#ifdef Z72_MENU_SOUND_FONT
+        {0x97f3,203,0x109e2fe2u+0x42d79u}, /* 音 */
+#endif
         {0x986f,sizeof(battery_u986f),(z72_u32)battery_u986f}, /* 顯 */
         {0x9ec3,349,0x10972c2cu+0x3ef35u}, /* 黃 */
         {0x9ec4,312,0x109e2fe2u+0x2444au}  /* 黄 */

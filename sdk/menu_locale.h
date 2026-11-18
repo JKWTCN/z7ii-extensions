@@ -57,6 +57,31 @@ enum {
     Z72_TEXT_PRECAP_05,
     Z72_TEXT_PRECAP_07,
     Z72_TEXT_PRECAP_10,
+#ifdef Z72_MENU_SOUND_FONT
+    Z72_TEXT_SOUND_TITLE,
+    Z72_TEXT_SOUND_FILE,
+    Z72_TEXT_SOUND_BURST,
+    Z72_TEXT_SOUND_VOLUME,
+    Z72_TEXT_SOUND_PREVIEW,
+    Z72_TEXT_SOUND_WAV1,
+    Z72_TEXT_SOUND_WAV2,
+    Z72_TEXT_SOUND_WAV3,
+    Z72_TEXT_SOUND_WAV4,
+    Z72_TEXT_SOUND_WAV5,
+    Z72_TEXT_SOUND_DISABLE,
+    Z72_TEXT_SOUND_FIRST,
+    Z72_TEXT_SOUND_EVERY,
+    Z72_TEXT_SOUND_LEVEL1,
+    Z72_TEXT_SOUND_LEVEL2,
+    Z72_TEXT_SOUND_LEVEL3,
+    Z72_TEXT_SOUND_LEVEL4,
+    Z72_TEXT_SOUND_LEVEL5,
+    Z72_TEXT_SOUND_MISSING1,
+    Z72_TEXT_SOUND_MISSING2,
+    Z72_TEXT_SOUND_MISSING3,
+    Z72_TEXT_SOUND_MISSING4,
+    Z72_TEXT_SOUND_MISSING5,
+#endif
     Z72_MENU_TEXT_END
 };
 
@@ -94,7 +119,15 @@ static inline int z72_menu_locale_install(void)
          u"Wi-Fi region",u"Mainland China",u"United States",u"Follow camera",u"Enable 80 MHz WiFi",u"Wi-Fi settings",
          u"JPEG pre-capture",u"Pre-capture switch",u"Pre-capture time",u"Start pre-capture",
          u"Enable",u"Disable",u"Half-press only",u"AF-ON only",u"Half-press or AF-ON",
-         u"Silent photography and H+",u"release mode required",u"0.3 s",u"0.5 s",u"0.7 s",u"1.0 s"},
+         u"Silent photography and H+",u"release mode required",u"0.3 s",u"0.5 s",u"0.7 s",u"1.0 s",
+#ifdef Z72_MENU_SOUND_FONT
+         u"Silent shutter sound",u"Custom shutter sound",u"Continuous release",u"Volume",u"Preview current sound",
+         u"SHUTTER1.WAV",u"SHUTTER2.WAV",u"SHUTTER3.WAV",u"SHUTTER4.WAV",u"SHUTTER5.WAV",u"Off",
+         u"First shot only",u"Every shot",u"1",u"2",u"3",u"4",u"5",
+         u"SHUTTER1.WAV (unavailable)",u"SHUTTER2.WAV (unavailable)",u"SHUTTER3.WAV (unavailable)",
+         u"SHUTTER4.WAV (unavailable)",u"SHUTTER5.WAV (unavailable)",
+#endif
+        },
         {u"黄金分割",u"自动旋转信息显示",u"照片拍摄加亮显示",u"加亮阈值",u"显示图案",
          u"自定义DISP页面",u"自定义页面",u"标准",u"极简",u"构图",u"曝光",u"页面启用",u"拍摄信息",
          u"取景网格",u"直方图",u"水平仪",u"照片加亮",u"恢复预设",u"启用",u"禁用",u"参数信息页",
@@ -102,7 +135,15 @@ static inline int z72_menu_locale_install(void)
          u"Wi-Fi 地区",u"中国大陆",u"美国",u"跟随机身",u"开启 80 MHz WiFi",u"Wi-Fi 设置",
          u"JPEG 预拍摄",u"预拍摄开关",u"预拍摄时间",u"预拍摄启动方式",
          u"开启",u"关闭",u"仅半按快门",u"仅 AF-ON",u"半按快门或 AF-ON",
-         u"只有在静音拍摄和 H+",u"连拍模式下生效",u"0.3 s",u"0.5 s",u"0.7 s",u"1.0 s"},
+         u"只有在静音拍摄和 H+",u"连拍模式下生效",u"0.3 s",u"0.5 s",u"0.7 s",u"1.0 s",
+#ifdef Z72_MENU_SOUND_FONT
+         u"静音拍摄快门声音",u"自定义快门声",u"连拍时播放",u"音量大小",u"试听当前音效",
+         u"SHUTTER1.WAV",u"SHUTTER2.WAV",u"SHUTTER3.WAV",u"SHUTTER4.WAV",u"SHUTTER5.WAV",u"关闭",
+         u"仅第一张",u"每张照片",u"1",u"2",u"3",u"4",u"5",
+         u"SHUTTER1.WAV（不可用）",u"SHUTTER2.WAV（不可用）",u"SHUTTER3.WAV（不可用）",
+         u"SHUTTER4.WAV（不可用）",u"SHUTTER5.WAV（不可用）",
+#endif
+        },
         {u"黃金分割",u"自動旋轉資訊顯示",u"照片拍攝加亮顯示",u"加亮閾值",u"顯示圖案",
          u"自訂DISP頁面",u"自訂頁面",u"標準",u"精簡",u"構圖",u"曝光",u"頁面啟用",u"拍攝資訊",
          u"取景網格",u"直方圖",u"水平儀",u"照片加亮",u"恢復預設",u"啟用",u"停用",u"參數資訊頁",
@@ -110,7 +151,15 @@ static inline int z72_menu_locale_install(void)
          u"Wi-Fi 地區",u"中國大陸",u"美國",u"跟隨機身",u"開啟 80 MHz WiFi",u"Wi-Fi 設定",
          u"JPEG 預拍攝",u"預拍攝開關",u"預拍攝時間",u"預拍攝啟動方式",
          u"開啟",u"關閉",u"僅半按快門",u"僅 AF-ON",u"半按快門或 AF-ON",
-         u"僅在靜音拍攝和 H+",u"連拍模式下生效",u"0.3 s",u"0.5 s",u"0.7 s",u"1.0 s"}
+         u"僅在靜音拍攝和 H+",u"連拍模式下生效",u"0.3 s",u"0.5 s",u"0.7 s",u"1.0 s",
+#ifdef Z72_MENU_SOUND_FONT
+         u"靜音拍攝快門聲音",u"自訂快門聲",u"連拍時播放",u"音量大小",u"試聽目前音效",
+         u"SHUTTER1.WAV",u"SHUTTER2.WAV",u"SHUTTER3.WAV",u"SHUTTER4.WAV",u"SHUTTER5.WAV",u"關閉",
+         u"僅第一張",u"每張照片",u"1",u"2",u"3",u"4",u"5",
+         u"SHUTTER1.WAV（無法使用）",u"SHUTTER2.WAV（無法使用）",u"SHUTTER3.WAV（無法使用）",
+         u"SHUTTER4.WAV（無法使用）",u"SHUTTER5.WAV（無法使用）",
+#endif
+        }
     };
     z72_u32 bytes=sizeof(struct z72_menu_locale)+Z72_MENU_LANGUAGES*sizeof(translations[0]);
     for (z72_u32 lang=0;lang<Z72_MENU_LANGUAGES;++lang)
@@ -126,6 +175,9 @@ static inline int z72_menu_locale_install(void)
         locale->styles[id]=styles[template];
     locale->styles[Z72_TEXT_DISP_HORIZON]=Z72_GOLDEN_STYLE;
     locale->styles[Z72_TEXT_BATTERY_PERCENT]=Z72_GOLDEN_STYLE;
+#ifdef Z72_MENU_SOUND_FONT
+    locale->styles[Z72_TEXT_SOUND_PREVIEW]=Z72_GOLDEN_STYLE;
+#endif
     for (z72_u32 id=Z72_TEXT_WIFI_CN;id<=Z72_TEXT_WIFI_BODY;++id)
         locale->styles[id]=Z72_GOLDEN_STYLE;
     z72_golden_font_prepare(&locale->golden,copy,styles[template]);

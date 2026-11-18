@@ -4,13 +4,15 @@
 #define Z72_PORTRAIT_TRACE 0
 #define Z72_GRID_WITH_PORTRAIT 1
 #define Z72_PHOTO_ZEBRA 1
-#define Z72_MENU_EXTRA_ROWS 5u
+#define Z72_MENU_EXTRA_ROWS 6u
 #define Z72_CUSTOM_DISP 1
 #define Z72_FOCAL_LENGTH 1
 #define Z72_BATTERY_PERCENT 1
 #define Z72_AF_SHORTCUT 1
 #define Z72_WIFI_5GHZ 1
 #define Z72_JPEG_PRE_CAPTURE 1
+#define Z72_SHUTTER_SOUND 1
+#define Z72_MENU_SOUND_FONT 1
 #include "disp.h"
 #include "af_shortcut.h"
 #include "movie_limit.h"
@@ -25,10 +27,13 @@
 static u32 pre_capture_menu_source(u32 header)
 {
     return header==(u32)rotation_menu.header || zebra_header_owned(header) ||
-        disp_header_owned(header) || wifi_header_owned(header) || af_menu_header_owned(header);
+        disp_header_owned(header) || wifi_header_owned(header) || af_menu_header_owned(header) ||
+        sound_header_owned(header);
 }
 
+static void sound_shutter_event(z72_u32 fn);
 #include "pre_capture/pre_capture.c"
+#include "shutter_sound.c"
 
 z72_u32 z72_main(const struct z72_api *api)
 {
@@ -46,5 +51,6 @@ z72_u32 z72_main(const struct z72_api *api)
     wifi_install();
     movie_limit_install();
     if (pre_capture_menu_available) pre_capture_install();
+    if (sound_menu_available) sound_install();
     return 0;
 }

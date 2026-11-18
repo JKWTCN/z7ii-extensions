@@ -457,6 +457,9 @@ static void input_dispatch(z72_u32 flags)
 {
     for (z72_u32 i=0;i<16;++i) if (flags&(1u<<i)) {
         z72_u32 fn=WORD(INPUT_CALLBACKS+4*i),consume=0;
+#ifdef Z72_SHUTTER_SOUND
+        sound_shutter_event(fn);
+#endif
         consume=jpeg_shutter_event(fn,i);
         if (!consume) CALL(INPUT_NATIVE,void,z72_u32)(1u<<i);
     }

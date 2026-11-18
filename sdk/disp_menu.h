@@ -75,6 +75,9 @@ static u32 disp_show(u32 view)
 #ifdef Z72_JPEG_PRE_CAPTURE
     known=known || jpeg_menu_owned(header);
 #endif
+#ifdef Z72_SHUTTER_SOUND
+    known=known || sound_header_owned(header);
+#endif
 #ifdef Z72_WIFI_5GHZ
     known=known || wifi_header_owned(header);
 #endif

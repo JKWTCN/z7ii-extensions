@@ -12,6 +12,13 @@ static z72_u32 jpeg_menu_prepare(void);
 static z72_u32 pre_capture_review_update(void);
 static z72_u32 pre_capture_menu_available;
 #endif
+#ifdef Z72_SHUTTER_SOUND
+static z72_u32 open_sound_menu(z72_u32,z72_u32,z72_u32,z72_u32);
+static z72_u32 sound_header_owned(z72_u32);
+static z72_u32 sound_ready(void);
+static z72_u32 sound_menu_prepare(void);
+static z72_u32 sound_menu_available;
+#endif
 
 #define Z72_PORTRAIT_MENU 1
 #ifndef Z72_PORTRAIT_TRACE
@@ -1527,7 +1534,7 @@ static u32 portrait_install_menu(void)
     wifi_set_region(z72_config_current.wifi_region);
     wifi_set_80mhz(z72_config_current.wifi_80mhz);
 #endif
-    const struct z72_menu_row rows[]={
+    struct z72_menu_row rows[]={
         {"Auto rotate info",open_rotation_menu,rotation_value(auto_rotate)},
 #ifdef Z72_PHOTO_ZEBRA
         {"Photo shooting highlights",open_zebra_menu,rotation_value(z72_config_current.photo_zebra_pattern)},
@@ -1544,11 +1551,26 @@ static u32 portrait_install_menu(void)
 #ifdef Z72_JPEG_PRE_CAPTURE
         {"JPEG pre-capture",open_jpeg_menu,0xd7},
 #endif
+#ifdef Z72_SHUTTER_SOUND
+        {0},
+#endif
     };
     u32 count=sizeof(rows)/sizeof(rows[0]);
+#ifdef Z72_SHUTTER_SOUND
+    --count;
+#endif
 #ifdef Z72_JPEG_PRE_CAPTURE
+    const u32 jpeg_row=count-1;
     pre_capture_menu_available=jpeg_menu_prepare()==0;
     if (!pre_capture_menu_available) --count;
+#endif
+#ifdef Z72_SHUTTER_SOUND
+    sound_menu_available=sound_ready() && !sound_menu_prepare();
+    if (sound_menu_available) {
+        rows[count].label="Silent shutter sound";
+        rows[count].callback=open_sound_menu;
+        rows[count++].value=0xd7;
+    }
 #endif
     if (z72_menu_prepare_rows(&menu,rows,count)) return 1;
     if (z72_menu_locale_install()) {
@@ -1569,17 +1591,29 @@ static u32 portrait_install_menu(void)
 #endif
 #ifdef Z72_JPEG_PRE_CAPTURE
         if (pre_capture_menu_available) {
-            menu.rows[count-1][0]=Z72_TEXT_PRECAP_TITLE;
+            menu.rows[jpeg_row][0]=Z72_TEXT_PRECAP_TITLE;
+            menu.rows[jpeg_row][4]=0x1001;
+        }
+#endif
+#ifdef Z72_SHUTTER_SOUND
+        if (sound_menu_available) {
+            menu.rows[count-1][0]=Z72_TEXT_SOUND_TITLE;
             menu.rows[count-1][4]=0x1001;
         }
 #endif
-    }
-#ifdef Z72_JPEG_PRE_CAPTURE
-    if (pre_capture_menu_available && !rotation_menu.title[0]) {
-        pre_capture_menu_available=0;
-        if (z72_menu_prepare_rows(&menu,rows,--count)) return 1;
-    }
+    } else {
+        u32 unlocalized_count=count;
+#ifdef Z72_SHUTTER_SOUND
+        unlocalized_count-=sound_menu_available;
+        sound_menu_available=0;
 #endif
+#ifdef Z72_JPEG_PRE_CAPTURE
+        unlocalized_count-=pre_capture_menu_available;
+        pre_capture_menu_available=0;
+#endif
+        if (unlocalized_count!=count && z72_menu_prepare_rows(&menu,rows,unlocalized_count)) return 1;
+        count=unlocalized_count;
+    }
 #if defined(Z72_PHOTO_ZEBRA) || defined(Z72_WIFI_5GHZ)
     choice_localized=rotation_menu.title[0]!=0;
 #endif
