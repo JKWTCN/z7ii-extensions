@@ -18,9 +18,9 @@ Nikon Z 7II C 1.70 的普通视频录制可超过原厂 29 分 59 秒上限。�
 
 ## Verification / 验证
 
-**Hardware verified.** On November 15, 2026, the user confirmed a continuous recording beyond 29:59. Camera playback shows a **38-minute-52-second** clip at **1920 × 1080, 60p**. The user also confirmed that the exported video reports the correct duration on a computer and plays normally. Standby and active-recording photos show extended remaining-time countdowns. The published complete module is byte-for-byte identical to the 59,220-byte module used for this test.
+**Hardware verified.** On November 15, 2026, the user confirmed a continuous recording beyond 29:59. Camera playback shows a **38-minute-52-second** clip at **1920 × 1080, 60p**. The user also confirmed that the exported video reports the correct duration on a computer and plays normally. Standby and active-recording photos show extended remaining-time countdowns. Release `v0.1.0-preview.16` contained the 59,220-byte module used for this test.
 
-**已实机验证。** 2026-11-15，用户确认连续录像已超过 29:59。机身回放显示 **38 分 52 秒**、**1920 × 1080、60p** 的视频；用户同时确认导出的视频在电脑上显示的时长正常，播放也正常。待机及录制照片均展示延长后的剩余时间倒计时。发布的完整组合模块与本次实机测试的 59,220 字节模块逐字节一致。
+**已实机验证。** 2026-11-15，用户确认连续录像已超过 29:59。机身回放显示 **38 分 52 秒**、**1920 × 1080、60p** 的视频；用户同时确认导出的视频在电脑上显示的时长正常，播放也正常。待机及录制照片均展示延长后的剩余时间倒计时。本次实机测试所用的 59,220 字节模块随 `v0.1.0-preview.16` 发布。
 
 ![Hardware-verified 38:52 clip in camera playback / 已实机验证的 38 分 52 秒视频回放](images/z7ii-movie-duration-playback.png)
 

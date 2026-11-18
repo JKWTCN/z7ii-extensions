@@ -60,10 +60,12 @@ static void zebra_page_init(const u32 *page)
 
 static u32 zebra_show(u32 view)
 {
-    if (view>2 || WORD(ROTATION_PAGE)!=2 ||
-        (WORD(ROTATION_PAGE+0x28)!=(u32)rotation_menu.header &&
-         !zebra_header_owned(WORD(ROTATION_PAGE+0x28)))) return 1;
-    if (WORD(ROTATION_PAGE+0x24) && !zebra_header_owned(WORD(ROTATION_PAGE+0x28))) return 1;
+    u32 header=WORD(ROTATION_PAGE+0x28),owned=zebra_header_owned(header);
+    u32 known=header==(u32)rotation_menu.header || owned;
+#ifdef Z72_JPEG_PRE_CAPTURE
+    known=known || jpeg_menu_owned(header);
+#endif
+    if (view>2 || WORD(ROTATION_PAGE)!=2 || !known || (WORD(ROTATION_PAGE+0x24) && !owned)) return 1;
     zebra_menu_values();
     zebra_view=view;
     /* The old widget tree keeps its own storage. Reset its saved row before
@@ -176,9 +178,12 @@ static void zebra_menu_prepare(void)
 /* The rotation choice continues to use its original independent view. */
 static u32 open_rotation_choice(void)
 {
-    if (WORD(ROTATION_PAGE)!=2 || WORD(ROTATION_PAGE+0x24) ||
-        (WORD(ROTATION_PAGE+0x28)!=(u32)rotation_menu.header &&
-         !zebra_header_owned(WORD(ROTATION_PAGE+0x28)))) return 1;
+    u32 header=WORD(ROTATION_PAGE+0x28);
+    u32 known=header==(u32)rotation_menu.header || zebra_header_owned(header);
+#ifdef Z72_JPEG_PRE_CAPTURE
+    known=known || jpeg_menu_owned(header);
+#endif
+    if (WORD(ROTATION_PAGE)!=2 || WORD(ROTATION_PAGE+0x24) || !known) return 1;
     WORD(ROTATION_PAGE+0x10)=(u32)rotation_menu.callbacks;
     WORD(ROTATION_PAGE+0x28)=(u32)rotation_menu.header;
     CALL(0x1063ab75u,void,u32,u32)(2,ROTATION_PAGE_ID);

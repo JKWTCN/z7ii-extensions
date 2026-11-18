@@ -5,6 +5,14 @@
 #include "menu.h"
 #include "menu_locale.h"
 
+#ifdef Z72_JPEG_PRE_CAPTURE
+static z72_u32 open_jpeg_menu(z72_u32,z72_u32,z72_u32,z72_u32);
+static z72_u32 jpeg_menu_owned(z72_u32);
+static z72_u32 jpeg_menu_prepare(void);
+static z72_u32 pre_capture_review_update(void);
+static z72_u32 pre_capture_menu_available;
+#endif
+
 #define Z72_PORTRAIT_MENU 1
 #ifndef Z72_PORTRAIT_TRACE
 #define Z72_PORTRAIT_TRACE 0
@@ -1298,6 +1306,9 @@ static u32 draw_portrait_histogram(u32 orientation)
 
 static u32 live_update(u32 a,u32 b,u32 c,u32 d)
 {
+#ifdef Z72_JPEG_PRE_CAPTURE
+    if (pre_capture_review_update()) return 0;
+#endif
 #ifdef Z72_AF_SHORTCUT
     af_shortcut_update();
 #endif
@@ -1457,6 +1468,10 @@ static u32 disp_header_owned(u32 header);
 #include "wifi_menu.h"
 #endif
 
+#ifdef Z72_JPEG_PRE_CAPTURE
+static u32 pre_capture_menu_source(u32 header);
+#endif
+
 static u32 portrait_install_menu(void)
 {
     volatile u32 *page=(volatile u32 *)ROTATION_PAGE;
@@ -1526,8 +1541,15 @@ static u32 portrait_install_menu(void)
 #if Z72_PORTRAIT_TRACE
         {"Portrait probe: export log",export_probe,0xd7},
 #endif
+#ifdef Z72_JPEG_PRE_CAPTURE
+        {"JPEG pre-capture",open_jpeg_menu,0xd7},
+#endif
     };
-    const u32 count=sizeof(rows)/sizeof(rows[0]);
+    u32 count=sizeof(rows)/sizeof(rows[0]);
+#ifdef Z72_JPEG_PRE_CAPTURE
+    pre_capture_menu_available=jpeg_menu_prepare()==0;
+    if (!pre_capture_menu_available) --count;
+#endif
     if (z72_menu_prepare_rows(&menu,rows,count)) return 1;
     if (z72_menu_locale_install()) {
         menu.rows[0][0]=Z72_TEXT_AUTO_ROTATE;
@@ -1545,7 +1567,19 @@ static u32 portrait_install_menu(void)
         menu.rows[WIFI_MENU_ROW][0]=Z72_TEXT_WIFI_SETTINGS;
         menu.rows[WIFI_MENU_ROW][4]=0x1001;
 #endif
+#ifdef Z72_JPEG_PRE_CAPTURE
+        if (pre_capture_menu_available) {
+            menu.rows[count-1][0]=Z72_TEXT_PRECAP_TITLE;
+            menu.rows[count-1][4]=0x1001;
+        }
+#endif
     }
+#ifdef Z72_JPEG_PRE_CAPTURE
+    if (pre_capture_menu_available && !rotation_menu.title[0]) {
+        pre_capture_menu_available=0;
+        if (z72_menu_prepare_rows(&menu,rows,--count)) return 1;
+    }
+#endif
 #if defined(Z72_PHOTO_ZEBRA) || defined(Z72_WIFI_5GHZ)
     choice_localized=rotation_menu.title[0]!=0;
 #endif

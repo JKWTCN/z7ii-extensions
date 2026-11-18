@@ -57,6 +57,9 @@ static u32 wifi_show(u32 view)
 {
     u32 header=WORD(ROTATION_PAGE+0x28);
     u32 owned=wifi_header_owned(header),known=header==(u32)rotation_menu.header || owned;
+#ifdef Z72_JPEG_PRE_CAPTURE
+    known=known || jpeg_menu_owned(header);
+#endif
 #ifdef Z72_PHOTO_ZEBRA
     known=known || zebra_header_owned(header);
 #endif
