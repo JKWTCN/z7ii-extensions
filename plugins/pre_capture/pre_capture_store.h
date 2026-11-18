@@ -4,7 +4,6 @@
 #define STORE_HEADER_BYTES 0x20000u
 struct photo_stamp {
     z72_u32 date,clock,fraction,width,height,valid;
-    z72_u32 exposure,exposure_valid;
 };
 static struct photo_stamp photo_stamps[RING_SLOTS];
 static _Alignas(64) unsigned char store_header[STORE_HEADER_BYTES];
@@ -40,37 +39,6 @@ static z72_u32 exif_ascii(const unsigned char *t,z72_u32 size,z72_u32 offset,
         z72_u32 n=exif_u32(e+4,little),p=n<=4 ? offset+2+i*12+8 : exif_u32(e+8,little);
         if (!n || p>size || n>size-p) return 0;
         *text=t+p; *length=n; return 1;
-    }
-    return 0;
-}
-/* Nikon type-3 MakerNote: its own TIFF offsets start after the10-byte header.
- * 00a7 is written by native104fa5ce from this exposure's context+2858. */
-static z72_u32 exif_exposure(const unsigned char *t,z72_u32 size,z72_u32 sub,
-    struct photo_stamp *stamp,z72_u32 little)
-{
-    if (sub>size || size-sub<2) return 0;
-    z72_u32 count=exif_u16(t+sub,little);
-    if (count>256 || count>(size-sub-2)/12) return 0;
-    for (z72_u32 i=0;i<count;++i) {
-        const unsigned char *e=t+sub+2+i*12;
-        if (exif_u16(e,little)!=0x927c || exif_u16(e+2,little)!=7) continue;
-        z72_u32 n=exif_u32(e+4,little),offset=exif_u32(e+8,little);
-        if (n<18 || offset>size || n>size-offset) return 0;
-        const unsigned char *m=t+offset;
-        if (m[0]!='N' || m[1]!='i' || m[2]!='k' || m[3]!='o' || m[4]!='n' || m[5] || m[6]!=2) return 0;
-        m+=10; n-=10;
-        if (!((m[0]=='I' && m[1]=='I') || (m[0]=='M' && m[1]=='M'))) return 0;
-        z72_u32 ml=m[0]=='I',p=exif_u32(m+4,ml);
-        if (exif_u16(m+2,ml)!=42 || p>n || n-p<2) return 0;
-        z72_u32 items=exif_u16(m+p,ml);
-        if (items>256 || items>(n-p-2)/12) return 0;
-        for (z72_u32 j=0;j<items;++j) {
-            const unsigned char *item=m+p+2+j*12;
-            if (exif_u16(item,ml)==0x00a7 && exif_u16(item+2,ml)==4 && exif_u32(item+4,ml)==1) {
-                stamp->exposure=exif_u32(item+8,ml); stamp->exposure_valid=1; return 1;
-            }
-        }
-        return 0;
     }
     return 0;
 }
@@ -115,14 +83,13 @@ static z72_u32 exif_time(const unsigned char *t,z72_u32 size,struct photo_stamp 
     stamp->date=year*10000+month*100+day;
     stamp->clock=fields[3]*3600+fields[4]*60+fields[5];
     stamp->fraction=value;
-    return exif_exposure(t,size,sub,stamp,little);
+    return 1;
 }
 /* Parse only marker segments before SOS; never search compressed pixels for
  * an EXIF signature. TIFF offsets remain relative to their APP1 boundary. */
 __attribute__((noinline)) z72_u32 photo_header(const unsigned char *data,z72_u32 bytes,struct photo_stamp *stamp)
 {
     stamp->valid=0; stamp->width=stamp->height=0;
-    stamp->exposure_valid=0;
     if (bytes<4 || data[0]!=255 || data[1]!=0xd8) return 0;
     z72_u32 p=2,has_time=0;
     for (z72_u32 i=0;i<128 && p+4<=bytes;++i) {
@@ -187,31 +154,16 @@ static z72_u32 store_reserve(void)
     }
     z72_u32 previous=0;
     for (z72_u32 i=0;i<count;++i) {
-        z72_u32 slot=store_order[i],flags=0,date[2]={0},ids[18]={0};
-        const struct photo_stamp *stamp=&photo_stamps[slot];
-        CALL(0x10509aa7u,void,void *,z72_u32,z72_u32,z72_u32)(date,
-            stamp->date/10000,(stamp->date/100)%100,stamp->date%100);
-        CALL(0x10509ad3u,void,void *,z72_u32,z72_u32,z72_u32)(date,
-            stamp->clock/3600,(stamp->clock/60)%60,stamp->clock%60);
-        ((unsigned char *)date)[4]=(unsigned char)((stamp->clock&1u)*100u+stamp->fraction/10000000u);
-        ++store_stats[2]; store_stats[9]=2;
-        /* Argument 1 is the native photo allocation policy, not a physical
-         * card index. Native 10390e4c uses policy 1; 10496bb4 selects media.
-         * The allocator reserves records and advances its own counters now.
-         */
-        /* Per-file JPEG override: do not depend on a stale RAW/paired plan. */
-        _Alignas(8) z72_u32 jpeg_plan[10]={1}; jpeg_plan[4]=ring[slot].size;
-        void *plan=jpeg_plan;
-        store_stats[3]=CALL(0x10507871u,z72_u32,z72_u32,void *,void *,void *,void *)(1,&flags,date,plan,ids);
-        store_plan[6]=store_stats[3];
-        if (store_stats[3]!=SDK_OK) return 0;
-        if (ids[0]!=1 || ids[1]!=1 || (ids[2]&15u) ||
-            !CALL(0x105094e5u,z72_u32,z72_u32)(ids[2])) { store_plan[6]=3; return 0; }
-        store_ids[slot]=ids[2]; ++store_plan[1]; store_stats[4]=ids[2];
-        if (!i) store_plan[5]=ids[2]>>29;
-        if ((ids[2]>>29)!=store_plan[5] ||
-            (i && (ids[2]&0x1fffffe0u)<=(previous&0x1fffffe0u))) { store_plan[6]=3; return 0; }
-        previous=ids[2];
+        z72_u32 slot=store_order[i],job=ring_card_job[slot];
+        if (!job || job>CARD_RECORDS || LOAD(card_jobs[job-1][4])!=2 ||
+            LOAD(card_queue_frames[job-1].discard)) return 0;
+        z72_u32 id=LOAD(card_jobs[job-1][3]);
+        if (!CALL(0x105094e5u,z72_u32,z72_u32)(id)) return 0;
+        store_ids[slot]=id; ++store_plan[1]; store_stats[4]=id;
+        if (!i) store_plan[5]=id>>29;
+        if ((id>>29)!=store_plan[5] ||
+            (i && (id&0x1fffffe0u)<=(previous&0x1fffffe0u))) { store_plan[6]=3; return 0; }
+        previous=id;
     }
     return 1;
 }
@@ -256,8 +208,6 @@ static z72_u32 store_native(z72_u32 slot)
         store_stats[7]=CALL(0x104ef467u,z72_u32,z72_u32,z72_u32,void *)(object,
             store_stats[6]==SDK_OK && actual==frame->size ? 0 : 3,record);
         if (!store_stats[7]) {
-            if (LOAD(promote[0])) result=0;
-            else
             {
             /* A reserved ID can be read before its delayed JPEG exists.
              * The native reader caches that error as valid ImageInfo and a
@@ -276,7 +226,6 @@ static z72_u32 store_native(z72_u32 slot)
             if (metadata_stats[2]==1) { ++metadata_stats[1]; result=0; }
             }
         }
-        if (!LOAD(promote[0]))
             finish_pre_notice();
     } else {
         CALL(0x1056788bu,void,z72_u32)(object);
@@ -287,7 +236,6 @@ static z72_u32 store_native(z72_u32 slot)
     result=check_jpeg(destination
     );
     if (result) { ++store_stats[10]; return result; }
-    if (LOAD(promote[0]) && !promote_closed(id)) return 3;
     last_id=id; store_last_id=id;
     for (z72_u32 i=0;i<=length;++i) store_last_path[i]=destination[i];
     if (!store_first_id) {

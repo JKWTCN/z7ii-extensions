@@ -8,6 +8,7 @@
 #define RING_FULL_BYTES (Z72_PRE_SEQUENCE ? 192u*1024u*1024u : RING_BYTES)
 #define BURST_FRAMES 8u
 #define BATCH_JOBS 16u
+#define COPY_ERROR_FIELDS 16u
 struct cached_jpeg {
     z72_u32 lease,address,capacity,size,ready_tick,generation,order,state;
 };
@@ -16,27 +17,41 @@ struct capture_job {
     z72_u32 observed_tick,observed_control;
 };
 static struct cached_jpeg ring[RING_SLOTS];
+/* Job index plus one, zero after a save attempt. Protected by ring_busy. */
+static z72_u32 ring_card_job[RING_SLOTS];
 static struct capture_job jobs[BATCH_JOBS];
-static z72_u32 promote_kind[RING_SLOTS];
-static z72_u32 promote_exposure[RING_SLOTS],promote_max_capacity;
-static z72_u32 job_exposure[BATCH_JOBS];
-/* Pre evictions, late pre before base, unused reservations canceled,
- * exposure mismatch, mapping overflow, reservations, reordered writes, reserved. */
-static z72_u32 sequence_stats[8];
 static volatile z72_u32 ring_busy,ring_count,ring_bytes,ring_peak,ring_drops;
 static volatile z72_u32 batch_expected,batch_seen,batch_created,job_sequence;
 static z72_u32 batch_calls,pool_failures,copy_failures,map_failures,cache_saves;
-static z72_u32 expired_frames,busy_drops,window_limited;
+static z72_u32 expired_frames,busy_drops,last_copy_ms,max_copy_ms,window_limited;
 static z72_u32 duration_index=1,cycle_pre_saves,cycle_first_file,cycle_last_file;
-static z72_u32 save_failures,quarantined_bytes;
-static volatile z72_u32 pre_failed;
+static z72_u32 choice_time,save_failures,quarantined_bytes;
+static volatile z72_u32 layout_failures,pre_failed,copy_error[COPY_ERROR_FIELDS];
 /* Last saved cycle: count, first/last observation, trigger; cumulative late
  * publications, post-trigger exclusions, window exclusions; saved window. */
 static z72_u32 window_stats[8];
 static const z72_u32 durations[]={300,500,700,1000};
+static const char *const duration_labels[]={"0.3 s","0.5 s","0.7 s","1 s"};
 static const char *const time_labels[]={"Pre-capture time: 0.3 s","Pre-capture time: 0.5 s",
     "Pre-capture time: 0.7 s","Pre-capture time: 1 s"};
 static _Alignas(64) unsigned char ring_zeros[512],ring_signature[64];
+
+/* Keep the first fault even when later outputs are merely drained. The
+ * descriptor snapshot contains metadata, never JPEG pixel contents.
+ */
+static void ring_error(z72_u32 reason,z72_u32 record,z72_u32 mode,z72_u32 sum,
+    z72_u32 component,const z72_u32 *part,z72_u32 offset,z72_u32 result,z72_u32 order)
+{
+    if (reason<=6) __atomic_fetch_add(&layout_failures,1,__ATOMIC_RELAXED);
+    z72_u32 empty=0;
+    if (!__atomic_compare_exchange_n(&copy_error[0],&empty,0xffffffffu,0,__ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE)) return;
+    copy_error[1]=tick(); copy_error[2]=WORD(record); copy_error[3]=mode;
+    copy_error[4]=WORD(record+0x18); copy_error[5]=sum; copy_error[6]=component;
+    copy_error[7]=WORD(record+0x34);
+    for (z72_u32 i=0;i<4;++i) copy_error[8+i]=part ? part[i] : 0;
+    copy_error[12]=offset; copy_error[13]=result; copy_error[14]=order;
+    STORE(copy_error[0],reason);
+}
 
 /* These compare/exchanges are also used by the file task, peer receiver and
  * worker. Never spin on another task: a competing output is discarded with a
@@ -52,12 +67,15 @@ static void ring_release_one(z72_u32 i)
 {
     struct cached_jpeg *f=&ring[i];
     if (!f->lease || f->state==3 || (Z72_PRE_PROMOTE && f->state==4)) return;
+    if (ring_card_job[i]) {
+        STORE(card_queue_frames[ring_card_job[i]-1].discard,1);
+        ring_card_job[i]=0;
+    }
     /* A failed DMA is quarantined; a live writer owns state4 until close. */
     CALL(0x10298c61u,z72_u32,z72_u32,z72_u32)(f->lease,0xf);
     ring_bytes-=f->capacity;
     if (f->state==2) --ring_count;
     for (z72_u32 j=0;j<sizeof(*f)/4;++j) ((volatile z72_u32 *)f)[j]=0;
-    promote_kind[i]=0;
 }
 static void ring_release(z72_u32 i)
 {
@@ -73,7 +91,6 @@ static z72_u32 ring_oldest(void)
 static void ring_expire(z72_u32 now,z72_u32 generation)
 {
     for (z72_u32 i=0;i<RING_SLOTS;++i) if (ring[i].state==2 &&
-        !(promote_kind[i] && (LOAD(control)&FROZEN) && ring[i].generation==generation) &&
         (ring[i].generation!=generation || now-ring[i].ready_tick>durations[duration_index])) {
         ring_release(i); ++expired_frames;
     }
@@ -102,23 +119,9 @@ static z72_u32 ring_reserve(z72_u32 bytes)
          */
         budget=RING_BYTES;
         z72_u32 needed=bytes;
-        /* Charge known pool capacity, not just the compressed JPEG length.
-         * The native lease can be much larger than this frame's contents. */
-        if (promote_max_capacity>needed) needed=promote_max_capacity;
-        if (LOAD(control)&FROZEN)
-            budget=RING_FULL_BYTES;
-        else if (promote_max_capacity && promote_max_capacity<RING_BYTES/2)
-            budget-=promote_max_capacity;
         if (needed<=budget && slot<RING_SLOTS && ring_bytes<=budget-needed &&
             CALL(0x10298d15u,z72_u32,z72_u32,z72_u32)(0xf,bytes)>=3) break;
         z72_u32 old=ring_oldest();
-        if (LOAD(control)&FROZEN) {
-            old=RING_SLOTS;
-            for (z72_u32 i=0;i<RING_SLOTS;++i) if (ring[i].state==2 && !promote_kind[i] &&
-                (old==RING_SLOTS || ring[i].order<ring[old].order)) old=i;
-            if (old==RING_SLOTS) { ++pool_failures; return RING_SLOTS; }
-            ++sequence_stats[0];
-        } else
         if (old==RING_SLOTS || (LOAD(control)&FROZEN)) { ++pool_failures; return RING_SLOTS; }
         ring_release(old); ++ring_drops; ++window_limited;
     }
@@ -136,7 +139,6 @@ static z72_u32 ring_reserve(z72_u32 bytes)
         ++pool_failures; return RING_SLOTS;
     }
     f->lease=lease; f->address=WORD(node); f->capacity=WORD(node+4); f->state=1;
-    if (f->capacity>promote_max_capacity) promote_max_capacity=f->capacity;
     ring_bytes+=f->capacity;
     if (ring_bytes>ring_peak) ring_peak=ring_bytes;
     return slot;
@@ -159,7 +161,7 @@ static z72_u32 ring_copy_bytes(z72_u32 dest,z72_u32 source,z72_u32 bytes,z72_u32
 }
 static z72_u32 ring_copy_jpeg(z72_u32 record,z72_u32 mode,const struct capture_job *job)
 {
-    z72_u32 current=LOAD(control);
+    z72_u32 source_tick=tick(),current=LOAD(control);
     z72_u32 observed=job->observed_tick,order=job->order;
     if (!LOAD(enabled) || (!(current&FROZEN) && !LOAD(half)) ||
         (current&~7u)!=(frame_control&~7u) ||
@@ -176,28 +178,18 @@ static z72_u32 ring_copy_jpeg(z72_u32 record,z72_u32 mode,const struct capture_j
     }
     if (!ring_enter()) {
         ++busy_drops; ++ring_drops; ++window_limited;
-        if (post) {
-            __atomic_fetch_add(&promote[10],1,__ATOMIC_RELAXED);
-        }
         return 0;
     }
     z72_u32 total=WORD(record+0x18),parts[6][4],sum=0,n=0,result=0;
     if (WORD(record+0x1c) || total<8 || total>RING_BYTES-511u || WORD(record+0x34)>1) {
-        result=3;
-    }
-    z72_u32 capture_context=WORD(record+8);
-    z72_u32 job_index=(z72_u32)(job-jobs);
-    if (job_index>=BATCH_JOBS || (!pre_capture_ram(capture_context,0x3400) &&
-         !(record==(z72_u32)peer_record && capture_context==(z72_u32)peer_context)) ||
-        WORD(capture_context+0x2858u)!=job_exposure[job_index]) {
-        result=3;
+        ring_error(2,record,mode,0,0,0,0,WORD(record+0x1c),order); result=3;
     }
     for (z72_u32 i=0;!result && i<((Z72_PRE_QUALITY && mode==1) ? 4u : 6u);++i) {
         z72_u32 component=CALL(0x104ef019u,z72_u32,z72_u32,z72_u32)(mode,i);
         z72_u32 r=CALL(0x104eefc5u,z72_u32,z72_u32,z72_u32,z72_u32,void *)(mode,record,component,parts[n]);
         if (r==1) continue;
         if (r || !parts[n][0] || parts[n][1]<parts[n][2] || parts[n][2]>sizeof(ring_zeros)) {
-            result=3; break;
+            ring_error(r ? 3 : 4,record,mode,sum,i,parts[n],0,r,order); result=3; break;
         }
         /* 104ef81e loads {total,padding} from descriptor+4; 104ef82a
          * subtracts them. +0xc is metadata/capacity for the alternate object
@@ -205,12 +197,12 @@ static z72_u32 ring_copy_jpeg(z72_u32 record,z72_u32 mode,const struct capture_j
          */
         z72_u32 bytes=parts[n][1]-parts[n][2];
         if (bytes>total-sum || parts[n][2]>total-sum-bytes || parts[n][0]>0xffffffffu-bytes) {
-            result=3; break;
+            ring_error(5,record,mode,sum,i,parts[n],0,0,order); result=3; break;
         }
         sum+=bytes+parts[n][2]; ++n;
     }
     if (!result && sum!=total) {
-        result=3;
+        ring_error(6,record,mode,sum,6,n ? parts[n-1] : 0,0,0,order); result=3;
     }
     z72_u32 slot=RING_SLOTS;
     if (!result) {
@@ -221,9 +213,6 @@ static z72_u32 ring_copy_jpeg(z72_u32 record,z72_u32 mode,const struct capture_j
         slot=ring_reserve((total+511u)&~511u);
         if (slot==RING_SLOTS) {
             ++ring_drops; ++window_limited;
-            if (current&FROZEN) {
-                if (post) __atomic_fetch_add(&promote[10],1,__ATOMIC_RELAXED);
-            }
         }
     }
     if (!result && slot<RING_SLOTS) {
@@ -236,10 +225,12 @@ static z72_u32 ring_copy_jpeg(z72_u32 record,z72_u32 mode,const struct capture_j
                 z72_u32 count=bytes-done;
                 if (count>0x100000u) count=0x100000u;
                 result=ring_copy_bytes(f->address+offset,parts[i][0]+done,count,WORD(record+0x34));
+                if (result) ring_error(7,record,mode,sum,i,parts[i],offset,result,order);
                 done+=count; offset+=count;
             }
             if (!result && parts[i][2]) {
                 result=ring_copy_bytes(f->address+offset,(z72_u32)ring_zeros,parts[i][2],0);
+                if (result) ring_error(8,record,mode,sum,i,parts[i],offset,result,order);
                 offset+=parts[i][2];
             }
         }
@@ -247,9 +238,10 @@ static z72_u32 ring_copy_jpeg(z72_u32 record,z72_u32 mode,const struct capture_j
             CALL(0x1034fa29u,void,void *,z72_u32)(ring_signature,sizeof(ring_signature));
             result=ring_copy_bytes((z72_u32)ring_signature,f->address,8,0);
             CALL(0x1034fa29u,void,void *,z72_u32)(ring_signature,sizeof(ring_signature));
-            if (!result && (
-                ring_signature[0]!=0xff || ring_signature[1]!=0xd8)) {
-                result=3;
+            if (result) ring_error(9,record,mode,sum,6,0,0,result,order);
+            else if (
+                ring_signature[0]!=0xff || ring_signature[1]!=0xd8) {
+                ring_error(10,record,mode,sum,6,0,0,WORD((z72_u32)ring_signature),order); result=3;
             }
         }
         if (result) {
@@ -260,16 +252,16 @@ static z72_u32 ring_copy_jpeg(z72_u32 record,z72_u32 mode,const struct capture_j
         } else {
             f->size=total; f->ready_tick=observed; f->generation=current&~7u;
             f->order=order;
-            promote_exposure[slot]=WORD(WORD(record+8)+0x2858);
-            promote_kind[slot]=post;
-            if (post) {
-                z72_u32 empty=0;
-                __atomic_compare_exchange_n(&promote[3],&empty,observed,0,__ATOMIC_RELEASE,__ATOMIC_RELAXED);
+            if (job->request && job->request<=CARD_RECORDS) {
+                ring_card_job[slot]=job->request;
+                card_queue_frames[job->request-1].cached=1;
             }
-            f->state=2; ++ring_count;
+            f->state=2; ++ring_count; ++published; complete_tick=tick();
             if (current&FROZEN) ++window_stats[4];
         }
     }
+    last_copy_ms=tick()-source_tick;
+    if (last_copy_ms>max_copy_ms) max_copy_ms=last_copy_ms;
     ring_leave(); return result;
 }
 
@@ -290,7 +282,7 @@ static void batch_track(z72_u32 event,z72_u32 request)
          * its live one-JPEG record is the ownership proof, not these scalars.
          * A duplicate completed writer has count zero and cannot reach here.
          */
-        break;
+        ++stream[12]; break;
     }
     for (z72_u32 i=0;i<BATCH_JOBS;++i) if (LOAD(jobs[i].request)==request && LOAD(jobs[i].claimed)!=2) {
         /* The early 0001 notification may precede wrapper-token setup. Keep
@@ -313,20 +305,15 @@ static void batch_track(z72_u32 event,z72_u32 request)
         if (!__atomic_compare_exchange_n(&jobs[i].request,&empty,1,0,__ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE)) continue;
         if (attempt) stream_recycled(i);
         jobs[i].token=token; jobs[i].slot=slot; jobs[i].context=context;
-        /* This is an already validated local capture context. Never follow
-         * the remote slave pointer from an IPC payload on this processor. */
-        job_exposure[i]=WORD(context+0x2858u);
         jobs[i].order=__atomic_add_fetch(&job_sequence,1,__ATOMIC_RELAXED); jobs[i].claimed=0;
         z72_u32 stamp=LOAD(control);
         jobs[i].observed_tick=tick();
         if (!__atomic_compare_exchange_n(&control,&stamp,stamp,0,__ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE)) stamp|=FROZEN;
         jobs[i].observed_control=stamp;
-        if (stamp&FROZEN) {
-            z72_u32 empty=0;
-            __atomic_compare_exchange_n(&promote[3],&empty,jobs[i].observed_tick,0,__ATOMIC_RELEASE,__ATOMIC_RELAXED);
-        }
         STORE(jobs[i].request,request);
-        __atomic_fetch_add(&batch_created,1,__ATOMIC_RELEASE);
+        z72_u32 created=__atomic_add_fetch(&batch_created,1,__ATOMIC_RELEASE);
+        z72_u32 backlog=created-LOAD(batch_seen);
+        if (backlog>LOAD(stream[10])) STORE(stream[10],backlog);
         return;
     }
     __atomic_fetch_or(&stream[3],0x40,__ATOMIC_RELAXED);

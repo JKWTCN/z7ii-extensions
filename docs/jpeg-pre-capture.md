@@ -16,14 +16,14 @@ Hold the selected control to start buffering JPEGs in RAM. Fully pressing the sh
 
 按住选定的启动按键后，相机会在内存中滚动缓存 JPEG。完全按下快门时保留窗口内的照片，保持全按即可延续同一次 H+ 连拍，松开后写完在途照片。启用此功能时，预拍帧和后续帧均以 JPEG 写入相机的 DCIM 目录。机身图像品质选项仍保留原有设置。
 
-The number of frames retained depends on available buffer space, file size, and the memory card's write speed. During a long burst, a full write queue can cause dropped frames and gaps in file numbering. Once writing finishes, press the camera's playback button to review the saved photos.
+The number of frames retained depends on available buffer space, file size, and the memory card's write speed. During a long burst, a full write queue can cause dropped frames and gaps in file numbering. With **Image review** enabled, the camera can automatically review photos after a full press. Releasing the pre-capture control without fully pressing the shutter returns to live view. You can also use the playback button once writing finishes.
 
-实际保留张数取决于可用缓存、文件大小和存储卡写入速度。长时间连拍时，待写队列满载可能出现掉帧和编号空档。写卡完成后，可用机身播放按钮查看保存的照片。
+实际保留张数取决于可用缓存、文件大小和存储卡写入速度。长时间连拍时，待写队列满载可能出现掉帧和编号空档。开启「图像查看」后，全按拍摄可自动回看。仅启动预拍摄后松手会回到取景。写卡完成后，也可用机身播放按钮查看保存的照片。
 
 ## Hardware example / 实拍示例
 
-The four saved pre-capture JPEGs in this example are **DSC_6068.JPG**, **DSC_6071.JPG**, **DSC_6072.JPG**, and **DSC_6076.JPG**. The module is still in testing, and the burst shooting speed can be improved.
+This sequence saved 77 JPEGs. The red outline marks the four pre-capture frames **DSC_7269.JPG**, **DSC_7271.JPG**, **DSC_7272.JPG**, and **DSC_7273.JPG**. **DSC_7274.JPG** is the first of 73 frames captured after fully pressing the shutter.
 
-这组实拍中，**预拍**的 4 张是 **DSC_6068.JPG**、**DSC_6071.JPG**、**DSC_6072.JPG** 和 **DSC_6076.JPG**。目前模块还处于测试阶段,连拍速度有待提高.
+这组实拍共保存 77 张 JPEG。红框里的 4 张是**预拍照片**，分别是 **DSC_7269.JPG**、**DSC_7271.JPG**、**DSC_7272.JPG** 和 **DSC_7273.JPG**。全按快门后连拍了 73 张，第一张是 **DSC_7274.JPG**。
 
 ![JPEG pre-capture sequence with a millisecond clock / JPEG 预拍摄实拍序列及画面毫秒时间](images/z7ii-jpeg-pre-capture-sequence.png)
