@@ -1,6 +1,6 @@
 # Focal length display / 焦距显示
 
-[English README](../README.md) · [中文说明](../README.zh-CN.md)
+[English README](../README.en.md) · [中文说明](../README.md)
 
 Show the current focal length in photo live view with an electronically reporting lens, including lenses whose zoom ring is turned manually. The value comes from the camera's live lens properties; taking a photo or reading an EXIF file is not required.
 

@@ -1,73 +1,74 @@
 # Z7II Extensions
 
-English | [简体中文](README.zh-CN.md)
+简体中文 | [English](README.en.md)
 
-Native C extensions loaded automatically from an SD card for the Nikon Z 7II running C 1.70.
+Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的模块。
 
-## Features
+## 当前功能
 
-| Feature                             | Description                                                 | Status                                                 |
-| ----------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------ |
-| [Framing grid](docs/framing-grid.md) | Off, 2×2, 3×3, 4×4, and Golden ratio, with persistent settings | Hardware verified |
-| [Histogram and virtual horizon](docs/histogram-horizon.md) | Live histogram and virtual horizon together on the rear screen and in the viewfinder in photo mode | Hardware verified |
-| [Portrait display](docs/portrait-ui.md) | Rear-screen photo/video information, audio meters, i menu, and histogram rotate with the camera | Hardware verified |
-| [Photo shooting highlights](docs/photo-highlights.md) | Independent photo highlight stripes on LCD and EVF, with two patterns and eight thresholds | Hardware verified |
-| [Custom DISP pages](docs/custom-disp.md) | Photo LCD page selection, four presets, eight shooting-information controls, native scrolling lists, and the native information display | Hardware verified |
-| [Focal length display](docs/focal-length.md) | Live focal length for electronically reporting manual-zoom lenses, with an independent DISP switch | Hardware verified |
-| [Battery percentage display](docs/battery-percent.md) | Transparent in-frame percentage on the photo and movie LCD, with a global switch that defaults to off | Hardware verified |
-| [Extended movie recording](docs/movie-recording-limit.md) | Ordinary movies beyond 29:59; 38:52 continuous recording verified at 1080/60p | Hardware verified |
-| [JPEG pre-capture](docs/jpeg-pre-capture.md) | Rolling JPEG buffer with selectable duration and continuous H+ capture through full press | Hardware verified |
-| [Silent shutter sound](docs/shutter-sound.md) | Custom WAV clips from SD, with preview, five volume levels, and continuous-release controls | Hardware verified |
-| [AF-area shortcuts](docs/af-area-shortcut.md) | Assign photo AF-area shortcuts to five buttons through native Custom controls; press once to switch and keep the selected area | Hardware verified |
-| [Wi-Fi settings](docs/wifi-settings.md) | One submenu for region selection and an optional 80 MHz AP switch; 5 GHz STA and Wi-Fi 5 AP | Hardware verified |
-| [Menu localization](docs/menu-localization.md) | English, Simplified Chinese, and Traditional Chinese labels for the extension settings | Hardware verified |
+| 功能                                             | 说明                                                                | 状态       |
+| ------------------------------------------------ | ------------------------------------------------------------------- | ---------- |
+| [取景网格](docs/framing-grid.md)                  | 关闭、2×2、3×3、4×4、黄金分割，支持保存设置                      | 已实机验证 |
+| [直方图与水平仪同显](docs/histogram-horizon.md)   | 照片模式下，后屏和电子取景器均可同时显示实时直方图与水平仪          | 已实机验证 |
+| [后屏竖拍界面](docs/portrait-ui.md)               | 照片／视频拍摄信息、音频电平、i 菜单和直方图随相机方向转正          | 已实机验证 |
+| [照片拍摄加亮显示](docs/photo-highlights.md)      | LCD 与取景器的独立照片斑马纹，支持两种图案和八档阈值                | 已实机验证 |
+| [自定义 DISP 页面](docs/custom-disp.md)           | 照片 LCD 页面开关、四套预设、八项拍摄信息、原厂滚动列表及参数信息页 | 已实机验证 |
+| [焦距显示](docs/focal-length.md)                  | 手动变焦镜头的实时焦距（需电子通信），支持独立 DISP 开关            | 已实机验证 |
+| [电量百分比显示](docs/battery-percent.md)         | 照片及视频 LCD 电池框内透明底百分比，全局开关默认关闭               | 已实机验证 |
+| [解除录像时长限制](docs/movie-recording-limit.md) | 普通视频突破 29:59，已验证 1080/60p 连续录制 38:52                  | 已实机验证 |
+| [JPEG 预拍摄](docs/jpeg-pre-capture.md)           | 四档预拍摄时间，可由半按快门或 AF-ON 启动，全按接续 H+ 连拍         | 已实机验证 |
+| [静音拍摄快门声音](docs/shutter-sound.md)         | 从 SD 卡读取自定义 WAV，支持试听、五档音量和连拍播放设置            | 已实机验证 |
+| [AF 区域快捷切换](docs/af-area-shortcut.md)       | 原厂自定义控制中为五个按键分配照片 AF 区域，按一次切换并保持        | 已实机验证 |
+| [WiFi 设置](docs/wifi-settings.md)                | 统一子菜单，包含地区选择与80 MHz热点开关，支持5 GHz STA与Wi-Fi 5 AP | 已实机验证 |
+| [菜单本地化](docs/menu-localization.md)           | 扩展设置支持简体中文、繁体中文和英文标签                            | 已实机验证 |
 
-## Known issues
+## 已知问题
 
-- The framing grid may display incorrectly or disappear, or extension features may fail to appear. If this happens, turn off the camera, remove and reinsert the battery, and wait until the card access lamp next to the **i** button goes out before turning the camera back on.
+- 取景网格线有时会绘制错误或不显示,扩展框架功能没出现。遇到这种情况，请先关机，取出并重新装回电池，等待到 i 按键旁边的读取灯灭了,等 1 秒再开机。
+- 在 JPEG 预拍摄中,可能出现无法显示此文件,这个是由于预拍摄的图片先注册了后写入,此时因为写入性能不够还没有写入,过一会写入了就能看到了.
 
-## Risk disclaimer
+## 风险声明
 
-**Flash at your own risk. Modified firmware and native modules may cause crashes, data loss, hardware damage, or an unbootable camera (bricking), potentially requiring professional repair.** Successful testing does not guarantee safety on every camera or in every situation.
+**刷机有风险，请谨慎操作。修改版固件和原生模块可能导致死机、数据丢失、硬件损坏，甚至相机无法启动（变砖），可能需要专业维修。** 已有实机验证不代表所有相机和使用场景均安全。
 
-Proceed with caution: back up your data, verify the camera model, firmware version, and file checksums, ensure sufficient battery charge, and never interrupt a firmware update. Do not proceed unless you understand and accept these risks. This project is provided without warranty; see the [MIT License](LICENSE).
+操作前请备份数据，核对机型、固件版本及文件校验值，确保电量充足，切勿中断固件更新。如果无法理解或接受上述风险，请勿刷入或使用。使用风险由使用者自行承担；本项目不提供任何担保，详见 [MIT 许可证](LICENSE)。
 
-See the Wi-Fi settings [operating-region limits and risk notices](docs/wifi-settings.md#important-limits-and-risk-notice--使用限制与风险声明). Choose the actual operating region; hardware tests do not certify wireless compliance.
+Wi-Fi 设置的[使用限制与风险声明](docs/wifi-settings.md#important-limits-and-risk-notice--使用限制与风险声明)见功能说明。请按实际使用地选择地区；实机测试不构成无线合规认证。
 
-Extended recording can still stop or cause the camera to shut down because of overheating; see the [feature documentation](docs/movie-recording-limit.md).
+解除录像时长限制后，仍可能因过热停止录像或关机，详见[功能说明](docs/movie-recording-limit.md)。
 
-## Installation
+## 使用
 
-Install this repository's SD loader host before using extensions. Subsequent extension updates only require replacing `Z72APP.BIN` on the SD card.
+使用扩展前须安装本仓库提供的 SD 加载宿主。之后只需要更改 SD 卡中的 Z72APP.BIN 文件即可,无需再次刷入固件。
 
-The Windows GUI host firmware builder is available from [Releases](https://github.com/JKWTCN/z7ii-extensions/releases/tag/build-master).
+可以在 [Releases](https://github.com/JKWTCN/z7ii-extensions/releases/tag/build-master) 中找到 Windows 下的图形界面宿主固件生成器.
 
-For instructions on building the firmware update package yourself, see [Building](#building).
+如果要自己构建固件升级包的生成方法见[构建](#构建)。
 
-1. Wait for card access to finish, turn off the camera, and remove the memory card.
-2. Copy [Z72APP.BIN](releases/v0.1.0-preview.19/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
-3. Reinsert the card and battery, wait until the card access lamp next to the **i** button goes out, then turn on the camera.
+1. 等待存储卡访问结束，关机并取出存储卡。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.19/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+3. 装回卡和电池，等待到 i 按键旁边的读取灯灭了再开机。
 
-Current release `v0.1.0-preview.19` · 100,628 bytes · [SHA-256 checksums](releases/v0.1.0-preview.19/SHA256SUMS)
+当前版本为 `v0.1.0-preview.19`，模块 100,628 字节。[SHA-256 校验](releases/v0.1.0-preview.19/SHA256SUMS)
 
-This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
+这是试用版本，休眠唤醒和长期稳定性尚未单独确认。替换或移除模块请完整断电。只加载可信模块。
 
-## Building
+## 构建
 
-To build the combined SD module, use Python 3.12 with LLVM’s `clang` and `ld.lld` on your PATH. Choose an output file that does not already exist.
+构建组合 SD 模块需要 Python 3.12，以及 PATH 中的 LLVM `clang`、`ld.lld`。请选择尚未存在的输出文件。
 
 ```powershell
 New-Item -ItemType Directory -Force artifacts | Out-Null
 python -B tools/module.py plugins/combined.c --output artifacts/Z72APP.BIN
 ```
 
-`host/` contains the loader source, `sdk/` provides module interfaces, and `plugins/` contains plugin implementations.
+`host/` 为宿主源码，`sdk/` 为模块接口，`plugins/` 为插件实现。
 
-The host and module builder accept up to **1 MiB per `Z72APP.BIN` file** and **4 MiB for the image plus BSS**. The file limit includes the header and relocation table.
+宿主和模块构建器支持最大 **1 MiB 的 `Z72APP.BIN` 文件**，镜像与 BSS 合计最大 **4 MiB**。文件上限包含文件头和重定位表。
 
-Download [build-master.exe](releases/build-master.exe) for the standalone Windows GUI ([SHA-256](releases/SHA256SUMS)). It selects Chinese or English from the Windows display language and provides file pickers for the original firmware and host firmware output. The executable contains the binary patch and package verification logic. It writes the complete update and a JSON verification report. Its Rust source is in `tools/build-master`.
+独立 Windows 图形界面程序可直接下载 [build-master.exe](releases/build-master.exe)（[SHA-256 校验](releases/SHA256SUMS)）。程序按 Windows 显示语言自动选择中文或英文，提供原厂固件和输出位置选择，内置二进制补丁与升级包校验逻辑，生成完整升级包和 JSON 校验报告。Rust 源码位于 `tools/build-master`。
 
-Build the desktop application with Rust on Windows:
+在 Windows 上使用 Rust 编译桌面程序：
 
 ```powershell
 Push-Location tools/build-master
@@ -75,26 +76,26 @@ cargo build --release
 Pop-Location
 ```
 
-Run `tools/build-master/target/release/build-master.exe`, select the original C 1.70 update package and a new output filename, then click **Build host firmware**. The Windows x64 MSVC build links the C runtime statically.
+运行 `tools/build-master/target/release/build-master.exe`，选择原版 C 1.70 升级包和新的输出文件名，点击“生成宿主固件”。Windows x64 MSVC 构建使用静态 C 运行库。
 
-With Python 3.12, `tools/build-master.py` applies the verified host's binary patch to the original C 1.70 update package and generates a complete firmware update plus a JSON verification report:
+使用 Python 3.12，`tools/build-master.py` 可直接对原版 C 1.70 升级包应用已验证宿主的二进制补丁，生成完整可刷入升级包及 JSON 校验报告：
 
 ```powershell
 New-Item -ItemType Directory -Force artifacts | Out-Null
 python -B tools/build-master.py --stock-package "path/to/original/Z7_2_0170.bin" --output artifacts/Z7_2_0170.bin
 ```
 
-This command reproduces the current release's 1 MiB / 4 MiB host using the embedded patch. It requires only Python's standard library.
+此命令使用内置补丁复现当前发布的 1 MiB / 4 MiB 宿主，只依赖 Python 标准库。
 
-To compile the host source, `tools/build.py` generates the same complete firmware update package. It requires the exact original C 1.70 update package and LLVM `clang`, `ld.lld`, `llvm-objcopy`, and `llvm-nm`:
+编译宿主源码可使用 `tools/build.py`，生成相同的完整固件升级包。需要精确匹配的原版 C 1.70 升级包，以及 LLVM `clang`、`ld.lld`、`llvm-objcopy`、`llvm-nm`：
 
 ```powershell
 New-Item -ItemType Directory -Force artifacts | Out-Null
 python -B tools/build.py --stock-package "path/to/original/Z7_2_0170.bin" --output artifacts/Z7_2_0170.bin
 ```
 
-Both scripts extract the master internally and reuse the verified release's public header digest. They require exact SHA-256 matches for the inputs, resulting host, and complete output, then decode the result to check every member. Changed host builds are rejected because the fixed digest only applies to this release. Output files must not already exist. Original firmware and generated update packages are not included in the repository.
+两个脚本都在内部提取主固件并复用已验证发布包的公开头部校验值，强制核对输入、生成的宿主及完整输出的 SHA-256，再重新解包核对所有成员。固定校验值仅适用于当前发布版本，因此宿主构建发生变化时会拒绝输出。输出文件必须不存在。仓库不包含原版固件或生成的升级包。
 
-## License
+## 许可证
 
-[MIT](LICENSE) © 2026 JKWTCN. The supplemental shutter sound menu glyphs carry their own [font license](releases/v0.1.0-preview.19/shutter-sound-font-license.txt).
+采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。静音拍摄快门声音的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.19/shutter-sound-font-license.txt)。

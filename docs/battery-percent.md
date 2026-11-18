@@ -1,6 +1,6 @@
 # Battery percentage display / 电量百分比显示
 
-[English README](../README.md) · [中文说明](../README.zh-CN.md)
+[English README](../README.en.md) · [中文说明](../README.md)
 
 Show the camera-reported battery percentage inside the battery outline on the rear LCD in photo mode and movie standby or recording. Small centered digits replace the charge bars, with a transparent background that lets the live image show through. The value comes from the same native snapshot as Battery info, rather than an estimate based on the number of bars.
 

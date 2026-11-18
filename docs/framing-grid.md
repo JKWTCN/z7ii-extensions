@@ -10,7 +10,7 @@ The tester confirmed the 2×2 grid and the five-option menu order on the combine
 
 测试者已实机确认组合版的 2×2 显示和五项菜单顺序。
 
-[English README](../README.md) · [中文说明](../README.zh-CN.md)
+[English README](../README.en.md) · [中文说明](../README.md)
 
 ## Usage / 使用
 

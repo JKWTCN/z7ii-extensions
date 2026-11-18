@@ -1,6 +1,6 @@
 # Menu localization / 菜单本地化
 
-[English README](../README.md) · [中文说明](../README.zh-CN.md)
+[English README](../README.en.md) · [中文说明](../README.md)
 
 **Auto rotate info** in the Setup Menu and **Golden ratio** in d12 follow the camera’s display language. The labels are available in Simplified Chinese, Traditional Chinese, and English. Other display languages use English for these two labels.
 

@@ -1,6 +1,6 @@
 # JPEG pre-capture / JPEG 预拍摄
 
-[English README](../README.md) · [中文说明](../README.zh-CN.md)
+[English README](../README.en.md) · [中文说明](../README.md)
 
 JPEG pre-capture for the Nikon Z 7II running C 1.70. In photo mode, enable silent photography and **Continuous H (extended)**, and configure a single recording destination. Open **Setup Menu → JPEG pre-capture** to enable the feature, select a pre-capture window, and choose how to start buffering.
 

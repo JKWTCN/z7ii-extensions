@@ -1,6 +1,6 @@
 # AF-area shortcuts / AF 区域快捷切换
 
-[English README](../README.md) · [中文说明](../README.zh-CN.md)
+[English README](../README.en.md) · [中文说明](../README.md)
 
 Assign a photo AF-area shortcut through the camera's native **f2 → Custom controls** menu. The Fn1, Fn2, AF-ON, sub-selector center, and movie-record buttons each have an **AF-area mode** entry immediately below **Press**. Pressing an assigned button selects its configured area and keeps it selected after release. Holding the button does not repeat the action.
 

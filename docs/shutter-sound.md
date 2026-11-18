@@ -1,6 +1,6 @@
 # Silent shutter sound / 静音拍摄快门声音
 
-[English README](../README.md) · [中文说明](../README.zh-CN.md)
+[English README](../README.en.md) · [中文说明](../README.md)
 
 The Nikon Z 7II running C 1.70 can play a custom WAV through its speaker when silent photography is enabled in photo mode. Put one or more WAV files named `SHUTTER1.WAV` through `SHUTTER5.WAV` in the SD card root. Fully power the camera off and on after adding or replacing a file. Open **Setup Menu → Silent shutter sound** to select a file and preview it.
 

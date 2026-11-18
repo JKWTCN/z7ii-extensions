@@ -1,6 +1,6 @@
 # Custom DISP pages / 自定义 DISP 页面
 
-[English README](../README.md) · [中文说明](../README.zh-CN.md)
+[English README](../README.en.md) · [中文说明](../README.md)
 
 In photo mode on the rear LCD, choose which pages participate in the DISP cycle and select each page's components. Disabled pages are skipped, and at least one page remains enabled. The Setup Menu entry **Custom DISP pages** follows the camera's language in English, Simplified Chinese, or Traditional Chinese.
 

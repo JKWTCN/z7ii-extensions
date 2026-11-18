@@ -1,6 +1,6 @@
 # Portrait display / 后屏竖拍界面
 
-[English README](../README.md) · [中文说明](../README.zh-CN.md)
+[English README](../README.en.md) · [中文说明](../README.md)
 
 On the rear screen, shooting information, the 4×3 i menu, its supported settings panels, and the live histogram rotate with the camera. The directional buttons and touch targets follow the portrait i-menu layout.
 
