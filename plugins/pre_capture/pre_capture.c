@@ -1054,8 +1054,6 @@ static void enable_pre_capture(void)
         WORD(GUI_CAPTURE_OTHER_SLOT)!=(z72_u32)gui_capture) {
         return;
     }
-    const char *warning=capture_warning();
-    if (warning) { return; }
     if (ring_bytes || save_failures || copy_failures || LOAD(pre_failed)) {
         return;
     }
@@ -1180,9 +1178,13 @@ __attribute__((noinline)) static void worker_step(void)
         if (!LOAD(review_ready)) discard_review();
         return;
     }
-    const char *warning=capture_warning();
-    if (warning) {
-        STORE(enabled,0); STORE(fallback[3],0); clean_cache();
+    if (capture_warning()) {
+        /* Retire any acquired input without changing the menu switch. */
+        if (LOAD(control)) {
+            cycle_card_count=0;
+            STORE(cycle_done,2);
+        }
+        STORE(fallback[3],0); clean_cache();
         return;
     }
     z72_u32 current=LOAD(control),normal=LOAD(fallback[3]);

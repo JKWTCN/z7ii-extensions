@@ -12,6 +12,8 @@ static void jpeg_start_poll(void)
      * An AF-only cycle must not invent a physical shutter-half release. */
     if (LOAD(cycle_done)==2 && !LOAD(full_latch) && !LOAD(jpeg_sw1_down)) selected=0;
     if (!LOAD(enabled)) selected=LOAD(jpeg_sw1_down);
+    /* AF-ON can start its own generation without passing through SW1. */
+    else if (selected && !LOAD(control) && !LOAD(jpeg_sw1_owned) && capture_warning()) selected=0;
     /* A new down stays recorded as physical input while the canceled
      * generation releases its own edges. Arm it on the next idle poll. */
     if (LOAD(control)&CANCELLED_GENERATION) selected=0;
@@ -27,6 +29,7 @@ static z72_u32 jpeg_shutter_event(z72_u32 fn,z72_u32 i)
 {
     if (fn==0x1022aa83u) {
         if (!LOAD(enabled) && !LOAD(in_flight)) return 0;
+        if (!LOAD(in_flight) && capture_warning()) return 0;
         if (CALL(0x1022cfa7u,z72_u32,z72_u32)(0x58)==1) {
             if (photo_view() || LOAD(control) || LOAD(in_flight)) {
                 STORE(jpeg_sw1_owned,1); STORE(jpeg_sw1_down,1);
@@ -51,6 +54,7 @@ static z72_u32 jpeg_shutter_event(z72_u32 fn,z72_u32 i)
         jpeg_sw2_ignored=1; return 1;
     }
     if (fn==0x1022aa5du && LOAD(enabled) &&
+        (LOAD(in_flight) || !capture_warning()) &&
         (photo_view() || (LOAD(half_latch) && LOAD(half) && !WORD(0xb25519b8u)))) {
         z72_u32 old=LOAD(control);
         if (!(old&~7u)) discard_review();

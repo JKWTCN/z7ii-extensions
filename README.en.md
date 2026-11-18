@@ -49,7 +49,7 @@ For instructions on building the firmware update package yourself, see [Building
 2. Copy [Z72APP.BIN](releases/v0.1.0-preview.19/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
 3. Reinsert the card and battery, wait until the card access lamp next to the **i** button goes out, then turn on the camera.
 
-Current release `v0.1.0-preview.19` · 100,628 bytes · [SHA-256 checksums](releases/v0.1.0-preview.19/SHA256SUMS)
+Current release `v0.1.0-preview.19` · 100,884 bytes · [SHA-256 checksums](releases/v0.1.0-preview.19/SHA256SUMS)
 
 This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
 
