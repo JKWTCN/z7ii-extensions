@@ -25,6 +25,7 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 ## Known issues
 
 - The framing grid may display incorrectly or disappear, or extension features may fail to appear. If this happens, turn off the camera and remove and reinsert the battery. Once the card access lamp next to the **i** button goes out, wait one more second before turning the camera back on.
+- The Z 7II's CMOS sensor lacks dual data paths, so JPEG pre-capture relies on H+ burst mode. This can make live view stutter when pre-capture starts.
 - During playback, some JPEG pre-capture photos may temporarily show “Cannot display this file.” The camera registers these photos before writing them to the card. The photos become viewable once writing finishes.
 
 ## Risk disclaimer
