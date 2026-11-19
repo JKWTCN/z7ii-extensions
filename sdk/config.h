@@ -24,7 +24,14 @@ enum { Z72_DISP_INFO=1u, Z72_DISP_GRID=2u, Z72_DISP_HISTOGRAM=4u,
 #define Z72_DISP_DEFAULTS {3u,1u,10u,21u}
 #define Z72_AF_SHORTCUT_BUTTONS 5u
 #define Z72_AF_SHORTCUT_NATIVE_TARGETS 10u
-#define Z72_AF_SHORTCUT_TARGETS 12u
+#define Z72_AF_SHORTCUT_WIDE_TARGETS 12u
+#define Z72_CFG_SUBJECT_TRACKING 3u
+#define Z72_AF_SHORTCUT_TRACKING_TARGET (Z72_AF_SHORTCUT_NATIVE_TARGETS+Z72_CFG_SUBJECT_TRACKING)
+#ifdef Z72_SUBJECT_TRACKING
+#define Z72_AF_SHORTCUT_TARGETS Z72_AF_SHORTCUT_TRACKING_TARGET
+#else
+#define Z72_AF_SHORTCUT_TARGETS Z72_AF_SHORTCUT_WIDE_TARGETS
+#endif
 #define Z72_SOUND_CLIP_COUNT 5u
 #define Z72_SOUND_VOLUME_MAX 5u
 #define Z72_WIDE_AF_MIN 5u
@@ -68,7 +75,7 @@ struct z72_config {
     z72_u32 sound_volume;
     z72_u32 playback_filter;
     z72_u32 wide_af[2]; /* Width, height and subject mode in successive bytes. */
-    z72_u32 wide_af_selected; /* 0 = native, 1 = C1, 2 = C2. */
+    z72_u32 wide_af_selected; /* 0 = native, 1 = C1, 2 = C2, 3 = subject tracking. */
 };
 
 /* The freestanding build lowers copies of the settings record to these helpers. */
@@ -138,7 +145,7 @@ static inline struct z72_config z72_config_load(void)
                    data[13+2*i]!=~data[12+2*i]) return config;
             if(size>=120)
                 for(z72_u32 i=0;i<Z72_AF_SHORTCUT_BUTTONS;++i)
-                    if(data[20+2*i]>(data[1]>=17 ? Z72_AF_SHORTCUT_TARGETS : Z72_AF_SHORTCUT_NATIVE_TARGETS) ||
+                    if(data[20+2*i]>(data[1]>=17 ? Z72_AF_SHORTCUT_WIDE_TARGETS : Z72_AF_SHORTCUT_NATIVE_TARGETS) ||
                        data[21+2*i]!=~data[20+2*i]) return config;
             if(size>=128 && (data[30]>=(data[1]==11 ? 2u : Z72_WIFI_REGION_COUNT) ||
                             data[31]!=~data[30])) return config;
@@ -167,12 +174,24 @@ static inline struct z72_config z72_config_load(void)
             }
             if(size>=168 && data[41]==~data[40] && z72_playback_filter_valid(data[40]))
                 config.playback_filter=data[40];
+            z72_u32 selected=size==192 && data[47]==~data[46] ? data[46] : 0;
+#ifdef Z72_SUBJECT_TRACKING
+            /* Low two bits select the AF mode. The next five mark tracking
+             * shortcuts whose legacy slots are zero. Older readers can
+             * still read the rest of the v17 record. */
+            if(selected<(4u<<Z72_AF_SHORTCUT_BUTTONS)) {
+                for(z72_u32 i=0;i<Z72_AF_SHORTCUT_BUTTONS;++i)
+                    if((selected&(4u<<i)) && !config.af_shortcuts[i])
+                        config.af_shortcuts[i]=Z72_AF_SHORTCUT_TRACKING_TARGET;
+                selected&=3u;
+            }
+            if(selected==Z72_CFG_SUBJECT_TRACKING) config.wide_af_selected=selected;
+#endif
             if(size>=184)
                 for(z72_u32 i=0;i<2;++i) {
                     if(data[43+2*i]!=~data[42+2*i] || !z72_wide_af_valid(data[42+2*i])) continue;
                     config.wide_af[i]=data[42+2*i];
-                    if(size==192 && data[46]==i+1 && data[47]==~data[46])
-                        config.wide_af_selected=i+1;
+                    if(selected==i+1) config.wide_af_selected=selected;
                 }
         }
         config.grid_style=data[2]; config.auto_rotate=data[4];
@@ -240,9 +259,17 @@ static inline z72_u32 z72_config_save(struct z72_config config)
         data[12+2*i]=config.disp_components[i];
         data[13+2*i]=~config.disp_components[i];
     }
+    data[46]=config.wide_af_selected;
     for(z72_u32 i=0;i<Z72_AF_SHORTCUT_BUTTONS;++i) {
-        data[20+2*i]=config.af_shortcuts[i];
-        data[21+2*i]=~config.af_shortcuts[i];
+        z72_u32 target=config.af_shortcuts[i];
+#ifdef Z72_SUBJECT_TRACKING
+        if(target==Z72_AF_SHORTCUT_TRACKING_TARGET) {
+            data[46]|=4u<<i;
+            target=0;
+        }
+#endif
+        data[20+2*i]=target;
+        data[21+2*i]=~target;
     }
     data[30]=config.wifi_region;
     data[31]=~config.wifi_region;
@@ -260,7 +287,6 @@ static inline z72_u32 z72_config_save(struct z72_config config)
         data[42+2*i]=config.wide_af[i];
         data[43+2*i]=~data[42+2*i];
     }
-    data[46]=config.wide_af_selected;
     data[47]=~data[46];
     struct { z72_u32 kind; void *buffer; z72_u32 capacity; } request={1,data,size};
     int opened=Z72_CFG_FN(0x105beb2b,int,const char *,z72_u32)("B:\\Z72APP.CFG",0);

@@ -60,6 +60,10 @@ static u32 af_menu_target_count(void)
 static u32 af_menu_target_icon(u32 target)
 {
     if (!target || target>af_menu_target_count()) return 0xd7;
+#ifdef Z72_SUBJECT_TRACKING
+    if (target==Z72_AF_SHORTCUT_TRACKING_TARGET)
+        return wide_icons_load() ? TRACK_ICON : af_menu_symbols[7];
+#endif
 #ifdef Z72_WIDE_AF
     if (target>Z72_AF_SHORTCUT_NATIVE_TARGETS)
         return wide_icons_load() ? wide_icon_id(target-Z72_AF_SHORTCUT_NATIVE_TARGETS,0) : af_menu_symbols[4];
@@ -82,6 +86,19 @@ static void af_menu_refresh_value(u32 button)
     }
 }
 
+static u32 af_menu_target_label(u32 target)
+{
+    if (!target || target>af_menu_target_count()) return 0;
+#ifdef Z72_SUBJECT_TRACKING
+    if (target==Z72_AF_SHORTCUT_TRACKING_TARGET) return Z72_TEXT_SUBJECT_TRACKING;
+#endif
+#ifdef Z72_WIDE_AF
+    if (target>Z72_AF_SHORTCUT_NATIVE_TARGETS)
+        return Z72_TEXT_WIDE_C1+target-Z72_AF_SHORTCUT_NATIVE_TARGETS-1;
+#endif
+    return WORD(0x11824624u+(target-1)*28);
+}
+
 static u32 af_description_label(const u32 *page)
 {
     u32 row=HALF((u32)page+0x16)+HALF((u32)page+0x18);
@@ -90,13 +107,7 @@ static u32 af_description_label(const u32 *page)
     u32 id=WORD(header[3]+row*28+24);
     for (u32 button=0;button<AF_MENU_BUTTONS;++button) {
         if (id!=WORD(0x116e2040u+af_menu_root_rows[button]*28+24)) continue;
-        u32 target=z72_config_current.af_shortcuts[button];
-        if (!target || target>af_menu_target_count()) return 0;
-#ifdef Z72_WIDE_AF
-        if (target>Z72_AF_SHORTCUT_NATIVE_TARGETS)
-            return Z72_TEXT_WIDE_C1+target-Z72_AF_SHORTCUT_NATIVE_TARGETS-1;
-#endif
-        return WORD(0x11824624u+(target-1)*28);
+        return af_menu_target_label(z72_config_current.af_shortcuts[button]);
     }
     return 0;
 }
@@ -319,7 +330,7 @@ static void af_menu_install(void)
         af_menus[button].header[5]=0x80000u|(count+1);
     }
     /* An ordinary native scrolling choice list, independent of the f2
-     * controller's private tables. All ten labels and symbols are stock. */
+     * controller's private tables. Stock modes retain their original rows. */
     const u32 *stock=(const u32 *)Z72_SETUP_MENU,*native_af=(const u32 *)0xb185600cu;
     const u32 *events=(const u32 *)WORD(0x118111bcu);
     for (u32 i=0;i<6;++i) af_choice.header[i]=stock[i];
@@ -333,10 +344,8 @@ static void af_menu_install(void)
     for (u32 row=0;row<targets;++row) {
         u32 source=row<Z72_AF_SHORTCUT_NATIVE_TARGETS ? row : 4;
         for (u32 i=0;i<7;++i) af_choice.rows[row][i]=WORD(native_af[3]+source*28+i*4);
-#ifdef Z72_WIDE_AF
         if (row>=Z72_AF_SHORTCUT_NATIVE_TARGETS)
-            af_choice.rows[row][0]=Z72_TEXT_WIDE_C1+row-Z72_AF_SHORTCUT_NATIVE_TARGETS;
-#endif
+            af_choice.rows[row][0]=af_menu_target_label(row+1);
         af_choice.rows[row][1]=af_choice.rows[row][2]=0xffff;
         af_choice.rows[row][4]=0x1001;
         af_choice.rows[row][6]=AF_MENU_CHOICE_ID+row;

@@ -21,6 +21,7 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 | [筛选的播放](docs/filtered-playback.md)                 | 按保护状态、影像类型、评级和日期筛选全屏及缩略图播放                            | 已实机验证 |
 | [AF 区域快捷切换](docs/af-area-shortcut.md)             | 原厂自定义控制中为五个按键分配照片 AF 区域，按一次切换并保持                    | 已实机验证 |
 | [自定义宽区域 AF（C1/C2）](docs/custom-wide-area-af.md) | 独立调整两个照片 AF 区域的宽度、高度和主体识别，支持 i 菜单、波轮与按键快捷切换 | 已实机验证 |
+| [主体跟踪](docs/subject-tracking.md) | 照片 AF-C 下直接用半按快门或 AF-ON 开始跟踪，重启自动恢复瞄准框 | 已实机验证 |
 | [WiFi 设置](docs/wifi-settings.md)                      | 统一子菜单，包含地区选择与80 MHz热点开关，支持5 GHz STA与Wi-Fi 5 AP             | 已实机验证 |
 | [菜单本地化](docs/menu-localization.md)                 | 扩展设置支持简体中文、繁体中文和英文标签                                        | 已实机验证 |
 
@@ -49,10 +50,10 @@ Wi-Fi 设置的[使用限制与风险声明](docs/wifi-settings.md#important-lim
 如果要自己构建固件升级包的生成方法见[构建](#构建)。
 
 1. 等待存储卡访问结束，关机并取出存储卡。
-2. 将 [Z72APP.BIN](releases/v0.1.0-preview.21/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.22/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
 3. 装回卡和电池，等待到 i 按键旁边的读取灯灭了再开机。
 
-当前版本为 `v0.1.0-preview.21`，模块 142,188 字节。[SHA-256 校验](releases/v0.1.0-preview.21/SHA256SUMS)
+当前版本为 `v0.1.0-preview.22`，模块 144,436 字节。[SHA-256 校验](releases/v0.1.0-preview.22/SHA256SUMS)
 
 这是试用版本，休眠唤醒和长期稳定性尚未单独确认。替换或移除模块请完整断电。只加载可信模块。
 
@@ -101,4 +102,4 @@ python -B tools/build.py --stock-package "path/to/original/Z7_2_0170.bin" --outp
 
 ## 许可证
 
-采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」和「筛选的播放」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.21/menu-font-license.txt)。
+采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」和「筛选的播放」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.22/menu-font-license.txt)。

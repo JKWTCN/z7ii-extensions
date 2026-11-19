@@ -9,7 +9,12 @@
 #define WIDE_MENU_CALL(address,type,...) ((type (*)(__VA_ARGS__))(address))
 
 enum {
-    WIDE_STOCK_ROWS=10, WIDE_INSERT_ROW=7, WIDE_PHOTO_ROWS=12,
+    WIDE_STOCK_ROWS=10, WIDE_INSERT_ROW=7, WIDE_PHOTO_WIDE_ROWS=12,
+#ifdef Z72_SUBJECT_TRACKING
+    WIDE_PHOTO_ROWS=WIDE_PHOTO_WIDE_ROWS+1, TRACK_PHOTO_ROW_ID=0x2eb2,
+#else
+    WIDE_PHOTO_ROWS=WIDE_PHOTO_WIDE_ROWS,
+#endif
     WIDE_PHOTO_EVENTS=16, WIDE_PHOTO_C1_ID=0x2eb0
 };
 
@@ -55,14 +60,34 @@ static z72_u32 wide_photo_c2(z72_u32 a,z72_u32 b,z72_u32 c,z72_u32 d)
     return wide_af_choose(2);
 }
 
+#ifdef Z72_SUBJECT_TRACKING
+static z72_u32 tracking_photo_pick(z72_u32 a,z72_u32 b,z72_u32 c,z72_u32 d)
+{
+    (void)a; (void)b; (void)c; (void)d;
+    return wide_af_choose(TRACK_SELECTION);
+}
+#endif
+
 static void wide_photo_page_init(const z72_u32 *page)
 {
     WIDE_MENU_CALL(0x106a7a39u,void,const z72_u32 *)(page);
-    z72_u32 active=wide_af_active();
-    if (!active) return;
-    z72_u32 subject=WIDE_MENU_CALL(0x1063c7d5u,z72_u32,z72_u32)(0x058a);
-    z72_u32 stock_id=subject==1 ? 0x1953 : subject==2 ? 0x1954 : 0x188c;
-    z72_u32 custom_id=WIDE_PHOTO_C1_ID+active-1;
+    z72_u32 stock_id,custom_id;
+#ifdef Z72_SUBJECT_TRACKING
+    WIDE_MENU_CALL(0x1063ad1bu,void,const z72_u32 *,z72_u32,z72_u32)(
+        page,TRACK_PHOTO_ROW_ID,!tracking_available());
+    if (tracking_active()) {
+        z72_u32 subject=WIDE_MENU_CALL(0x1063c7d5u,z72_u32,z72_u32)(0x058b);
+        stock_id=subject==1 ? 0x1955 : subject==2 ? 0x1956 : 0x188d;
+        custom_id=TRACK_PHOTO_ROW_ID;
+    } else
+#endif
+    {
+        z72_u32 active=wide_af_active();
+        if (!active) return;
+        z72_u32 subject=WIDE_MENU_CALL(0x1063c7d5u,z72_u32,z72_u32)(0x058a);
+        stock_id=subject==1 ? 0x1953 : subject==2 ? 0x1954 : 0x188c;
+        custom_id=WIDE_PHOTO_C1_ID+active-1;
+    }
     WIDE_MENU_CALL(0x1063ac0du,void,const z72_u32 *,z72_u32,z72_u32)(page,stock_id,0);
     if (WIDE_MENU_CALL(0x1063bf77u,z72_u32,void)()!=1)
         WIDE_MENU_CALL(0x10638983u,void,const z72_u32 *,z72_u32)(page,custom_id);
@@ -95,7 +120,10 @@ static void wide_photo_menu_install(void)
     static const wide_photo_action actions[WIDE_PHOTO_ROWS]={
         wide_photo_stock0,wide_photo_stock1,wide_photo_stock2,wide_photo_stock3,
         wide_photo_stock4,wide_photo_stock5,wide_photo_stock6,wide_photo_c1,wide_photo_c2,
-        wide_photo_stock7,wide_photo_stock8,wide_photo_stock9
+        wide_photo_stock7,wide_photo_stock8,wide_photo_stock9,
+#ifdef Z72_SUBJECT_TRACKING
+        tracking_photo_pick,
+#endif
     };
     const z72_u32 (*rows)[7]=(const z72_u32 (*)[7])WIDE_PHOTO_HEADER[3];
     const z72_u32 *maps=(const z72_u32 *)WIDE_PHOTO_HEADER[4];
@@ -106,12 +134,21 @@ static void wide_photo_menu_install(void)
         z72_u32 custom=row>=WIDE_INSERT_ROW && row<WIDE_INSERT_ROW+2;
         /* Use the stock wide L symbol and help page for both custom rows. */
         z72_u32 source=custom ? 4 : row>=WIDE_INSERT_ROW+2 ? row-2 : row;
+#ifdef Z72_SUBJECT_TRACKING
+        if (row==WIDE_PHOTO_WIDE_ROWS) source=7;
+#endif
         z72_u32 *item=wide_photo_page.rows[row];
         for (z72_u32 col=0;col<7;++col) item[col]=rows[source][col];
         if (custom) {
             item[0]=row==WIDE_INSERT_ROW ? Z72_TEXT_WIDE_C1 : Z72_TEXT_WIDE_C2;
             item[6]=WIDE_PHOTO_C1_ID+row-WIDE_INSERT_ROW;
         }
+#ifdef Z72_SUBJECT_TRACKING
+        if (row==WIDE_PHOTO_WIDE_ROWS) {
+            item[0]=Z72_TEXT_SUBJECT_TRACKING;
+            item[6]=TRACK_PHOTO_ROW_ID;
+        }
+#endif
         const z72_u32 (*events)[4]=(const z72_u32 (*)[4])maps[source];
         for (z72_u32 event=0;event<WIDE_PHOTO_EVENTS;++event)
             for (z72_u32 col=0;col<4;++col)

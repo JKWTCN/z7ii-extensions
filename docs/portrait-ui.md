@@ -18,6 +18,10 @@ The photo AF-area i-menu picker, its command-dial strip, and the live-view statu
 
 竖拍时，可以在照片 i 菜单的 AF 区域模式中用方向键、触摸或波轮切换 [宽区域 AF（C1/C2）](custom-wide-area-af.md)。取景状态栏也会随方向显示当前预设的图标。
 
+The photo AF-area picker and command-dial strip also include [Subject tracking](subject-tracking.md) in AF-C.
+
+照片 AF-C 下，竖拍 i 菜单的 AF 区域选项和波轮条中也可以选择[主体跟踪](subject-tracking.md)。
+
 ## Verification / 验证
 
 Portrait display was verified on a Z 7II. The localized Setup Menu label was also verified in Simplified Chinese and English. [Menu localization](menu-localization.md)

@@ -7,6 +7,10 @@ static z72_u32 wide_boot_preset;
 
 #include "wide_af_geometry.h"
 #include "wide_af_icons.h"
+#ifdef Z72_SUBJECT_TRACKING
+static void wide_af_remember(z72_u32 preset);
+#include "subject_tracking.h"
+#endif
 
 static z72_u32 wide_af_clear(void)
 {
@@ -60,9 +64,22 @@ static void wide_af_remember(z72_u32 preset)
 
 static z72_u32 wide_af_choose(z72_u32 selection)
 {
+#ifdef Z72_SUBJECT_TRACKING
+    if (selection==TRACK_SELECTION) {
+        if (!wide_size[0] || !tracking_available() || wide_af_clear() || tracking_select_area()) return 1;
+        wide_af_remember(TRACK_SELECTION);
+        return 0;
+    }
+#endif
     if (selection>2 || (selection && !wide_size[selection-1])) return 1;
+#ifdef Z72_SUBJECT_TRACKING
+    tracking_leave();
+#endif
     z72_u32 result=selection ? wide_af_select(selection-1) : wide_af_clear();
     if (!result) wide_af_remember(selection);
+#ifdef Z72_SUBJECT_TRACKING
+    else if (z72_config_current.wide_af_selected==TRACK_SELECTION) wide_af_remember(0);
+#endif
     return result;
 }
 
@@ -70,6 +87,19 @@ static void wide_af_resume(void)
 {
     if (!wide_boot_preset || WORD(0xb25519b8u) ||
         WORD(0xb202f728u)!=0xb1821b1cu || !CALL(0x1052336bu,z72_u32,void)()) return;
+#ifdef Z72_SUBJECT_TRACKING
+    if (wide_boot_preset==TRACK_SELECTION) {
+        if (!tracking_live()) return;
+        /* Resume after native AF activation and area have been restored. */
+        if (tracking_available() && tracking_area_selected()) {
+            tracking_select_area();
+            wide_boot_preset=0;
+        } else {
+            wide_af_remember(0);
+        }
+        return;
+    }
+#endif
     z72_u32 preset=wide_boot_preset-1;
     /* The camera has already restored its native AF settings. Bind the
      * custom preset only if they still represent that preset. */
@@ -90,6 +120,9 @@ static void wide_af_prepare_live(void)
 {
     if (wide_restore_pending) wide_af_clear();
     if (wide_boot_preset) wide_af_resume();
+#ifdef Z72_SUBJECT_TRACKING
+    tracking_update();
+#endif
 }
 
 static z72_u32 wide_af_live_scale(void)
@@ -375,6 +408,9 @@ static void wide_menu_prepare(void)
 
 static z72_u32 wide_ready(void)
 {
+#ifdef Z72_SUBJECT_TRACKING
+    if (!tracking_ready()) return 0;
+#endif
     return WORD(Z72_SETUP_MENU+4)==0x1187c3d0u && WORD(0x1187c510u)==3 &&
         wide_geometry_ready() && wide_display_ready() && wide_icons_ready() &&
         wide_hud_ready() && wide_photo_menu_ready() && wide_i_ready();
@@ -391,4 +427,8 @@ static void wide_install(void)
     wide_photo_menu_install();
     wide_i_install();
     wide_display_install();
+#ifdef Z72_SUBJECT_TRACKING
+    /* The shared shooting-key slot delegates the original DISP path. */
+    WORD(TRACK_KEY_SLOT)=(z72_u32)tracking_live_key;
+#endif
 }

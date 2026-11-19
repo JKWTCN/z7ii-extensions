@@ -110,6 +110,9 @@ enum {
     Z72_TEXT_WIDE_TILE_C1,
     Z72_TEXT_WIDE_TILE_C2,
 #endif
+#ifdef Z72_SUBJECT_TRACKING
+    Z72_TEXT_SUBJECT_TRACKING,
+#endif
     Z72_MENU_TEXT_END
 };
 
@@ -164,6 +167,9 @@ static inline int z72_menu_locale_install(void)
          u"Custom wide-area AF",u"Wide-area AF (C1)",u"Wide-area AF (C2)",u"Subject detection",u"People",u"Animals",u"Off",
          u"Focus area size",u"MENU Done",u"C1",u"C2",
 #endif
+#ifdef Z72_SUBJECT_TRACKING
+         u"Subject tracking",
+#endif
         },
         {u"黄金分割",u"自动旋转信息显示",u"照片拍摄加亮显示",u"加亮阈值",u"显示图案",
          u"自定义DISP页面",u"自定义页面",u"标准",u"极简",u"构图",u"曝光",u"页面启用",u"拍摄信息",
@@ -189,6 +195,9 @@ static inline int z72_menu_locale_install(void)
          u"自定义宽区域 AF",u"宽区域 AF（C1）",u"宽区域 AF（C2）",u"主体识别",u"人物",u"动物",u"关闭",
          u"对焦区域大小",u"MENU 完成",u"C1",u"C2",
 #endif
+#ifdef Z72_SUBJECT_TRACKING
+         u"主体跟踪",
+#endif
         },
         {u"黃金分割",u"自動旋轉資訊顯示",u"照片拍攝加亮顯示",u"加亮閾值",u"顯示圖案",
          u"自訂DISP頁面",u"自訂頁面",u"標準",u"精簡",u"構圖",u"曝光",u"頁面啟用",u"拍攝資訊",
@@ -208,6 +217,9 @@ static inline int z72_menu_locale_install(void)
 #ifdef Z72_WIDE_AF
          u"自訂寬區域 AF",u"寬區域 AF（C1）",u"寬區域 AF（C2）",u"主體偵測",u"人物",u"動物",u"關閉",
          u"對焦區域大小",u"MENU 完成",u"C1",u"C2",
+#endif
+#ifdef Z72_SUBJECT_TRACKING
+         u"主體追蹤",
 #endif
         }
     };

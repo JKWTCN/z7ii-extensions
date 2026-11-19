@@ -13,6 +13,7 @@ Assign a photo AF-area shortcut through the camera's native **f2 → Custom cont
 | Dynamic-area / 动态区域 | Dynamic-area AF / 动态区域 AF |
 | Wide-area / 宽区域 | S, L, L-people, L-animals / S、L、L-人物、L-动物 |
 | Custom wide-area / 自定义宽区域 | [C1, C2 / C1、C2](custom-wide-area-af.md) |
+| Subject tracking / 主体跟踪 | [Subject tracking in photo AF-C / 照片 AF-C 主体跟踪](subject-tracking.md) |
 | Auto-area / 自动区域 | Normal, people, animals / 普通、人物、动物 |
 
 - All five shortcuts are **unassigned by default**. Each button can select a different target.
@@ -27,9 +28,9 @@ Assign a photo AF-area shortcut through the camera's native **f2 → Custom cont
 - 此功能只切换区域，不启动自动对焦；把 AF-ON 改为此功能后，该键不再执行原来的 AF-ON 动作。
 - 适用于照片 LCD 和取景器取景。菜单、回放、参数信息页、放大取景及视频保留原厂按键行为。继续遵守原厂 AF 区域可用性规则，包括微点及动态区域与对焦模式之间的限制。
 
-The SD module stores assignments in the shared `Z72APP.CFG`. Existing assignments load when you update the module. Assigning C1 or C2 uses the v17 format and preserves the other extension settings.
+The SD module stores assignments in the shared `Z72APP.CFG`. Existing assignments load when you update the module. Assigning C1, C2, or Subject tracking uses the v17 format and preserves the other extension settings.
 
-按键分配保存在共用的 `Z72APP.CFG` 中。更新模块后可继续使用原有分配。分配 C1 或 C2 时会使用 v17 格式，并保留其他扩展设置。
+按键分配保存在共用的 `Z72APP.CFG` 中。更新模块后可继续使用原有分配。分配 C1、C2 或主体跟踪时会使用 v17 格式，并保留其他扩展设置。
 
 ## Verification / 验证
 

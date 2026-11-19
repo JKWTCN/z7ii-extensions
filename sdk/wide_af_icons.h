@@ -7,7 +7,12 @@
 enum {
     WIDE_ICON_ATLAS=0xb18107acu, WIDE_ICON_LIMIT=0xb181079cu,
     WIDE_ICON_STOCK_ATLAS=0x110595dcu, WIDE_ICON_STOCK_COUNT=0x15e4,
-    WIDE_ICON_COUNT=4, WIDE_ICON_I_TABLE=0xb182a174u,
+#ifdef Z72_SUBJECT_TRACKING
+    WIDE_ICON_COUNT=5, TRACK_ICON=WIDE_ICON_STOCK_COUNT+4,
+#else
+    WIDE_ICON_COUNT=4,
+#endif
+    WIDE_ICON_I_TABLE=0xb182a174u,
     WIDE_ICON_I_ROWS=WIDE_ICON_I_TABLE+4*20+8,
     WIDE_ICON_PAINTER=0x10650bd1u
 };
@@ -23,8 +28,17 @@ struct wide_icon_resource {
 
 static struct wide_icon_resource wide_icon_atlas[WIDE_ICON_STOCK_COUNT+WIDE_ICON_COUNT];
 
+#ifdef Z72_SUBJECT_TRACKING
+enum { TRACK_ICON_I_ROWS=WIDE_ICON_I_TABLE+7*20+8 };
+static const z72_u32 tracking_stock_icons[]={0x10b1u,0x1553u,0x1555u};
+#endif
+
 static z72_u32 wide_icons_ready(void)
 {
+#ifdef Z72_SUBJECT_TRACKING
+    for (z72_u32 i=0;i<3;++i)
+        if (WORD(TRACK_ICON_I_ROWS+i*20)!=tracking_stock_icons[i]) return 0;
+#endif
     /* The photo i-menu role table and its three Wide-area L variants. */
     if (WORD(0x116cb574u)!=WIDE_ICON_I_TABLE || WORD(0x116cb578u)!=10)
         return 0;
@@ -45,7 +59,10 @@ static z72_u32 wide_icons_load(void)
         {0x100,sizeof(wide_c1_foreground),{0,0},wide_c1_foreground},
         {0x100,sizeof(wide_c1_outline),{0,0},wide_c1_outline},
         {0x100,sizeof(wide_c2_foreground),{0,0},wide_c2_foreground},
-        {0x100,sizeof(wide_c2_outline),{0,0},wide_c2_outline}
+        {0x100,sizeof(wide_c2_outline),{0,0},wide_c2_outline},
+#ifdef Z72_SUBJECT_TRACKING
+        {0x100,sizeof(tracking_foreground),{0,0},tracking_foreground},
+#endif
     };
     typedef void (*copy_fn)(void *,const void *,z72_u32);
     copy_fn copy=(copy_fn)0x10360facu;
@@ -71,4 +88,12 @@ static void wide_icons_set(z72_u32 preset)
         WORD(WIDE_ICON_I_ROWS+i*20)=preset ? wide_icon_id(preset,0) : wide_icon_stock[i][0];
 }
 
+#ifdef Z72_SUBJECT_TRACKING
+static void tracking_icons_set(z72_u32 enabled)
+{
+    if (enabled && !wide_icons_load()) return;
+    for (z72_u32 i=0;i<3;++i)
+        WORD(TRACK_ICON_I_ROWS+i*20)=enabled ? TRACK_ICON : tracking_stock_icons[i];
+}
+#endif
 #endif

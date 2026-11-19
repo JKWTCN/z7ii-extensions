@@ -11,7 +11,7 @@ enum {
 
 static unsigned short wide_i_wheel_icons[WIDE_I_CHOICES];
 static z72_u32 wide_i_wheel_titles[WIDE_I_CHOICES];
-static z72_u32 wide_i_wheel_stock,wide_i_wheel_index;
+static z72_u32 wide_i_wheel_stock,wide_i_wheel_count,wide_i_wheel_index;
 
 static z72_u32 wide_i_wheel_active(void)
 {
@@ -36,7 +36,7 @@ static z72_u32 wide_i_wheel_gap(z72_u32 index)
 
 static z72_u32 wide_i_wheel_step(z72_u32 key,z72_u32 steps)
 {
-    z72_u32 count=wide_i_wheel_stock+2,next=wide_i_wheel_index,moves=0;
+    z72_u32 count=wide_i_wheel_count,next=wide_i_wheel_index,moves=0;
     z72_u32 stride=key==0x41 || key==0x44 ? count-1 : 1;
     for (z72_u32 step=0;step<steps;++step) {
         do {
@@ -81,7 +81,14 @@ static void wide_i_wheel_open(z72_u32 key)
         wide_i_wheel_icons[count+i]=(unsigned short)wide_icon_id(i+1,0);
         wide_i_wheel_titles[count+i]=Z72_TEXT_WIDE_C1+i;
     }
-    z72_u32 preset=wide_af_active();
+    wide_i_wheel_count=count+2;
+#ifdef Z72_SUBJECT_TRACKING
+    if (tracking_available()) {
+        wide_i_wheel_icons[wide_i_wheel_count]=TRACK_ICON;
+        wide_i_wheel_titles[wide_i_wheel_count++]=Z72_TEXT_SUBJECT_TRACKING;
+    }
+#endif
+    z72_u32 preset=wide_i_active_selection();
     wide_i_wheel_index=preset ? count+preset-1 : index;
     WORD(WIDE_I_APP_STATE+0x80)=wide_i_wheel_index;
     CALL(0x105c2a01u,void,z72_u32)(4);
@@ -89,7 +96,7 @@ static void wide_i_wheel_open(z72_u32 key)
         0x105c73f7u,0,0,(z72_u32)wide_i_wheel_gap,0);
     WORD(WIDE_I_APP_STATE+0x84)=1;
     CALL(0x105c2a5du,void,z72_u32,const unsigned short *,z72_u32,z72_u32)(
-        count+2,wide_i_wheel_icons,0,0);
+        wide_i_wheel_count,wide_i_wheel_icons,0,0);
     CALL(0x1058b8c7u,void,z72_u32)(WIDE_I_WHEEL_SCENE);
     CALL(0x105c2c37u,void,const z72_u32 *)(wide_i_wheel_titles);
     if (key) wide_i_wheel_step(key,1);
