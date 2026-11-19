@@ -6,22 +6,23 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 
 ## 当前功能
 
-| 功能                                             | 说明                                                                | 状态       |
-| ------------------------------------------------ | ------------------------------------------------------------------- | ---------- |
-| [取景网格](docs/framing-grid.md)                  | 关闭、2×2、3×3、4×4、黄金分割，支持保存设置                      | 已实机验证 |
-| [直方图与水平仪同显](docs/histogram-horizon.md)   | 照片模式下，后屏和电子取景器均可同时显示实时直方图与水平仪          | 已实机验证 |
-| [后屏竖拍界面](docs/portrait-ui.md)               | 照片／视频拍摄信息、音频电平、i 菜单和直方图随相机方向转正          | 已实机验证 |
-| [照片拍摄加亮显示](docs/photo-highlights.md)      | LCD 与取景器的独立照片斑马纹，支持两种图案和八档阈值                | 已实机验证 |
-| [自定义 DISP 页面](docs/custom-disp.md)           | 照片 LCD 页面开关、四套预设、八项拍摄信息、原厂滚动列表及参数信息页 | 已实机验证 |
-| [焦距显示](docs/focal-length.md)                  | 手动变焦镜头的实时焦距（需电子通信），支持独立 DISP 开关            | 已实机验证 |
-| [电量百分比显示](docs/battery-percent.md)         | 照片及视频 LCD 电池框内透明底百分比，全局开关默认关闭               | 已实机验证 |
-| [解除录像时长限制](docs/movie-recording-limit.md) | 普通视频突破 29:59，已验证 1080/60p 连续录制 38:52                  | 已实机验证 |
-| [JPEG 预拍摄](docs/jpeg-pre-capture.md)           | 四档预拍摄时间，可由半按快门或 AF-ON 启动，全按接续 H+ 连拍         | 已实机验证 |
-| [静音拍摄快门声音](docs/shutter-sound.md)         | 从 SD 卡读取自定义 WAV，支持试听、五档音量和连拍播放设置            | 已实机验证 |
-| [筛选的播放](docs/filtered-playback.md)        | 按保护状态、影像类型、评级和日期筛选全屏及缩略图播放              | 已实机验证 |
-| [AF 区域快捷切换](docs/af-area-shortcut.md)       | 原厂自定义控制中为五个按键分配照片 AF 区域，按一次切换并保持        | 已实机验证 |
-| [WiFi 设置](docs/wifi-settings.md)                | 统一子菜单，包含地区选择与80 MHz热点开关，支持5 GHz STA与Wi-Fi 5 AP | 已实机验证 |
-| [菜单本地化](docs/menu-localization.md)           | 扩展设置支持简体中文、繁体中文和英文标签                            | 已实机验证 |
+| 功能                                                   | 说明                                                                            | 状态       |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------- | ---------- |
+| [取景网格](docs/framing-grid.md)                        | 关闭、2×2、3×3、4×4、黄金分割，支持保存设置                                  | 已实机验证 |
+| [直方图与水平仪同显](docs/histogram-horizon.md)         | 照片模式下，后屏和电子取景器均可同时显示实时直方图与水平仪                      | 已实机验证 |
+| [后屏竖拍界面](docs/portrait-ui.md)                     | 照片／视频拍摄信息、音频电平、i 菜单和直方图随相机方向转正                      | 已实机验证 |
+| [照片拍摄加亮显示](docs/photo-highlights.md)            | LCD 与取景器的独立照片斑马纹，支持两种图案和八档阈值                            | 已实机验证 |
+| [自定义 DISP 页面](docs/custom-disp.md)                 | 照片 LCD 页面开关、四套预设、八项拍摄信息、原厂滚动列表及参数信息页             | 已实机验证 |
+| [焦距显示](docs/focal-length.md)                        | 手动变焦镜头的实时焦距（需电子通信），支持独立 DISP 开关                        | 已实机验证 |
+| [电量百分比显示](docs/battery-percent.md)               | 照片及视频 LCD 电池框内透明底百分比，全局开关默认关闭                           | 已实机验证 |
+| [解除录像时长限制](docs/movie-recording-limit.md)       | 普通视频突破 29:59，已验证 1080/60p 连续录制 38:52                              | 已实机验证 |
+| [JPEG 预拍摄](docs/jpeg-pre-capture.md)                 | 四档预拍摄时间，可由半按快门或 AF-ON 启动，全按接续 H+ 连拍                     | 已实机验证 |
+| [静音拍摄快门声音](docs/shutter-sound.md)               | 从 SD 卡读取自定义 WAV，支持试听、五档音量和连拍播放设置                        | 已实机验证 |
+| [筛选的播放](docs/filtered-playback.md)                 | 按保护状态、影像类型、评级和日期筛选全屏及缩略图播放                            | 已实机验证 |
+| [AF 区域快捷切换](docs/af-area-shortcut.md)             | 原厂自定义控制中为五个按键分配照片 AF 区域，按一次切换并保持                    | 已实机验证 |
+| [自定义宽区域 AF（C1/C2）](docs/custom-wide-area-af.md) | 独立调整两个照片 AF 区域的宽度、高度和主体识别，支持 i 菜单、波轮与按键快捷切换 | 已实机验证 |
+| [WiFi 设置](docs/wifi-settings.md)                      | 统一子菜单，包含地区选择与80 MHz热点开关，支持5 GHz STA与Wi-Fi 5 AP             | 已实机验证 |
+| [菜单本地化](docs/menu-localization.md)                 | 扩展设置支持简体中文、繁体中文和英文标签                                        | 已实机验证 |
 
 ## 已知问题
 
@@ -48,10 +49,10 @@ Wi-Fi 设置的[使用限制与风险声明](docs/wifi-settings.md#important-lim
 如果要自己构建固件升级包的生成方法见[构建](#构建)。
 
 1. 等待存储卡访问结束，关机并取出存储卡。
-2. 将 [Z72APP.BIN](releases/v0.1.0-preview.20/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.21/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
 3. 装回卡和电池，等待到 i 按键旁边的读取灯灭了再开机。
 
-当前版本为 `v0.1.0-preview.20`，模块 128,776 字节。[SHA-256 校验](releases/v0.1.0-preview.20/SHA256SUMS)
+当前版本为 `v0.1.0-preview.21`，模块 142,188 字节。[SHA-256 校验](releases/v0.1.0-preview.21/SHA256SUMS)
 
 这是试用版本，休眠唤醒和长期稳定性尚未单独确认。替换或移除模块请完整断电。只加载可信模块。
 
@@ -100,4 +101,4 @@ python -B tools/build.py --stock-package "path/to/original/Z7_2_0170.bin" --outp
 
 ## 许可证
 
-采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」和「筛选的播放」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.20/menu-font-license.txt)。
+采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」和「筛选的播放」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.21/menu-font-license.txt)。

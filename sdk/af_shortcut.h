@@ -9,8 +9,12 @@
 #define Z72_AF_INPUT_SLOT 0xb181d9fcu
 #define Z72_AF_INPUT_NATIVE 0x1053d50fu
 
+#ifdef Z72_WIDE_AF
+static z72_u32 wide_af_choose(z72_u32 selection);
+#endif
+
 /* Body Fn1, Fn2, AF-ON, sub-selector center and movie-record button.
- * Zero retains the native assignment; 1..10 select the native photo AF areas. */
+ * Zero retains the native assignment; the targets start with the native photo AF areas. */
 static const z72_u32 af_shortcut_properties[Z72_AF_SHORTCUT_BUTTONS]={
     0x1145,0x114a,0x114f,0x1153,0x1156
 };
@@ -66,8 +70,17 @@ static void af_shortcut_update(void)
             Z72_AF_CALL(0x1063c7d5u,z72_u32,z72_u32)(af_shortcut_properties[i])) continue;
         if ((target==1 && Z72_AF_CALL(0x10580591u,z72_u32,z72_u32,z72_u32)(0x45,0)) ||
             (target==3 && Z72_AF_CALL(0x10580591u,z72_u32,z72_u32,z72_u32)(0x46,0))) continue;
-        static const z72_u32 areas[Z72_AF_SHORTCUT_TARGETS]={0,1,2,3,4,4,4,6,6,6};
-        static const z72_u32 subtypes[Z72_AF_SHORTCUT_TARGETS]={0,0,0,0,0,1,2,0,1,2};
+#ifdef Z72_WIDE_AF
+        if (target>Z72_AF_SHORTCUT_NATIVE_TARGETS) {
+            wide_af_choose(target-Z72_AF_SHORTCUT_NATIVE_TARGETS);
+            return;
+        }
+        if (wide_af_choose(0)) return;
+#else
+        if (target>Z72_AF_SHORTCUT_NATIVE_TARGETS) return;
+#endif
+        static const z72_u32 areas[Z72_AF_SHORTCUT_NATIVE_TARGETS]={0,1,2,3,4,4,4,6,6,6};
+        static const z72_u32 subtypes[Z72_AF_SHORTCUT_NATIVE_TARGETS]={0,0,0,0,0,1,2,0,1,2};
         z72_u32 area=areas[target-1];
         /* The area setter refreshes subtype state. Set the requested subtype
          * afterwards, and leave both properties selected after release. */

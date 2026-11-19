@@ -22,7 +22,8 @@ static struct {
 } af_menus[AF_MENU_BUTTONS];
 static u32 af_menu_events[AF_MENU_TOTAL_ROWS][AF_MENU_EVENTS][4];
 static struct {
-    u32 header[6],title[24],rows[10][7],maps[10],events[10][ROTATION_EVENTS][4],callbacks[5];
+    u32 header[6],title[24],rows[Z72_AF_SHORTCUT_TARGETS][7],maps[Z72_AF_SHORTCUT_TARGETS];
+    u32 events[Z72_AF_SHORTCUT_TARGETS][ROTATION_EVENTS][4],callbacks[5];
 } af_choice;
 static u32 af_choice_button,af_root_callbacks[5];
 static u32 af_description_widget,af_description_native_draw;
@@ -48,10 +49,27 @@ static void af_menu_reconcile(void)
     if (changed) z72_config_save(config);
 }
 
+static u32 af_menu_target_count(void)
+{
+#ifdef Z72_WIDE_AF
+    if (rotation_menu.title[0]) return Z72_AF_SHORTCUT_TARGETS;
+#endif
+    return Z72_AF_SHORTCUT_NATIVE_TARGETS;
+}
+
+static u32 af_menu_target_icon(u32 target)
+{
+    if (!target || target>af_menu_target_count()) return 0xd7;
+#ifdef Z72_WIDE_AF
+    if (target>Z72_AF_SHORTCUT_NATIVE_TARGETS)
+        return wide_icons_load() ? wide_icon_id(target-Z72_AF_SHORTCUT_NATIVE_TARGETS,0) : af_menu_symbols[4];
+#endif
+    return af_menu_symbols[target-1];
+}
+
 static u32 af_menu_value(u32 button)
 {
-    u32 target=z72_config_current.af_shortcuts[button];
-    return target && target<=10 ? af_menu_symbols[target-1] : 0xd7;
+    return af_menu_target_icon(z72_config_current.af_shortcuts[button]);
 }
 
 static void af_menu_refresh_value(u32 button)
@@ -73,7 +91,12 @@ static u32 af_description_label(const u32 *page)
     for (u32 button=0;button<AF_MENU_BUTTONS;++button) {
         if (id!=WORD(0x116e2040u+af_menu_root_rows[button]*28+24)) continue;
         u32 target=z72_config_current.af_shortcuts[button];
-        return target && target<=10 ? WORD(0x11824624u+(target-1)*28) : 0;
+        if (!target || target>af_menu_target_count()) return 0;
+#ifdef Z72_WIDE_AF
+        if (target>Z72_AF_SHORTCUT_NATIVE_TARGETS)
+            return Z72_TEXT_WIDE_C1+target-Z72_AF_SHORTCUT_NATIVE_TARGETS-1;
+#endif
+        return WORD(0x11824624u+(target-1)*28);
     }
     return 0;
 }
@@ -109,9 +132,9 @@ static void af_menu_summary(const u32 *page)
     for (u32 i=0;i<AF_MENU_BUTTONS;++i) {
         af_menu_refresh_value(i);
         u32 target=z72_config_current.af_shortcuts[i];
-        if (!target || target>10 || !CALL(0x1063464fu,u32,u32,u32,u32)(page[9],af_menu_root_rows[i],0)) continue;
+        if (!target || target>af_menu_target_count() || !CALL(0x1063464fu,u32,u32,u32,u32)(page[9],af_menu_root_rows[i],0)) continue;
         u32 widget=CALL(0x1063466du,u32,u32,u32,u32)(page[9],af_menu_root_rows[i],0);
-        if (widget) CALL(0x106361cdu,void,u32,u32)(widget,af_menu_symbols[target-1]);
+        if (widget) CALL(0x106361cdu,void,u32,u32)(widget,af_menu_target_icon(target));
     }
     af_menu_description(page);
 }
@@ -163,7 +186,7 @@ static u32 af_menu_clear(u32 a,u32 b,u32 c,u32 d)
 static void af_choice_init(const u32 *page)
 {
     u32 target=z72_config_current.af_shortcuts[af_choice_button];
-    u32 id=AF_MENU_CHOICE_ID+(target ? target-1 : 1);
+    u32 id=AF_MENU_CHOICE_ID+(target && target<=af_menu_target_count() ? target-1 : 1);
     if (CALL(0x1063bf77u,u32,void)()!=1)
         CALL(0x10638983u,void,const u32 *,u32)(page,id);
     CALL(0x1063ac0du,void,const u32 *,u32,u32)(page,id,1);
@@ -179,6 +202,9 @@ static u32 af_menu_open(u32 a,u32 b,u32 c,u32 d)
 #ifdef Z72_JPEG_PRE_CAPTURE
     known=known || jpeg_menu_owned(header);
 #endif
+#ifdef Z72_WIDE_AF
+    known=known || wide_header_owned(header);
+#endif
 #ifdef Z72_SHUTTER_SOUND
     known=known || sound_header_owned(header);
 #endif
@@ -187,6 +213,10 @@ static u32 af_menu_open(u32 a,u32 b,u32 c,u32 d)
 #endif
     if (button==AF_MENU_BUTTONS || WORD(ROTATION_PAGE)!=2 || WORD(ROTATION_PAGE+0x24) || !known) return 1;
     af_choice_button=button;
+#ifdef Z72_WIDE_AF
+    for (u32 i=Z72_AF_SHORTCUT_NATIVE_TARGETS;i<af_menu_target_count();++i)
+        af_choice.rows[i][5]=af_menu_target_icon(i+1);
+#endif
     HALF(ROTATION_PAGE+0x16)=0;
     HALF(ROTATION_PAGE+0x18)=0;
     WORD(ROTATION_PAGE+0x10)=(u32)af_choice.callbacks;
@@ -201,7 +231,7 @@ static u32 af_choice_pick(u32 a,u32 b,u32 c,u32 d)
     u32 page=CALL(0x1063c2b3u,u32,void)();
     if (page!=ROTATION_PAGE || WORD(page+0x28)!=(u32)af_choice.header) return 0;
     u32 row=HALF(page+0x16)+HALF(page+0x18),button=af_choice_button;
-    if (row>=10 || button>=AF_MENU_BUTTONS) return 0;
+    if (row>=af_menu_target_count() || button>=AF_MENU_BUTTONS) return 0;
     /* Reuse native None to preserve paired power-zoom assignment cleanup.
      * No unsupported function ID is ever stored in the native properties. */
     CALL(af_menu_none[button],u32,u32,u32,u32,u32)(a,b,c,d);
@@ -298,9 +328,15 @@ static void af_menu_install(void)
     af_choice.header[2]=(u32)af_choice.title;
     af_choice.header[3]=(u32)af_choice.rows;
     af_choice.header[4]=(u32)af_choice.maps;
-    af_choice.header[5]=0x8000a;
-    for (u32 row=0;row<10;++row) {
-        for (u32 i=0;i<7;++i) af_choice.rows[row][i]=WORD(native_af[3]+row*28+i*4);
+    u32 targets=af_menu_target_count();
+    af_choice.header[5]=0x80000|targets;
+    for (u32 row=0;row<targets;++row) {
+        u32 source=row<Z72_AF_SHORTCUT_NATIVE_TARGETS ? row : 4;
+        for (u32 i=0;i<7;++i) af_choice.rows[row][i]=WORD(native_af[3]+source*28+i*4);
+#ifdef Z72_WIDE_AF
+        if (row>=Z72_AF_SHORTCUT_NATIVE_TARGETS)
+            af_choice.rows[row][0]=Z72_TEXT_WIDE_C1+row-Z72_AF_SHORTCUT_NATIVE_TARGETS;
+#endif
         af_choice.rows[row][1]=af_choice.rows[row][2]=0xffff;
         af_choice.rows[row][4]=0x1001;
         af_choice.rows[row][6]=AF_MENU_CHOICE_ID+row;

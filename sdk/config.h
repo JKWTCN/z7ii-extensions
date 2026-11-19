@@ -23,10 +23,15 @@ enum { Z72_DISP_INFO=1u, Z72_DISP_GRID=2u, Z72_DISP_HISTOGRAM=4u,
        Z72_DISP_INFORMATION=32u };
 #define Z72_DISP_DEFAULTS {3u,1u,10u,21u}
 #define Z72_AF_SHORTCUT_BUTTONS 5u
-#define Z72_AF_SHORTCUT_TARGETS 10u
+#define Z72_AF_SHORTCUT_NATIVE_TARGETS 10u
+#define Z72_AF_SHORTCUT_TARGETS 12u
 #define Z72_SOUND_CLIP_COUNT 5u
 #define Z72_SOUND_VOLUME_MAX 5u
-#define Z72_CONFIG_DEFAULTS {Z72_CFG_NO_GRID,1,0,1,31,Z72_DISP_DEFAULTS,{0,0,0,0,0},Z72_WIFI_REGION_BODY,0,0,1,Z72_SOUND_VOLUME_MAX,0}
+#define Z72_WIDE_AF_MIN 5u
+#define Z72_WIDE_AF_MAX 20u
+#define Z72_WIDE_AF_DEFAULT_SIZE (Z72_WIDE_AF_MAX|(Z72_WIDE_AF_MAX<<8))
+#define Z72_WIDE_AF_DEFAULTS {Z72_WIDE_AF_DEFAULT_SIZE|(1u<<16),Z72_WIDE_AF_DEFAULT_SIZE|(2u<<16)}
+#define Z72_CONFIG_DEFAULTS {Z72_CFG_NO_GRID,1,0,1,31,Z72_DISP_DEFAULTS,{0,0,0,0,0},Z72_WIFI_REGION_BODY,0,0,1,Z72_SOUND_VOLUME_MAX,0,Z72_WIDE_AF_DEFAULTS,0}
 
 enum { Z72_DISP_SHUTTER=1u, Z72_DISP_APERTURE=2u, Z72_DISP_ISO=4u,
        Z72_DISP_SHOOTING=8u, Z72_DISP_RELEASE=16u,
@@ -62,6 +67,8 @@ struct z72_config {
     z72_u32 sound_every_frame;
     z72_u32 sound_volume;
     z72_u32 playback_filter;
+    z72_u32 wide_af[2]; /* Width, height and subject mode in successive bytes. */
+    z72_u32 wide_af_selected; /* 0 = native, 1 = C1, 2 = C2. */
 };
 
 /* The freestanding build lowers copies of the settings record to these helpers. */
@@ -78,18 +85,25 @@ void __aeabi_memcpy8(void *dst,const void *src,z72_u32 size)
 static struct z72_config z72_config_current=Z72_CONFIG_DEFAULTS;
 static z72_u32 z72_config_pending;
 
+static inline z72_u32 z72_wide_af_valid(z72_u32 value)
+{
+    z72_u32 width=value&255u,height=(value>>8)&255u;
+    return width>=Z72_WIDE_AF_MIN && width<=Z72_WIDE_AF_MAX &&
+           height>=Z72_WIDE_AF_MIN && height<=Z72_WIDE_AF_MAX && (value>>16)<=2;
+}
+
 static inline struct z72_config z72_config_load(void)
 {
     struct z72_config config=Z72_CONFIG_DEFAULTS;
     z72_u32 file[10],actual=0;
-    _Alignas(64) z72_u32 data[48];
+    _Alignas(64) z72_u32 data[64];
     for(z72_u32 i=0;i<10;++i) ((volatile z72_u32 *)file)[i]=0;
     Z72_CFG_FN(0x104d3c01,void,z72_u32 *,const char *)(file,"B:\\Z72APP.CFG");
     if(Z72_CFG_FN(0x104d3c05,z72_u32,z72_u32 *,z72_u32,z72_u32)(file,0,0)!=Z72_CFG_OK)
         return config;
     z72_u32 size=file[6],result=1;
     if((size==16 || size==24 || size==32 || size==40 || size==80 || size==120 || size==128 ||
-        size==136 || size==160 || size==168) && file[7]==0) {
+        size==136 || size==160 || size==168 || size==184 || size==192) && file[7]==0) {
         /* The native reader needs one byte of capacity beyond EOF. */
         struct { z72_u32 kind; void *buffer; z72_u32 capacity; } request={1,data,size+1};
         Z72_CFG_FN(0x1034fa29,void,void *,z72_u32)(data,sizeof(data));
@@ -108,7 +122,8 @@ static inline struct z72_config z72_config_load(void)
         { config.grid_style=data[2]; config.auto_rotate=data[4]; config.photo_zebra_pattern=data[6]; }
     if(((size==40 && data[1]==4) || (size==80 && data[1]>=5 && data[1]<=9) ||
         (size==120 && data[1]==10) || (size==128 && (data[1]==11 || data[1]==12)) ||
-        (size==136 && data[1]==13) || (size==160 && data[1]==14) || (size==168 && data[1]==15)) &&
+        (size==136 && data[1]==13) || (size==160 && data[1]==14) || (size==168 && data[1]==15) ||
+        (size==184 && data[1]==16) || (size==192 && data[1]==17)) &&
        (data[2]<=4 || data[2]==Z72_CFG_NO_GRID) &&
        data[4]<=1 && data[5]==~data[4] && data[6]<=2 && data[7]==~data[6] &&
        data[8]<=7 && data[9]==~data[8])
@@ -123,7 +138,7 @@ static inline struct z72_config z72_config_load(void)
                    data[13+2*i]!=~data[12+2*i]) return config;
             if(size>=120)
                 for(z72_u32 i=0;i<Z72_AF_SHORTCUT_BUTTONS;++i)
-                    if(data[20+2*i]>Z72_AF_SHORTCUT_TARGETS ||
+                    if(data[20+2*i]>(data[1]>=17 ? Z72_AF_SHORTCUT_TARGETS : Z72_AF_SHORTCUT_NATIVE_TARGETS) ||
                        data[21+2*i]!=~data[20+2*i]) return config;
             if(size>=128 && (data[30]>=(data[1]==11 ? 2u : Z72_WIFI_REGION_COUNT) ||
                             data[31]!=~data[30])) return config;
@@ -150,8 +165,15 @@ static inline struct z72_config z72_config_load(void)
                 config.sound_every_frame=data[36];
                 config.sound_volume=data[38];
             }
-            if(size==168 && data[41]==~data[40] && z72_playback_filter_valid(data[40]))
+            if(size>=168 && data[41]==~data[40] && z72_playback_filter_valid(data[40]))
                 config.playback_filter=data[40];
+            if(size>=184)
+                for(z72_u32 i=0;i<2;++i) {
+                    if(data[43+2*i]!=~data[42+2*i] || !z72_wide_af_valid(data[42+2*i])) continue;
+                    config.wide_af[i]=data[42+2*i];
+                    if(size==192 && data[46]==i+1 && data[47]==~data[46])
+                        config.wide_af_selected=i+1;
+                }
         }
         config.grid_style=data[2]; config.auto_rotate=data[4];
         config.photo_zebra_pattern=data[6]; config.photo_zebra_threshold=data[8];
@@ -175,6 +197,9 @@ static inline z72_u32 z72_config_save(struct z72_config config)
        config.sound_every_frame==z72_config_current.sound_every_frame &&
        config.sound_volume==z72_config_current.sound_volume &&
        config.playback_filter==z72_config_current.playback_filter &&
+       config.wide_af[0]==z72_config_current.wide_af[0] &&
+       config.wide_af[1]==z72_config_current.wide_af[1] &&
+       config.wide_af_selected==z72_config_current.wide_af_selected &&
        config.photo_zebra_pattern==z72_config_current.photo_zebra_pattern &&
        config.photo_zebra_threshold==z72_config_current.photo_zebra_threshold) return Z72_CFG_OK;
     z72_config_current=config;
@@ -186,17 +211,25 @@ static inline z72_u32 z72_config_save(struct z72_config config)
         if(config.disp_components[i]!=defaults[i]) custom=1;
         if(config.disp_components[i]&Z72_DISP_INFO_DETAIL) detail=1;
     }
-    for(z72_u32 i=0;i<Z72_AF_SHORTCUT_BUTTONS;++i)
+    z72_u32 wide_shortcut=0;
+    for(z72_u32 i=0;i<Z72_AF_SHORTCUT_BUTTONS;++i) {
         if(config.af_shortcuts[i]) af=1;
+        if(config.af_shortcuts[i]>Z72_AF_SHORTCUT_NATIVE_TARGETS) wide_shortcut=1;
+    }
     z72_u32 sound=config.sound_choice || !config.sound_every_frame || config.sound_volume!=Z72_SOUND_VOLUME_MAX;
-    z72_u32 version=config.playback_filter ? 15 : sound ? 14 : config.wifi_80mhz ? 13 : config.wifi_region!=Z72_WIFI_REGION_BODY ? 12 :
+    static const z72_u32 wide_defaults[2]=Z72_WIDE_AF_DEFAULTS;
+    z72_u32 wide=config.wide_af[0]!=wide_defaults[0] || config.wide_af[1]!=wide_defaults[1];
+    z72_u32 version=config.wide_af_selected || wide_shortcut ? 17 : wide ? 16 : config.playback_filter ? 15 : sound ? 14 :
+                    config.wifi_80mhz ? 13 : config.wifi_region!=Z72_WIFI_REGION_BODY ? 12 :
                     af ? 10 : config.disp_enabled&Z72_BATTERY_PERCENT_ON ? 9 :
                     detail ? 8 : config.disp_enabled&Z72_DISP_INFORMATION ? 6 : custom ? 5 :
                     config.photo_zebra_pattern || config.photo_zebra_threshold!=1 ? 4 :
                     config.auto_rotate && config.grid_style!=Z72_CFG_NO_GRID ? 1 : 2;
     z72_u32 size=version==1 ? 16 : version==2 ? 24 : version==4 ? 40 :
-                 version==15 ? 168 : version==14 ? 160 : version==13 ? 136 : version==12 ? 128 : version==10 ? 120 : 80,actual=0;
-    _Alignas(64) z72_u32 data[42];
+                 version==17 ? 192 : version==16 ? 184 : version==15 ? 168 :
+                 version==14 ? 160 : version==13 ? 136 :
+                 version==12 ? 128 : version==10 ? 120 : 80,actual=0;
+    _Alignas(64) z72_u32 data[48];
     data[0]=Z72_CFG_MAGIC; data[1]=version;
     data[2]=config.grid_style; data[3]=~config.grid_style;
     data[4]=config.auto_rotate; data[5]=~config.auto_rotate;
@@ -223,6 +256,12 @@ static inline z72_u32 z72_config_save(struct z72_config config)
     data[39]=~config.sound_volume;
     data[40]=config.playback_filter;
     data[41]=~config.playback_filter;
+    for(z72_u32 i=0;i<2;++i) {
+        data[42+2*i]=config.wide_af[i];
+        data[43+2*i]=~data[42+2*i];
+    }
+    data[46]=config.wide_af_selected;
+    data[47]=~data[46];
     struct { z72_u32 kind; void *buffer; z72_u32 capacity; } request={1,data,size};
     int opened=Z72_CFG_FN(0x105beb2b,int,const char *,z72_u32)("B:\\Z72APP.CFG",0);
     if(opened<0) return (z72_u32)opened;

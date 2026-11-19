@@ -4,7 +4,8 @@
 #define Z72_PORTRAIT_TRACE 0
 #define Z72_GRID_WITH_PORTRAIT 1
 #define Z72_PHOTO_ZEBRA 1
-#define Z72_MENU_EXTRA_ROWS 6u
+#define Z72_MENU_EXTRA_ROWS 7u
+#define Z72_WIDE_AF 1
 #define Z72_CUSTOM_DISP 1
 #define Z72_FOCAL_LENGTH 1
 #define Z72_BATTERY_PERCENT 1
@@ -23,6 +24,7 @@
 #endif
 #include "grid_live.c"
 #include "portrait_menu.c"
+#include "wide_af.c"
 #include "af_shortcut_menu.h"
 #include "filtered_playback/filtered_playback.c"
 
@@ -30,7 +32,7 @@ static u32 pre_capture_menu_source(u32 header)
 {
     return header==(u32)rotation_menu.header || zebra_header_owned(header) ||
         disp_header_owned(header) || wifi_header_owned(header) || af_menu_header_owned(header) ||
-        sound_header_owned(header) || filter_header_owned(header);
+        sound_header_owned(header) || filter_header_owned(header) || wide_header_owned(header);
 }
 
 static void sound_shutter_event(z72_u32 fn);
@@ -41,13 +43,14 @@ z72_u32 z72_main(const struct z72_api *api)
 {
     if (!grid_ready(api) || !z72_grid_menu_ready() || !histogram_horizon_ready(api) || !disp_ready() ||
         !focal_ready() || !battery_ready() || !af_shortcut_ready() || !af_menu_ready() || !wifi_ready() ||
-        !movie_limit_ready() || !pre_capture_ready() || !filtered_playback_ready())
+        !movie_limit_ready() || !pre_capture_ready() || !filtered_playback_ready() || !wide_ready())
         return 1;
     z72_u32 result=portrait_init(api);
     if (result) return result;
     grid_install(rotation_menu.title[0] ? Z72_TEXT_GRID_GOLDEN : 0);
     zebra_producer_install();
     disp_install();
+    if (rotation_menu.title[0]) wide_install();
     af_menu_install();
     af_shortcut_install();
     wifi_install();

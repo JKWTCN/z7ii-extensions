@@ -14,6 +14,10 @@ In the Setup Menu, open **Auto rotate info** and choose Enable or Disable. The c
 
 在「设定菜单」中打开 **自动旋转信息显示**，选择「启用」或「禁用」。列表右侧显示当前状态。此项默认开启，并保存到 `Z72APP.CFG`。实体 MENU、回放界面和电子取景器使用相机原有朝向。
 
+The photo AF-area i-menu picker, its command-dial strip, and the live-view status icon support [Wide-area AF (C1/C2)](custom-wide-area-af.md) in portrait orientation.
+
+竖拍时，可以在照片 i 菜单的 AF 区域模式中用方向键、触摸或波轮切换 [宽区域 AF（C1/C2）](custom-wide-area-af.md)。取景状态栏也会随方向显示当前预设的图标。
+
 ## Verification / 验证
 
 Portrait display was verified on a Z 7II. The localized Setup Menu label was also verified in Simplified Chinese and English. [Menu localization](menu-localization.md)

@@ -24,6 +24,15 @@ static z72_u32 sound_menu_available;
 static z72_u32 filter_header_owned(z72_u32 header);
 #endif
 
+#ifdef Z72_WIDE_AF
+static z72_u32 wide_open(z72_u32,z72_u32,z72_u32,z72_u32);
+static z72_u32 wide_header_owned(z72_u32 header);
+static void wide_menu_prepare(void);
+static void wide_af_prepare_live(void);
+static z72_u32 wide_af_active(void);
+static void wide_hud_update(z72_u32 preset,z72_u32 output_before);
+#endif
+
 #define Z72_PORTRAIT_MENU 1
 #ifndef Z72_PORTRAIT_TRACE
 #define Z72_PORTRAIT_TRACE 0
@@ -1358,7 +1367,15 @@ static u32 live_update(u32 a,u32 b,u32 c,u32 d)
         }
     }
     movie_meter_layout(live_orientation);
+#ifdef Z72_WIDE_AF
+    wide_af_prepare_live();
+    u32 preset=wide_af_active(),output=WORD(DISPLAY_OUTPUTS)&7u;
+    u32 result=gui_update(a,b,c,d);
+    wide_hud_update(preset,output);
+    return result;
+#else
     return gui_update(a,b,c,d);
+#endif
 }
 
 static u32 portrait_ready(void)
@@ -1558,8 +1575,14 @@ static u32 portrait_install_menu(void)
 #ifdef Z72_SHUTTER_SOUND
         {0},
 #endif
+#ifdef Z72_WIDE_AF
+        {0},
+#endif
     };
     u32 count=sizeof(rows)/sizeof(rows[0]);
+#ifdef Z72_WIDE_AF
+    --count;
+#endif
 #ifdef Z72_SHUTTER_SOUND
     --count;
 #endif
@@ -1575,6 +1598,9 @@ static u32 portrait_install_menu(void)
         rows[count].callback=open_sound_menu;
         rows[count++].value=0xd7;
     }
+#endif
+#ifdef Z72_WIDE_AF
+    rows[count++]=(struct z72_menu_row){"Custom wide-area AF",wide_open,0xd7};
 #endif
     if (z72_menu_prepare_rows(&menu,rows,count)) return 1;
     if (z72_menu_locale_install()) {
@@ -1601,12 +1627,24 @@ static u32 portrait_install_menu(void)
 #endif
 #ifdef Z72_SHUTTER_SOUND
         if (sound_menu_available) {
-            menu.rows[count-1][0]=Z72_TEXT_SOUND_TITLE;
-            menu.rows[count-1][4]=0x1001;
+            u32 row=count-1;
+#ifdef Z72_WIDE_AF
+            --row;
+#endif
+            menu.rows[row][0]=Z72_TEXT_SOUND_TITLE;
+            menu.rows[row][4]=0x1001;
         }
+#endif
+#ifdef Z72_WIDE_AF
+        menu.rows[count-1][0]=Z72_TEXT_WIDE_TITLE;
+        menu.rows[count-1][4]=0x1001;
+        wide_menu_prepare();
 #endif
     } else {
         u32 unlocalized_count=count;
+#ifdef Z72_WIDE_AF
+        --unlocalized_count;
+#endif
 #ifdef Z72_SHUTTER_SOUND
         unlocalized_count-=sound_menu_available;
         sound_menu_available=0;
