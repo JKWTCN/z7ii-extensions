@@ -20,6 +20,10 @@ static z72_u32 sound_menu_prepare(void);
 static z72_u32 sound_menu_available;
 #endif
 
+#ifdef Z72_FILTERED_PLAYBACK
+static z72_u32 filter_header_owned(z72_u32 header);
+#endif
+
 #define Z72_PORTRAIT_MENU 1
 #ifndef Z72_PORTRAIT_TRACE
 #define Z72_PORTRAIT_TRACE 0

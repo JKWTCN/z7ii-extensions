@@ -182,6 +182,9 @@ static u32 af_menu_open(u32 a,u32 b,u32 c,u32 d)
 #ifdef Z72_SHUTTER_SOUND
     known=known || sound_header_owned(header);
 #endif
+#ifdef Z72_FILTERED_PLAYBACK
+    known=known || filter_header_owned(header);
+#endif
     if (button==AF_MENU_BUTTONS || WORD(ROTATION_PAGE)!=2 || WORD(ROTATION_PAGE+0x24) || !known) return 1;
     af_choice_button=button;
     HALF(ROTATION_PAGE+0x16)=0;

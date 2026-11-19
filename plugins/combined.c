@@ -13,6 +13,7 @@
 #define Z72_JPEG_PRE_CAPTURE 1
 #define Z72_SHUTTER_SOUND 1
 #define Z72_MENU_SOUND_FONT 1
+#define Z72_FILTERED_PLAYBACK 1
 #include "disp.h"
 #include "af_shortcut.h"
 #include "movie_limit.h"
@@ -23,12 +24,13 @@
 #include "grid_live.c"
 #include "portrait_menu.c"
 #include "af_shortcut_menu.h"
+#include "filtered_playback/filtered_playback.c"
 
 static u32 pre_capture_menu_source(u32 header)
 {
     return header==(u32)rotation_menu.header || zebra_header_owned(header) ||
         disp_header_owned(header) || wifi_header_owned(header) || af_menu_header_owned(header) ||
-        sound_header_owned(header);
+        sound_header_owned(header) || filter_header_owned(header);
 }
 
 static void sound_shutter_event(z72_u32 fn);
@@ -39,7 +41,7 @@ z72_u32 z72_main(const struct z72_api *api)
 {
     if (!grid_ready(api) || !z72_grid_menu_ready() || !histogram_horizon_ready(api) || !disp_ready() ||
         !focal_ready() || !battery_ready() || !af_shortcut_ready() || !af_menu_ready() || !wifi_ready() ||
-        !movie_limit_ready() || !pre_capture_ready())
+        !movie_limit_ready() || !pre_capture_ready() || !filtered_playback_ready())
         return 1;
     z72_u32 result=portrait_init(api);
     if (result) return result;
@@ -52,5 +54,6 @@ z72_u32 z72_main(const struct z72_api *api)
     movie_limit_install();
     if (pre_capture_menu_available) pre_capture_install();
     if (sound_menu_available) sound_install();
+    if (rotation_menu.title[0]) filtered_playback_install();
     return 0;
 }

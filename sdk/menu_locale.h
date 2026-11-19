@@ -82,6 +82,21 @@ enum {
     Z72_TEXT_SOUND_MISSING4,
     Z72_TEXT_SOUND_MISSING5,
 #endif
+#ifdef Z72_FILTERED_PLAYBACK
+    TEXT_FILTER,
+    TEXT_CONDITIONS,
+    TEXT_PROTECTION,
+    TEXT_MEDIA,
+    TEXT_DATE,
+    TEXT_ANY,
+    TEXT_ALL,
+    TEXT_PROTECTED,
+    TEXT_UNPROTECTED,
+    TEXT_PHOTOS,
+    TEXT_UNRATED,
+    TEXT_ON,
+    TEXT_OFF,
+#endif
     Z72_MENU_TEXT_END
 };
 
@@ -127,6 +142,11 @@ static inline int z72_menu_locale_install(void)
          u"SHUTTER1.WAV (unavailable)",u"SHUTTER2.WAV (unavailable)",u"SHUTTER3.WAV (unavailable)",
          u"SHUTTER4.WAV (unavailable)",u"SHUTTER5.WAV (unavailable)",
 #endif
+#ifdef Z72_FILTERED_PLAYBACK
+         u"Filtered playback",u"Filtered playback criteria",u"Protection status",u"Image type",
+         u"Shooting date",u"Any",u"All",u"Protected only",u"Unprotected only",u"Photos only",
+         u"Unrated",u"On",u"Off",
+#endif
         },
         {u"黄金分割",u"自动旋转信息显示",u"照片拍摄加亮显示",u"加亮阈值",u"显示图案",
          u"自定义DISP页面",u"自定义页面",u"标准",u"极简",u"构图",u"曝光",u"页面启用",u"拍摄信息",
@@ -142,6 +162,11 @@ static inline int z72_menu_locale_install(void)
          u"仅第一张",u"每张照片",u"1",u"2",u"3",u"4",u"5",
          u"SHUTTER1.WAV（不可用）",u"SHUTTER2.WAV（不可用）",u"SHUTTER3.WAV（不可用）",
          u"SHUTTER4.WAV（不可用）",u"SHUTTER5.WAV（不可用）",
+#endif
+#ifdef Z72_FILTERED_PLAYBACK
+         u"筛选的播放",u"筛选的播放条件",u"保护状态",u"影像类型",
+         u"拍摄日期",u"不限",u"全部",u"仅已保护",u"仅未保护",u"仅照片",
+         u"无评级",u"开启",u"关闭",
 #endif
         },
         {u"黃金分割",u"自動旋轉資訊顯示",u"照片拍攝加亮顯示",u"加亮閾值",u"顯示圖案",
@@ -180,6 +205,10 @@ static inline int z72_menu_locale_install(void)
 #endif
     for (z72_u32 id=Z72_TEXT_WIFI_CN;id<=Z72_TEXT_WIFI_BODY;++id)
         locale->styles[id]=Z72_GOLDEN_STYLE;
+#ifdef Z72_FILTERED_PLAYBACK
+    for (z72_u32 id=TEXT_FILTER;id<=TEXT_OFF;++id)
+        locale->styles[id]=id<=TEXT_CONDITIONS ? Z72_PLAYBACK_TITLE_STYLE : Z72_PLAYBACK_ROW_STYLE;
+#endif
     z72_golden_font_prepare(&locale->golden,copy,styles[template]);
     unsigned char *text=locale->text;
     for (z72_u32 lang=0;lang<Z72_MENU_LANGUAGES;++lang) {
@@ -192,14 +221,21 @@ static inline int z72_menu_locale_install(void)
         copy(locale->offsets[lang],offsets[lang],(Z72_MENU_STOCK_TEXTS+1)*sizeof(z72_u32));
         copy(locale->attributes[lang],attrs[lang],Z72_MENU_STOCK_TEXTS);
         for (z72_u32 id=Z72_MENU_STOCK_TEXTS;id<Z72_MENU_TEXT_END;++id) {
-            const unsigned short *label=translations[translation][id-Z72_MENU_STOCK_TEXTS];
+            z72_u32 label_language=translation,attribute_template=template;
+#ifdef Z72_FILTERED_PLAYBACK
+            if (id>=TEXT_FILTER) {
+                label_language=lang==8;
+                attribute_template=0x367;
+            }
+#endif
+            const unsigned short *label=translations[label_language][id-Z72_MENU_STOCK_TEXTS];
             z72_u32 length=0;
             while (length<sizeof(translations[0][0])/sizeof(*label) && label[length]) ++length;
             length*=sizeof(*label);
             copy(text+end,label,length);
             end+=length;
             locale->offsets[lang][id+1]=end;
-            locale->attributes[lang][id]=attrs[lang][template];
+            locale->attributes[lang][id]=attrs[lang][attribute_template];
         }
         text+=end;
     }

@@ -23,7 +23,7 @@ Use 48 kHz, 16-bit PCM WAV files up to **1 second** long. Both mono and stereo a
 
 ## Sample WAV files / 示例音效
 
-[SHUTTER1.WAV](../releases/v0.1.0-preview.19/SHUTTER1.WAV) · [SHUTTER2.WAV](../releases/v0.1.0-preview.19/SHUTTER2.WAV) · [SHUTTER3.WAV](../releases/v0.1.0-preview.19/SHUTTER3.WAV) · [SHUTTER4.WAV](../releases/v0.1.0-preview.19/SHUTTER4.WAV) · [SHUTTER5.WAV](../releases/v0.1.0-preview.19/SHUTTER5.WAV)
+[SHUTTER1.WAV](../releases/v0.1.0-preview.20/SHUTTER1.WAV) · [SHUTTER2.WAV](../releases/v0.1.0-preview.20/SHUTTER2.WAV) · [SHUTTER3.WAV](../releases/v0.1.0-preview.20/SHUTTER3.WAV) · [SHUTTER4.WAV](../releases/v0.1.0-preview.20/SHUTTER4.WAV) · [SHUTTER5.WAV](../releases/v0.1.0-preview.20/SHUTTER5.WAV)
 
 Use FFmpeg to convert a clip and keep its first second. 以下命令可转换音效并截取前 1 秒。
 
@@ -31,4 +31,4 @@ Use FFmpeg to convert a clip and keep its first second. 以下命令可转换音
 ffmpeg -i input.wav -t 1 -ar 48000 -ac 1 -c:a pcm_s16le SHUTTER1.WAV
 ```
 
-The supplemental Noto Sans SC menu glyphs are distributed under the SIL Open Font License. 菜单补充字形取自 Noto Sans SC，采用 SIL 开放字体许可证。[Font license / 字体许可证](../releases/v0.1.0-preview.19/shutter-sound-font-license.txt)
+The supplemental Noto Sans SC menu glyphs are distributed under the SIL Open Font License. 菜单补充字形取自 Noto Sans SC，采用 SIL 开放字体许可证。[Font license / 字体许可证](../releases/v0.1.0-preview.20/menu-font-license.txt)

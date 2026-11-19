@@ -87,6 +87,9 @@ static u32 disp_show(u32 view)
 #ifdef Z72_PHOTO_ZEBRA
     known=known || zebra_header_owned(header);
 #endif
+#ifdef Z72_FILTERED_PLAYBACK
+    known=known || filter_header_owned(header);
+#endif
     if (view>3 || WORD(ROTATION_PAGE)!=2 || !known ||
         (WORD(ROTATION_PAGE+0x24) && !owned)) return 1;
     const char *subtitle=disp_preset_names[disp_preset];

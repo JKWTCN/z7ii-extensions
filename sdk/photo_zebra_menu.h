@@ -68,6 +68,9 @@ static u32 zebra_show(u32 view)
 #ifdef Z72_SHUTTER_SOUND
     known=known || sound_header_owned(header);
 #endif
+#ifdef Z72_FILTERED_PLAYBACK
+    known=known || filter_header_owned(header);
+#endif
     if (view>2 || WORD(ROTATION_PAGE)!=2 || !known || (WORD(ROTATION_PAGE+0x24) && !owned)) return 1;
     zebra_menu_values();
     zebra_view=view;
@@ -188,6 +191,9 @@ static u32 open_rotation_choice(void)
 #endif
 #ifdef Z72_SHUTTER_SOUND
     known=known || sound_header_owned(header);
+#endif
+#ifdef Z72_FILTERED_PLAYBACK
+    known=known || filter_header_owned(header);
 #endif
     if (WORD(ROTATION_PAGE)!=2 || WORD(ROTATION_PAGE+0x24) || !known) return 1;
     WORD(ROTATION_PAGE+0x10)=(u32)rotation_menu.callbacks;
