@@ -58,6 +58,9 @@ void __aeabi_memclr8(void *ptr,z72_u32 size)
 #define GUI_CAPTURE_NATIVE 0x104e7177u
 #define REVIEW_SLOT 0xb1821b34u
 #define REVIEW_NATIVE 0x104e6ee9u
+#ifdef Z72_PIXEL_SHIFT
+enum { PIXEL_REVIEW_RPC=2 };
+#endif
 #define CAPTURE_CONTEXT 0xb23f6848u
 #define CAPTURE_IMAGE_REVIEW (CAPTURE_CONTEXT+0x94u)
 #define CAPTURE_UI_SLOT 0xb181c5a0u
@@ -236,6 +239,14 @@ static z72_u32 card_stream_close(z72_u32 argument)
 }
 static void image_notice(z72_u32 event,z72_u32 argument)
 {
+#ifdef Z72_PIXEL_SHIFT
+    z72_u32 pixel_closed=pixel_image_notice(event,argument);
+    if (pixel_closed) {
+        CALL(IMAGE_NATIVE,void,z72_u32,z72_u32)(event,argument);
+        pixel_finish_file(pixel_closed);
+        return;
+    }
+#endif
     if (LOAD(card_queue_cancelled) && !LOAD(in_flight) && event==0x041f0002u &&
         pre_capture_ram(argument,20) && CALL(0x105094e5u,z72_u32,z72_u32)(WORD(argument)))
         STORE(card_queue_cancelled,0);
@@ -339,6 +350,16 @@ static void capture_ui_event(z72_u32 event,z72_u32 argument)
 }
 static void review_event(z72_u32 event,z72_u32 value)
 {
+#ifdef Z72_PIXEL_SHIFT
+    z72_u32 state=PIXEL_LOAD(pixel_state);
+    if (event==6 && (state==PIXEL_RUNNING || state==PIXEL_STARTING || state==PIXEL_REVIEW_READY)) {
+        z72_u32 empty=0;
+        /* A decoded RPC takes precedence over the fallback native event. */
+        __atomic_compare_exchange_n(&pixel_review_request,&empty,PIXEL_REVIEW_EVENT,
+                                    0,__ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE);
+        return;
+    }
+#endif
     if (event==6 && LOAD(card_queue_cancelled)) {
         discard_review();
         return;
@@ -467,6 +488,9 @@ static z72_u32 card_notice(z72_u32 event,z72_u32 request)
  */
 static void pipeline_notify(z72_u32 event,z72_u32 argument)
 {
+#ifdef Z72_PIXEL_SHIFT
+    z72_u32 pixel_done=pixel_file_notice(event,argument);
+#endif
     z72_u32 card_done=0;
     if (LOAD(in_flight)) {
         batch_track(event,argument);
@@ -491,6 +515,9 @@ static void pipeline_notify(z72_u32 event,z72_u32 argument)
     if (event==0x041b0093u && LOAD(in_flight) && fallback[7]==1 &&
         gate_notice(argument)) return;
     CALL(FILE_NOTIFY_NATIVE,void,z72_u32,z72_u32)(event,argument);
+#ifdef Z72_PIXEL_SHIFT
+    if (pixel_done) pixel_finish_file(pixel_done);
+#endif
     if (card_done) {
         /* Original callback runs once before publication. No request reads
          * here: it may have retired or released work during that callback.
@@ -508,11 +535,17 @@ static void pipeline_notify(z72_u32 event,z72_u32 argument)
 static void input_dispatch(z72_u32 flags)
 {
     for (z72_u32 i=0;i<16;++i) if (flags&(1u<<i)) {
-        z72_u32 fn=WORD(INPUT_CALLBACKS+4*i),consume=0;
+        z72_u32 fn=WORD(INPUT_CALLBACKS+4*i);
+#ifdef Z72_PIXEL_SHIFT
+        /* An existing JPEG generation owns its input until drained. */
+        if (fn==0x1022aa25u && pixel_shutter_event(fn)) continue;
+        if (fn==0x1022aa5du && !LOAD(control) && !LOAD(in_flight) && !LOAD(cycle_done) &&
+            !LOAD(release_pending) && !LOAD(jpeg_sw1_owned) && pixel_shutter_event(fn)) continue;
+#endif
 #ifdef Z72_SHUTTER_SOUND
         sound_shutter_event(fn);
 #endif
-        consume=jpeg_shutter_event(fn,i);
+        z72_u32 consume=jpeg_shutter_event(fn,i);
         if (fn==0x1022aa5du && !consume) STORE(card_queue_cancelled,0);
         if (!consume) CALL(INPUT_NATIVE,void,z72_u32)(1u<<i);
     }
@@ -1305,11 +1338,62 @@ static void menu_refresh(void)
 {
     jpeg_menu_refresh();
 }
+static int review_allowed(void)
+{
+    return !CALL(0x1063c7d5u,z72_u32,z72_u32)(0x1b15) && !CALL(0x10633afbu,z72_u32,void)();
+}
+
+static int read_review_request(z72_u32 *value)
+{
+    if (!review_allowed() || !CALL(0x104bf377u,z72_u32,z72_u32 *)(value) || *value>6u) return 0;
+    z72_u32 display=BYTE(0xb202c017u);
+    if (display && display!=3 && *value) *value=2;
+    return 1;
+}
+
+#ifdef Z72_PIXEL_SHIFT
+static z72_u32 pixel_review_update(z72_u32 state)
+{
+    if (state!=PIXEL_STARTING && state!=PIXEL_RUNNING && state!=PIXEL_REVIEW_READY) return 0;
+
+    /* Acknowledge the stock request on the GUI task so the next exposure
+     * can proceed. Only its scalar display selection survives the call. */
+    if (CALL(0x104bf36fu,z72_u32,void)()) {
+        z72_u32 value=0;
+        if (read_review_request(&value)) {
+            PIXEL_STORE(pixel_review_request,PIXEL_REVIEW_RPC+value);
+            CALL(0x104bf399u,void,z72_u32)(0);
+        }
+    }
+    if (state!=PIXEL_REVIEW_READY) return 0;
+
+    if (!PIXEL_LOAD(pixel_review_request) || !pixel_photo_view() || hold_review()) {
+        __atomic_compare_exchange_n(&pixel_state,&state,PIXEL_IDLE,0,__ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE);
+        return 0;
+    }
+    if (!pixel_capture_idle() || PIXEL_LOAD(pixel_full_owned) ||
+        CALL(0x1022cfa7u,z72_u32,z72_u32)(0x58) || CALL(0x1022cfa7u,z72_u32,z72_u32)(0x59) ||
+        !review_allowed()) return 0;
+    if (!__atomic_compare_exchange_n(&pixel_state,&state,PIXEL_REVIEW_SHOWING,0,
+                                     __ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE)) return 0;
+
+    z72_u32 request=__atomic_exchange_n(&pixel_review_request,0,__ATOMIC_ACQ_REL);
+    if (request==PIXEL_REVIEW_EVENT) CALL(REVIEW_NATIVE,void,z72_u32,z72_u32)(6,0);
+    else CALL(0x10551cf3u,z72_u32,z72_u32)(request-PIXEL_REVIEW_RPC);
+    PIXEL_STORE(pixel_state,PIXEL_IDLE);
+    return 1;
+}
+#endif
+
 static z72_u32 jpeg_menu_status;
 static z72_u32 pre_capture_review_update(void)
 {
     z72_u32 active=LOAD(enabled);
     if (active!=jpeg_menu_status) menu_refresh();
+#ifdef Z72_PIXEL_SHIFT
+    if (pixel_review_update(PIXEL_LOAD(pixel_state))) return 1;
+    if (pixel_running()) return 0;
+#endif
     if (!active && !LOAD(card_queue_cancelled) && !LOAD(review_kind)) return 0;
     if (!active) discard_review();
     /* Native 104e6cb4 consumes this pending review RPC before its display
@@ -1320,16 +1404,11 @@ static z72_u32 pre_capture_review_update(void)
     z72_u32 cancelled=LOAD(card_queue_cancelled);
     if (!pending && !LOAD(review_ready)) return 0;
     if (pending && !hold_review()) discard_review();
-    if ((hold_review() || cancelled) && pending && !CALL(0x1063c7d5u,z72_u32,z72_u32)(0x1b15) &&
-        !CALL(0x10633afbu,z72_u32,void)()) {
+    if ((hold_review() || cancelled) && pending) {
         z72_u32 value=0;
-        if (CALL(0x104bf377u,z72_u32,z72_u32 *)(&value) && value<=6u) {
+        if (read_review_request(&value)) {
             if (cancelled) discard_review();
-            else {
-                z72_u32 display=BYTE(0xb202c017u);
-                if (display && display!=3 && value) value=2;
-                STORE(review_value,value); STORE(review_kind,1);
-            }
+            else { STORE(review_value,value); STORE(review_kind,1); }
             CALL(0x104bf399u,void,z72_u32)(0);
         }
     }
@@ -1338,9 +1417,7 @@ static z72_u32 pre_capture_review_update(void)
         !LOAD(in_flight) && !LOAD(ring_busy) && !LOAD(peer_active) &&
         !LOAD(image_pending) && !LOAD(pre_notice_pending) && !destination_phase &&
         !BYTE(0xb1869364u) && !BYTE(0xb1869365u) && !BYTE(0xb186936bu) &&
-        !WORD(0xb18693a8u) && !WORD(0xb18693acu) && photo_view() &&
-        !CALL(0x1063c7d5u,z72_u32,z72_u32)(0x1b15) &&
-        !CALL(0x10633afbu,z72_u32,void)()) {
+        !WORD(0xb18693a8u) && !WORD(0xb18693acu) && photo_view() && review_allowed()) {
         z72_u32 kind=__atomic_exchange_n(&review_kind,0,__ATOMIC_ACQ_REL);
         STORE(review_ready,0);
 
@@ -1404,6 +1481,15 @@ static z72_u32 pre_capture_ready(void)
         WORD(CARD_PEER_SLOT)==CARD_PEER_NATIVE && WORD(IMAGE_SLOT)==IMAGE_NATIVE && !af_sdk_prepare();
 }
 
+static void install_shared_capture_hooks(void)
+{
+    WORD(INPUT_SLOT)=(z72_u32)input_dispatch;
+    WORD(FILE_STATE+0x14)=(z72_u32)pipeline_notify;
+    WORD(IMAGE_SLOT)=(z72_u32)image_notice;
+    WORD(REVIEW_SLOT)=(z72_u32)review_event;
+    WORD(GUI_CAPTURE_SLOT)=WORD(GUI_CAPTURE_OTHER_SLOT)=(z72_u32)gui_capture;
+}
+
 static void pre_capture_install(void)
 {
     const unsigned char *original=CALL(0x103d3dffu,const unsigned char *,z72_u32)(0x10005);
@@ -1417,15 +1503,11 @@ static void pre_capture_install(void)
     CALL(0x103dc46bu,int,void *,void (*)(void *),void *)(task_control,worker,task_descriptor);
     if ((int)task_control[0]<=0) { task_result=1; return; }
     __asm__ volatile("dmb sy" ::: "memory");
-    WORD(INPUT_SLOT)=(z72_u32)input_dispatch;
+    install_shared_capture_hooks();
     WORD(FILE_SLOT)=(z72_u32)file_dispatch;
     WORD(CARD_SLOT)=(z72_u32)card_dispatch;
     WORD(STREAM_SLOT)=(z72_u32)stream_event;
-    WORD(FILE_STATE+0x14)=(z72_u32)pipeline_notify;
     WORD(PEER_SLOT)=(z72_u32)peer_dispatch;
     WORD(CARD_PEER_SLOT)=(z72_u32)card_peer_dispatch;
-    WORD(IMAGE_SLOT)=(z72_u32)image_notice;
-    WORD(REVIEW_SLOT)=(z72_u32)review_event;
-    WORD(GUI_CAPTURE_SLOT)=WORD(GUI_CAPTURE_OTHER_SLOT)=(z72_u32)gui_capture;
     task_result=CALL(0x103606dfu,z72_u32,void *)(task_control);
 }

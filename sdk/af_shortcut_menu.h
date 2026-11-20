@@ -219,6 +219,9 @@ static u32 af_menu_open(u32 a,u32 b,u32 c,u32 d)
 #ifdef Z72_SHUTTER_SOUND
     known=known || sound_header_owned(header);
 #endif
+#ifdef Z72_PIXEL_SHIFT
+    known=known || pixel_header_owned(header);
+#endif
 #ifdef Z72_FILTERED_PLAYBACK
     known=known || filter_header_owned(header);
 #endif

@@ -22,6 +22,7 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 | [AF-area shortcuts](docs/af-area-shortcut.md)              | Assign photo AF-area shortcuts to five buttons through native Custom controls; press once to switch and keep the selected area          | Hardware verified  |
 | [Custom wide-area AF (C1/C2)](docs/custom-wide-area-af.md) | Set width, height, and subject detection for two photo AF presets. Select them with the i menu, command dials, or button shortcuts      | Hardware verified  |
 | [Subject tracking](docs/subject-tracking.md) | Start tracking with a half-press or AF-ON in photo AF-C. The targeting reticle returns after power-up | Hardware verified |
+| [Pixel shift shooting](docs/pixel-shift.md) | Use in-body sensor shift to capture 4, 8, 16 or 32 NEFs for NX Studio merging | Hardware verified |
 | [Wi-Fi settings](docs/wifi-settings.md)                    | One submenu for region selection and an optional 80 MHz AP switch; 5 GHz STA and Wi-Fi 5 AP                                             | Hardware verified  |
 | [Menu localization](docs/menu-localization.md)             | English, Simplified Chinese, and Traditional Chinese labels for the extension settings                                                  | Hardware verified  |
 
@@ -30,8 +31,8 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 - The framing grid may display incorrectly or disappear, or extension features may fail to appear. If this happens, turn off the camera and remove and reinsert the battery. Once the card access lamp next to the **i** button goes out, wait one more second before turning the camera back on.
 - The Z 7II's CMOS sensor lacks dual data paths, so JPEG pre-capture relies on H+ burst mode. This can make live view stutter when pre-capture starts.
 - During playback, some JPEG pre-capture photos may temporarily show “Cannot display this file.” The camera registers these photos before writing them to the card. The photos become viewable once writing finishes.
-
-## Risk disclaimer
+- Pixel shift uses half-pixel offsets of X=11 and Y=9, calibrated on my camera. If Nikon calibrates sensor movement at the factory, other bodies should give similar results. Large alignment errors in a merge may indicate that the calibration differs or is absent. If you see this, please open an issue. I’ll add a way to calibrate your own camera and provide instructions. [Issues](https://github.com/JKWTCN/z7ii-extensions/issues)
+- Nikon does not officially support pixel shift on the Z 7II. When merging 14-bit lossless compressed RAW from this camera, NX Studio can produce a NEFX that it cannot preview or export. If that happens, run the repair script on the merged NEFX. Merges from 14-bit uncompressed RAW can be opened and exported directly. [Repair script](tools/ibis_nefx_repair.py) · [Pixel shift shooting](docs/pixel-shift.md)
 
 **Flash at your own risk. Modified firmware and native modules may cause crashes, data loss, hardware damage, or an unbootable camera (bricking), potentially requiring professional repair.** Successful testing does not guarantee safety on every camera or in every situation.
 
@@ -50,10 +51,10 @@ The Windows GUI host firmware builder is available from [Releases](https://githu
 For instructions on building the firmware update package yourself, see [Building](#building).
 
 1. Wait for card access to finish, turn off the camera, and remove the memory card.
-2. Copy [Z72APP.BIN](releases/v0.1.0-preview.22/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
+2. Copy [Z72APP.BIN](releases/v0.1.0-preview.23/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
 3. Reinsert the card and battery, wait until the card access lamp next to the **i** button goes out, then turn on the camera.
 
-Current release `v0.1.0-preview.22` · 144,436 bytes · [SHA-256 checksums](releases/v0.1.0-preview.22/SHA256SUMS)
+Current release `v0.1.0-preview.23` · 158,812 bytes · [SHA-256 checksums](releases/v0.1.0-preview.23/SHA256SUMS)
 
 This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
 
@@ -102,4 +103,4 @@ Both scripts extract the master internally and reuse the verified release's publ
 
 ## License
 
-[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound and filtered playback carry their own [font license](releases/v0.1.0-preview.22/menu-font-license.txt).
+[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound and filtered playback carry their own [font license](releases/v0.1.0-preview.23/menu-font-license.txt).

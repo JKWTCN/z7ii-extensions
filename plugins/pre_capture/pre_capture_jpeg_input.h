@@ -5,6 +5,9 @@ static volatile z72_u32 jpeg_sw1_owned,jpeg_sw1_down;
 static z72_u32 jpeg_sw2_ignored;
 static void jpeg_start_poll(void)
 {
+#ifdef Z72_PIXEL_SHIFT
+    if (pixel_running()) return;
+#endif
     z72_u32 af=CALL(0x1022cfa7u,z72_u32,z72_u32)(0x5a)==1;
     z72_u32 sources=(LOAD(jpeg_sw1_down) ? 1u : 0u)|(af ? 2u : 0u);
     z72_u32 selected=sources&(jpeg_start_mode==0 ? 1u : jpeg_start_mode==1 ? 2u : 3u);
@@ -27,6 +30,9 @@ static void jpeg_start_poll(void)
 }
 static z72_u32 jpeg_shutter_event(z72_u32 fn,z72_u32 i)
 {
+#ifdef Z72_PIXEL_SHIFT
+    if (pixel_running()) return 0;
+#endif
     if (fn==0x1022aa83u) {
         if (!LOAD(enabled) && !LOAD(in_flight)) return 0;
         if (!LOAD(in_flight) && capture_warning()) return 0;

@@ -20,6 +20,13 @@ static z72_u32 sound_menu_prepare(void);
 static z72_u32 sound_menu_available;
 #endif
 
+#ifdef Z72_PIXEL_SHIFT
+static u32 pixel_menu_open(u32,u32,u32,u32);
+static u32 pixel_header_owned(u32 header);
+static int pixel_menu_prepare(void);
+static u32 pixel_menu_available;
+#endif
+
 #ifdef Z72_FILTERED_PLAYBACK
 static z72_u32 filter_header_owned(z72_u32 header);
 #endif
@@ -1578,8 +1585,14 @@ static u32 portrait_install_menu(void)
 #ifdef Z72_WIDE_AF
         {0},
 #endif
+#ifdef Z72_PIXEL_SHIFT
+        {0},
+#endif
     };
     u32 count=sizeof(rows)/sizeof(rows[0]);
+#ifdef Z72_PIXEL_SHIFT
+    --count;
+#endif
 #ifdef Z72_WIDE_AF
     --count;
 #endif
@@ -1592,6 +1605,7 @@ static u32 portrait_install_menu(void)
     if (!pre_capture_menu_available) --count;
 #endif
 #ifdef Z72_SHUTTER_SOUND
+    const u32 sound_row=count;
     sound_menu_available=sound_ready() && !sound_menu_prepare();
     if (sound_menu_available) {
         rows[count].label="Silent shutter sound";
@@ -1600,7 +1614,15 @@ static u32 portrait_install_menu(void)
     }
 #endif
 #ifdef Z72_WIDE_AF
+    const u32 wide_row=count;
     rows[count++]=(struct z72_menu_row){"Custom wide-area AF",wide_open,0xd7};
+#endif
+#ifdef Z72_PIXEL_SHIFT
+    const u32 pixel_row=count;
+    pixel_menu_available=!pixel_menu_prepare();
+    /* This row is published only after assigning its localized text ID. */
+    if (pixel_menu_available)
+        rows[count++]=(struct z72_menu_row){0,pixel_menu_open,0xd7};
 #endif
     if (z72_menu_prepare_rows(&menu,rows,count)) return 1;
     if (z72_menu_locale_install()) {
@@ -1627,21 +1649,27 @@ static u32 portrait_install_menu(void)
 #endif
 #ifdef Z72_SHUTTER_SOUND
         if (sound_menu_available) {
-            u32 row=count-1;
-#ifdef Z72_WIDE_AF
-            --row;
-#endif
-            menu.rows[row][0]=Z72_TEXT_SOUND_TITLE;
-            menu.rows[row][4]=0x1001;
+            menu.rows[sound_row][0]=Z72_TEXT_SOUND_TITLE;
+            menu.rows[sound_row][4]=0x1001;
         }
 #endif
 #ifdef Z72_WIDE_AF
-        menu.rows[count-1][0]=Z72_TEXT_WIDE_TITLE;
-        menu.rows[count-1][4]=0x1001;
+        menu.rows[wide_row][0]=Z72_TEXT_WIDE_TITLE;
+        menu.rows[wide_row][4]=0x1001;
         wide_menu_prepare();
+#endif
+#ifdef Z72_PIXEL_SHIFT
+        if (pixel_menu_available) {
+            menu.rows[pixel_row][0]=Z72_TEXT_PIXEL_TITLE;
+            menu.rows[pixel_row][4]=0x1001;
+        }
 #endif
     } else {
         u32 unlocalized_count=count;
+#ifdef Z72_PIXEL_SHIFT
+        unlocalized_count-=pixel_menu_available;
+        pixel_menu_available=0;
+#endif
 #ifdef Z72_WIDE_AF
         --unlocalized_count;
 #endif

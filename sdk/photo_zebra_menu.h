@@ -71,6 +71,9 @@ static u32 zebra_show(u32 view)
 #ifdef Z72_SHUTTER_SOUND
     known=known || sound_header_owned(header);
 #endif
+#ifdef Z72_PIXEL_SHIFT
+    known=known || pixel_header_owned(header);
+#endif
 #ifdef Z72_FILTERED_PLAYBACK
     known=known || filter_header_owned(header);
 #endif
@@ -197,6 +200,9 @@ static u32 open_rotation_choice(void)
 #endif
 #ifdef Z72_SHUTTER_SOUND
     known=known || sound_header_owned(header);
+#endif
+#ifdef Z72_PIXEL_SHIFT
+    known=known || pixel_header_owned(header);
 #endif
 #ifdef Z72_FILTERED_PLAYBACK
     known=known || filter_header_owned(header);

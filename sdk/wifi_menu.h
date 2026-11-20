@@ -66,6 +66,9 @@ static u32 wifi_show(u32 view)
 #ifdef Z72_SHUTTER_SOUND
     known=known || sound_header_owned(header);
 #endif
+#ifdef Z72_PIXEL_SHIFT
+    known=known || pixel_header_owned(header);
+#endif
 #ifdef Z72_PHOTO_ZEBRA
     known=known || zebra_header_owned(header);
 #endif

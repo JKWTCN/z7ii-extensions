@@ -4,7 +4,7 @@
 #define Z72_PORTRAIT_TRACE 0
 #define Z72_GRID_WITH_PORTRAIT 1
 #define Z72_PHOTO_ZEBRA 1
-#define Z72_MENU_EXTRA_ROWS 7u
+#define Z72_MENU_EXTRA_ROWS 8u
 #define Z72_WIDE_AF 1
 #define Z72_SUBJECT_TRACKING 1
 #define Z72_CUSTOM_DISP 1
@@ -16,6 +16,7 @@
 #define Z72_SHUTTER_SOUND 1
 #define Z72_MENU_SOUND_FONT 1
 #define Z72_FILTERED_PLAYBACK 1
+#define Z72_PIXEL_SHIFT 1
 #include "disp.h"
 #include "af_shortcut.h"
 #include "movie_limit.h"
@@ -28,17 +29,20 @@
 #include "wide_af.c"
 #include "af_shortcut_menu.h"
 #include "filtered_playback/filtered_playback.c"
+#include "pixel_shift/pixel_shift.c"
 
 static u32 pre_capture_menu_source(u32 header)
 {
     return header==(u32)rotation_menu.header || zebra_header_owned(header) ||
         disp_header_owned(header) || wifi_header_owned(header) || af_menu_header_owned(header) ||
-        sound_header_owned(header) || filter_header_owned(header) || wide_header_owned(header);
+        sound_header_owned(header) || filter_header_owned(header) || wide_header_owned(header) ||
+        pixel_header_owned(header);
 }
 
 static void sound_shutter_event(z72_u32 fn);
 #include "pre_capture/pre_capture.c"
 #include "shutter_sound.c"
+#include "pixel_shift/pixel_shift_menu.h"
 
 z72_u32 z72_main(const struct z72_api *api)
 {
@@ -57,6 +61,10 @@ z72_u32 z72_main(const struct z72_api *api)
     wifi_install();
     movie_limit_install();
     if (pre_capture_menu_available) pre_capture_install();
+    if (pixel_menu_available) {
+        if (WORD(INPUT_SLOT)==INPUT_NATIVE) install_shared_capture_hooks();
+        pixel_load_settings();
+    }
     if (sound_menu_available) sound_install();
     if (rotation_menu.title[0]) filtered_playback_install();
     return 0;

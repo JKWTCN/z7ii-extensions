@@ -16,7 +16,7 @@
 #endif
 typedef z72_u32 (*z72_menu_callback)(z72_u32,z72_u32,z72_u32,z72_u32);
 struct z72_menu_row {
-    const char *label;
+    const char *label; /* NULL when the caller assigns a localized ID before publishing. */
     z72_menu_callback callback;
     z72_u32 value;
 };
@@ -43,7 +43,7 @@ static inline z72_u32 z72_menu_prepare_rows(struct z72_menu_storage *storage,
        header[4]!=(z72_u32)maps || header[5]!=0x8002a ||
        events[(Z72_MENU_EVENTS-1)*4]!=0x31a) return 1;
     for(z72_u32 row=0;row<count;++row)
-        if(!*(volatile z72_u32 *)(0xb20287b4+(Z72_MENU_SLOT+row)*12+4)) return 1;
+        if(added[row].label && !*(volatile z72_u32 *)(0xb20287b4+(Z72_MENU_SLOT+row)*12+4)) return 1;
     for(z72_u32 row=0;row<Z72_MENU_ROWS;++row) {
         for(z72_u32 col=0;col<7;++col) storage->rows[row+count][col]=rows[row*7+col];
         storage->maps[row+count]=maps[row];
@@ -68,7 +68,7 @@ static inline z72_u32 z72_menu_prepare_rows(struct z72_menu_storage *storage,
             storage->events[row][i][3]=dest;
         }
         storage->maps[row]=(z72_u32)storage->events[row];
-        z72_menu_set_label(row,added[row].label);
+        if(added[row].label) z72_menu_set_label(row,added[row].label);
     }
     return 0;
 }

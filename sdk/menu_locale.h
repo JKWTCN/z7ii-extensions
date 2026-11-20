@@ -113,6 +113,12 @@ enum {
 #ifdef Z72_SUBJECT_TRACKING
     Z72_TEXT_SUBJECT_TRACKING,
 #endif
+#ifdef Z72_PIXEL_SHIFT
+    Z72_TEXT_PIXEL_TITLE,Z72_TEXT_PIXEL_MODE,Z72_TEXT_PIXEL_COUNT,Z72_TEXT_PIXEL_DELAY,Z72_TEXT_PIXEL_GAP,
+    Z72_TEXT_PIXEL_REPEAT,Z72_TEXT_PIXEL_ONE,Z72_TEXT_PIXEL_OFF,
+    Z72_TEXT_PIXEL_4,Z72_TEXT_PIXEL_8,Z72_TEXT_PIXEL_16,Z72_TEXT_PIXEL_32,
+    Z72_TEXT_PIXEL_0S,Z72_TEXT_PIXEL_1S,Z72_TEXT_PIXEL_2S,Z72_TEXT_PIXEL_3S,Z72_TEXT_PIXEL_5S,Z72_TEXT_PIXEL_10S,
+#endif
     Z72_MENU_TEXT_END
 };
 
@@ -170,6 +176,11 @@ static inline int z72_menu_locale_install(void)
 #ifdef Z72_SUBJECT_TRACKING
          u"Subject tracking",
 #endif
+#ifdef Z72_PIXEL_SHIFT
+         u"Pixel shift shooting",u"Pixel shift mode",u"Number of shots",u"Start delay",u"Shot interval",
+         u"On (continuous)",u"On (single set)",u"Off",u"4 shots",u"8 shots",u"16 shots",u"32 shots",
+         u"0 s",u"1 s",u"2 s",u"3 s",u"5 s",u"10 s",
+#endif
         },
         {u"黄金分割",u"自动旋转信息显示",u"照片拍摄加亮显示",u"加亮阈值",u"显示图案",
          u"自定义DISP页面",u"自定义页面",u"标准",u"极简",u"构图",u"曝光",u"页面启用",u"拍摄信息",
@@ -198,6 +209,11 @@ static inline int z72_menu_locale_install(void)
 #ifdef Z72_SUBJECT_TRACKING
          u"主体跟踪",
 #endif
+#ifdef Z72_PIXEL_SHIFT
+         u"像素变化拍摄",u"像素变化拍摄模式",u"拍摄张数",u"开始拍摄延迟",u"拍摄间隔",
+         u"开启（连续）",u"开启（单组）",u"关闭",u"4 张",u"8 张",u"16 张",u"32 张",
+         u"0 秒",u"1 秒",u"2 秒",u"3 秒",u"5 秒",u"10 秒",
+#endif
         },
         {u"黃金分割",u"自動旋轉資訊顯示",u"照片拍攝加亮顯示",u"加亮閾值",u"顯示圖案",
          u"自訂DISP頁面",u"自訂頁面",u"標準",u"精簡",u"構圖",u"曝光",u"頁面啟用",u"拍攝資訊",
@@ -220,6 +236,11 @@ static inline int z72_menu_locale_install(void)
 #endif
 #ifdef Z72_SUBJECT_TRACKING
          u"主體追蹤",
+#endif
+#ifdef Z72_PIXEL_SHIFT
+         u"像素變化拍攝",u"像素變化拍攝模式",u"拍攝張數",u"開始拍攝延遲",u"拍攝間隔",
+         u"開啟（連續）",u"開啟（單組）",u"關閉",u"4 張",u"8 張",u"16 張",u"32 張",
+         u"0 秒",u"1 秒",u"2 秒",u"3 秒",u"5 秒",u"10 秒",
 #endif
         }
     };
