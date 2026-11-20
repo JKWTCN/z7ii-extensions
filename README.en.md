@@ -24,6 +24,7 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 | [Subject tracking](docs/subject-tracking.md) | Start tracking with a half-press or AF-ON in photo AF-C. The targeting reticle returns after power-up | Hardware verified |
 | [Pixel shift shooting](docs/pixel-shift.md) | Use in-body sensor shift to capture 4, 8, 16 or 32 NEFs for NX Studio merging | Hardware verified |
 | [Wi-Fi settings](docs/wifi-settings.md)                    | One submenu for region selection and an optional 80 MHz AP switch; 5 GHz STA and Wi-Fi 5 AP                                             | Hardware verified  |
+| [FTP upload](docs/ftp-upload.md#english)                | In-camera FTP profiles, batch and automatic JPEG/NEF uploads                                                         | Hardware verified  |
 | [Menu localization](docs/menu-localization.md)             | English, Simplified Chinese, and Traditional Chinese labels for the extension settings                                                  | Hardware verified  |
 
 ## Known issues
@@ -51,10 +52,10 @@ The Windows GUI host firmware builder is available from [Releases](https://githu
 For instructions on building the firmware update package yourself, see [Building](#building).
 
 1. Wait for card access to finish, turn off the camera, and remove the memory card.
-2. Copy [Z72APP.BIN](releases/v0.1.0-preview.23/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
+2. Copy [Z72APP.BIN](releases/v0.1.0-preview.24/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
 3. Reinsert the card and battery, wait until the card access lamp next to the **i** button goes out, then turn on the camera.
 
-Current release `v0.1.0-preview.23` · 158,812 bytes · [SHA-256 checksums](releases/v0.1.0-preview.23/SHA256SUMS)
+Current release `v0.1.0-preview.24` · 183,544 bytes · [SHA-256 checksums](releases/v0.1.0-preview.24/SHA256SUMS)
 
 This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
 
@@ -64,6 +65,7 @@ To build the combined SD module, use Python 3.12 with LLVM’s `clang` and `ld.l
 
 ```powershell
 New-Item -ItemType Directory -Force artifacts | Out-Null
+python -B tools/wifi_aux.py --ftp
 python -B tools/module.py plugins/combined.c --output artifacts/Z72APP.BIN
 ```
 
@@ -103,4 +105,4 @@ Both scripts extract the master internally and reuse the verified release's publ
 
 ## License
 
-[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound and filtered playback carry their own [font license](releases/v0.1.0-preview.23/menu-font-license.txt).
+[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound and filtered playback carry their own [font license](releases/v0.1.0-preview.24/menu-font-license.txt).

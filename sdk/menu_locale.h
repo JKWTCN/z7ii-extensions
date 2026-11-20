@@ -5,6 +5,10 @@
 
 #define Z72_MENU_LANGUAGES 36u
 #define Z72_MENU_STOCK_TEXTS 0x9e4u
+#ifdef Z72_FTP_FULL
+#define Z72_FTP_MENU_ROWS 8u
+#define Z72_FTP_LABEL_UNITS 48u
+#endif
 enum {
     Z72_TEXT_GRID_GOLDEN=Z72_MENU_STOCK_TEXTS,
     Z72_TEXT_AUTO_ROTATE,
@@ -119,8 +123,21 @@ enum {
     Z72_TEXT_PIXEL_4,Z72_TEXT_PIXEL_8,Z72_TEXT_PIXEL_16,Z72_TEXT_PIXEL_32,
     Z72_TEXT_PIXEL_0S,Z72_TEXT_PIXEL_1S,Z72_TEXT_PIXEL_2S,Z72_TEXT_PIXEL_3S,Z72_TEXT_PIXEL_5S,Z72_TEXT_PIXEL_10S,
 #endif
+#ifdef Z72_FTP_FULL
+    Z72_TEXT_FTP_MARK,
+    Z72_TEXT_FTP_STATUS,
+    Z72_TEXT_FTP_EDIT,
+    Z72_TEXT_FTP_ROW,
+    Z72_TEXT_FTP_LAST_ROW=Z72_TEXT_FTP_ROW+Z72_FTP_MENU_ROWS-1,
+#endif
     Z72_MENU_TEXT_END
 };
+
+#ifdef Z72_FTP_FULL
+#define Z72_MENU_STATIC_TEXT_END Z72_TEXT_FTP_ROW
+#else
+#define Z72_MENU_STATIC_TEXT_END Z72_MENU_TEXT_END
+#endif
 
 struct z72_menu_locale {
     const unsigned char *texts[Z72_MENU_LANGUAGES];
@@ -132,6 +149,10 @@ struct z72_menu_locale {
     struct z72_golden_font golden;
     unsigned char text[];
 };
+
+#ifdef Z72_FTP_FULL
+static struct z72_menu_locale *z72_ftp_locale;
+#endif
 
 /* Register labels before exposing any menu rows that reference them. */
 static inline int z72_menu_locale_install(void)
@@ -146,7 +167,7 @@ static inline int z72_menu_locale_install(void)
         !z72_golden_font_ready()) return 0;
 
     /* The firmware stores consecutive UTF-16LE strings with byte offsets. */
-    static const unsigned short translations[][Z72_MENU_TEXT_END-Z72_MENU_STOCK_TEXTS][26]={
+    static const unsigned short translations[][Z72_MENU_STATIC_TEXT_END-Z72_MENU_STOCK_TEXTS][26]={
         {u"Golden ratio",u"Auto rotate info",u"Photo shooting highlights",u"Highlight threshold",u"Display pattern",
          u"Custom DISP pages",u"Custom pages",u"Standard",u"Minimal",u"Composition",u"Exposure",
          u"Page enabled",u"Shooting info",u"Framing grid",u"Histogram",u"Virtual horizon",
@@ -181,6 +202,9 @@ static inline int z72_menu_locale_install(void)
          u"On (continuous)",u"On (single set)",u"Off",u"4 shots",u"8 shots",u"16 shots",u"32 shots",
          u"0 s",u"1 s",u"2 s",u"3 s",u"5 s",u"10 s",
 #endif
+#ifdef Z72_FTP_FULL
+         u"Mark/unmark for FTP",u"Transfer status",u"Edit FTP profile",
+#endif
         },
         {u"黄金分割",u"自动旋转信息显示",u"照片拍摄加亮显示",u"加亮阈值",u"显示图案",
          u"自定义DISP页面",u"自定义页面",u"标准",u"极简",u"构图",u"曝光",u"页面启用",u"拍摄信息",
@@ -214,6 +238,9 @@ static inline int z72_menu_locale_install(void)
          u"开启（连续）",u"开启（单组）",u"关闭",u"4 张",u"8 张",u"16 张",u"32 张",
          u"0 秒",u"1 秒",u"2 秒",u"3 秒",u"5 秒",u"10 秒",
 #endif
+#ifdef Z72_FTP_FULL
+         u"选择以FTP发送/取消",u"传输状态",u"编辑 FTP 配置",
+#endif
         },
         {u"黃金分割",u"自動旋轉資訊顯示",u"照片拍攝加亮顯示",u"加亮閾值",u"顯示圖案",
          u"自訂DISP頁面",u"自訂頁面",u"標準",u"精簡",u"構圖",u"曝光",u"頁面啟用",u"拍攝資訊",
@@ -242,9 +269,16 @@ static inline int z72_menu_locale_install(void)
          u"開啟（連續）",u"開啟（單組）",u"關閉",u"4 張",u"8 張",u"16 張",u"32 張",
          u"0 秒",u"1 秒",u"2 秒",u"3 秒",u"5 秒",u"10 秒",
 #endif
+#ifdef Z72_FTP_FULL
+         u"選擇以FTP傳送/取消",u"傳輸狀態",u"編輯 FTP 設定",
+#endif
         }
     };
     z72_u32 bytes=sizeof(struct z72_menu_locale)+Z72_MENU_LANGUAGES*sizeof(translations[0]);
+#ifdef Z72_FTP_FULL
+    const z72_u32 ftp_label_bytes=Z72_FTP_MENU_ROWS*Z72_FTP_LABEL_UNITS*sizeof(unsigned short);
+    bytes+=Z72_MENU_LANGUAGES*ftp_label_bytes;
+#endif
     for (z72_u32 lang=0;lang<Z72_MENU_LANGUAGES;++lang)
         bytes+=offsets[lang][Z72_MENU_STOCK_TEXTS];
     struct z72_menu_locale *locale=((void *(*)(z72_u32,z72_u32))0x1034fe31u)(bytes,0);
@@ -278,7 +312,7 @@ static inline int z72_menu_locale_install(void)
         copy(text,texts[lang],end);
         copy(locale->offsets[lang],offsets[lang],(Z72_MENU_STOCK_TEXTS+1)*sizeof(z72_u32));
         copy(locale->attributes[lang],attrs[lang],Z72_MENU_STOCK_TEXTS);
-        for (z72_u32 id=Z72_MENU_STOCK_TEXTS;id<Z72_MENU_TEXT_END;++id) {
+        for (z72_u32 id=Z72_MENU_STOCK_TEXTS;id<Z72_MENU_STATIC_TEXT_END;++id) {
             z72_u32 label_language=translation,attribute_template=template;
 #ifdef Z72_FILTERED_PLAYBACK
             if (id>=TEXT_FILTER && id<=TEXT_OFF) {
@@ -295,6 +329,14 @@ static inline int z72_menu_locale_install(void)
             locale->offsets[lang][id+1]=end;
             locale->attributes[lang][id]=attrs[lang][attribute_template];
         }
+#ifdef Z72_FTP_FULL
+        /* Keep the mutable FTP rows at the end of each language text block. */
+        for (z72_u32 id=Z72_TEXT_FTP_ROW;id<Z72_MENU_TEXT_END;++id) {
+            locale->offsets[lang][id+1]=end;
+            locale->attributes[lang][id]=attrs[lang][template];
+        }
+        end+=ftp_label_bytes;
+#endif
         text+=end;
     }
 
@@ -307,6 +349,9 @@ static inline int z72_menu_locale_install(void)
     tables[2]=(z72_u32)locale->offset_tables;
     tables[3]=(z72_u32)locale->attribute_tables;
     __asm__ volatile("dmb sy" ::: "memory");
+#ifdef Z72_FTP_FULL
+    z72_ftp_locale=locale;
+#endif
     return 1;
 }
 #endif

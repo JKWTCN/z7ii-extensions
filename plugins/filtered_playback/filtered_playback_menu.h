@@ -9,7 +9,13 @@ enum {
 };
 /* Page indices are separate from Nikon's row IDs and native page numbers. */
 enum { CONDITIONS, PROTECTION, MEDIA, RATING, DATE, DATE_EDITOR, SWITCH, FILTER_VIEW_COUNT };
-enum { FILTER_VALUE_ACTION=0xd7 };
+enum { FILTER_VALUE_ACTION=0xd7, FILTER_I_ROWS=2
+#ifdef Z72_FTP_FULL
+    , MAX_I_ROWS=I_ROWS+FILTER_I_ROWS+1
+#else
+    , MAX_I_ROWS=I_ROWS+FILTER_I_ROWS
+#endif
+};
 struct filter_page {
     z72_u32 header[6],title[24],rows[7][7],maps[7],events[7][CHOICE_EVENTS][4];
 };
@@ -17,7 +23,7 @@ static struct filter_page pages[FILTER_VIEW_COUNT];
 #define PAGE(view) pages[view]
 static struct {
     z72_u32 root_rows[ROOT_ROWS+1][7],root_maps[ROOT_ROWS+1],root_events[ROOT_EVENTS][4];
-    z72_u32 i_rows[I_ROWS+2][7],i_maps[I_ROWS+2],i_events[I_ROWS+2][I_EVENTS][4];
+    z72_u32 i_rows[MAX_I_ROWS][7],i_maps[MAX_I_ROWS],i_events[MAX_I_ROWS][I_EVENTS][4];
     z72_u32 empty_events[EMPTY_EVENTS+1][4],empty_map[1],layout[4],callbacks[2][5];
     z72_u32 date_widgets[15][8],date_events[DATE_EVENTS][4];
     z72_u32 i_headers[FILTER_VIEW_COUNT][6],i_titles[FILTER_VIEW_COUNT][5][8];
@@ -234,6 +240,14 @@ static z72_u32 close_i(z72_u32 a,z72_u32 b,z72_u32 c,z72_u32 d)
     return result;
 }
 
+#ifdef Z72_FTP_FULL
+static z72_u32 mark_for_ftp(z72_u32 a,z72_u32 b,z72_u32 c,z72_u32 d)
+{
+    if (!ftp_mark_playback()) return 1;
+    return close_i(a,b,c,d);
+}
+#endif
+
 static z72_u32 check_menu(void)
 {
     if (WORD(ROOT_HEADER)!=0x1002u || WORD(ROOT_HEADER+12)!=0x117bae48u ||
@@ -291,30 +305,44 @@ static void prepare_root(void)
     filter_menu.root_maps[0]=(z72_u32)filter_menu.root_events;
 }
 
-static void prepare_i(void)
+static z72_u32 prepare_i(void)
 {
     const z72_u32 *stock=(const z72_u32 *)I_HEADER;
-    copy_bytes(filter_menu.i_rows+2,(const void *)stock[3],I_ROWS*sizeof(filter_menu.i_rows[0]));
-    for (z72_u32 row=0;row<I_ROWS+2;++row) {
-        z72_u32 source=WORD(stock[4]+(row<2 ? 4 : (row-2)*4));
+    z72_u32 extra=FILTER_I_ROWS;
+#ifdef Z72_FTP_FULL
+    extra+=ftp_menu_available;
+#endif
+    copy_bytes(filter_menu.i_rows+extra,(const void *)stock[3],I_ROWS*sizeof(filter_menu.i_rows[0]));
+    for (z72_u32 row=0;row<I_ROWS+extra;++row) {
+        z72_u32 source=WORD(stock[4]+(row<extra ? 4 : (row-extra)*4));
         filter_menu.i_maps[row]=(z72_u32)filter_menu.i_events[row];
-        if (row<2) {
-            copy_bytes(filter_menu.i_rows[row],filter_menu.i_rows[3],sizeof(filter_menu.i_rows[row]));
+        z72_u32 select=0;
+        if (row<extra) {
+            copy_bytes(filter_menu.i_rows[row],filter_menu.i_rows[extra+1],sizeof(filter_menu.i_rows[row]));
             filter_menu.i_rows[row][0]=row ? TEXT_CONDITIONS : TEXT_FILTER;
             filter_menu.i_rows[row][6]=FILTER_ROW_ID-2-row;
-
+            select=row ? (z72_u32)open_conditions : (z72_u32)open_switch;
+#ifdef Z72_FTP_FULL
+            if (row==FILTER_I_ROWS) {
+                filter_menu.i_rows[row][0]=Z72_TEXT_FTP_MARK;
+                filter_menu.i_rows[row][4]=0x1001u;
+                filter_menu.i_rows[row][6]=FTP_PLAYBACK_ROW_ID;
+                select=(z72_u32)mark_for_ftp;
+            }
+#endif
         }
         for (z72_u32 i=0;i<I_EVENTS;++i) {
             z72_u32 *event=filter_menu.i_events[row][i];
             copy_bytes(event,(const void *)(source+i*16),16);
             if (event[1]==0x10723aebu) event[1]=(z72_u32)close_i;
-            if (row<2 && is_select(event[0])) {
-                event[1]=row ? (z72_u32)open_conditions : (z72_u32)open_switch;
+            if (select && is_select(event[0])) {
+                event[1]=select;
                 event[2]=0; event[3]=0x4a;
             }
             if (event[0]==0x31a) break;
         }
     }
+    return I_ROWS+extra;
 }
 
 static void prepare_empty_page(void)
@@ -441,7 +469,7 @@ static void prepare_pages(void)
 static void install_menu(void)
 {
     prepare_root();
-    prepare_i();
+    z72_u32 i_count=prepare_i();
     prepare_empty_page();
     prepare_pages();
     copy_bytes(filter_menu.callbacks[0],(const void *)0x10969c14u,sizeof(filter_menu.callbacks[0]));
@@ -461,6 +489,6 @@ static void install_menu(void)
     WORD(ROOT_HEADER+20)=0x8000cu;
     WORD(I_HEADER+12)=(z72_u32)filter_menu.i_rows;
     WORD(I_HEADER+16)=(z72_u32)filter_menu.i_maps;
-    WORD(I_HEADER+20)=0x70010u;
+    WORD(I_HEADER+20)=0x70000u+i_count;
     WORD(EMPTY_HEADER+16)=(z72_u32)filter_menu.empty_map;
 }

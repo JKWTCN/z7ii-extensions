@@ -3,7 +3,11 @@
 #define Z72_WIFI_H
 #include "z72.h"
 #include "wifi_regions.h"
+#ifdef Z72_FTP_FULL
+#include "ftp_aux_blob.h"
+#else
 #include "wifi_aux_blob.h"
+#endif
 
 #define Z72_WIFI_WORD(a) (*(volatile z72_u32 *)(a))
 #define Z72_WIFI_BYTE(a) (*(volatile unsigned char *)(a))
@@ -15,6 +19,10 @@
 #define Z72_WIFI_AP_NATIVE 0xb107182bu
 #define Z72_WIFI_STA_SLOT 0xb10d664cu
 #define Z72_WIFI_STA_NATIVE 0xb107225fu
+#ifdef Z72_FTP_FULL
+#define Z72_FTP_AUX_INIT_SLOT 0xb10d65e4u
+#define Z72_FTP_AUX_INIT_NATIVE 0xb107149du
+#endif
 
 /* This private ARM926 image runs through an uncached executable auxiliary
  * mapping. Main-CPU code must never branch into this Thumb1 callback. */
@@ -86,6 +94,10 @@ static z72_u32 wifi_ready(void)
         Z72_WIFI_WORD(Z72_WIFI_INIT_SLOT_1)==Z72_WIFI_INIT_NATIVE &&
         (z72_u32)wifi_aux>=0xb1600000u &&
         Z72_WIFI_CALL(0x104a1385u,z72_u32,void)() &&
+#ifdef Z72_FTP_FULL
+        Z72_WIFI_WORD(Z72_FTP_AUX_INIT_SLOT-4)==1 &&
+        Z72_WIFI_WORD(Z72_FTP_AUX_INIT_SLOT)==Z72_FTP_AUX_INIT_NATIVE &&
+#endif
         Z72_WIFI_WORD(Z72_WIFI_AP_SLOT-4)==3 &&
         Z72_WIFI_WORD(Z72_WIFI_AP_SLOT)==Z72_WIFI_AP_NATIVE &&
         Z72_WIFI_WORD(Z72_WIFI_STA_SLOT-4)==14 &&
@@ -107,6 +119,10 @@ static void wifi_install(void)
     Z72_WIFI_CALL(0x1034f9edu,void,void *,z72_u32)(wifi_aux,sizeof(wifi_aux));
     Z72_WIFI_WORD(Z72_WIFI_AP_SLOT)=((z72_u32)wifi_aux+WIFI_AUX_AP_OFFSET)|1u;
     Z72_WIFI_WORD(Z72_WIFI_STA_SLOT)=((z72_u32)wifi_aux+WIFI_AUX_STA_OFFSET)|1u;
+#ifdef Z72_FTP_FULL
+    /* Initialization and AP dispatch share the same auxiliary cache line. */
+    Z72_WIFI_WORD(Z72_FTP_AUX_INIT_SLOT)=((z72_u32)wifi_aux+FTP_AUX_INIT_OFFSET)|1u;
+#endif
     __asm__ volatile("dsb sy" ::: "memory");
     /* The auxiliary table is cached there. Its native blocking cache RPC
      * invalidates both 32-byte lines before subsequent AP/STA requests. */

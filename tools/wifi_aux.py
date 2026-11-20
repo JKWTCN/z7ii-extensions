@@ -1,4 +1,4 @@
-"""Build private ARM926 Thumb1 AP/STA wrappers as an embeddable SD image.
+"""Build the embeddable ARM926 Thumb1 Wi-Fi image, optionally with FTP.
 
 Only project source is embedded. The main module copies the image, clears its
 BSS, applies its local relocations and publishes the auxiliary callbacks.
@@ -12,7 +12,7 @@ import tempfile
 from module import ROOT, HEADER, from_elf
 
 
-def build():
+def build(source):
     with tempfile.TemporaryDirectory(prefix='z72-wifi-aux-') as folder:
         obj, elf = Path(folder)/'aux.o', Path(folder)/'aux.elf'
         subprocess.run(['clang', '--target=arm-none-eabi', '-mcpu=arm926ej-s',
@@ -20,7 +20,7 @@ def build():
                         '-fvisibility=hidden', '-ffreestanding', '-fno-builtin',
                         '-fno-unwind-tables', '-fno-asynchronous-unwind-tables',
                         '-fno-stack-protector', '-Wall', '-Wextra', '-Werror',
-                        '-c', ROOT/'plugins/wifi_aux.c', '-o', obj], check=True)
+                        '-c', source, '-o', obj], check=True)
         subprocess.run(['ld.lld.exe' if os.name=='nt' else 'ld.lld',
                         '-T', ROOT/'sdk/module.ld', '--emit-relocs',
                         '--no-undefined', obj, '-o', elf], check=True)
@@ -38,8 +38,12 @@ def header(image, report):
              f'#define WIFI_AUX_AP_OFFSET {symbols["wifi_aux_ap"] & ~1}u',
              f'#define WIFI_AUX_STA_OFFSET {symbols["wifi_aux_sta"] & ~1}u',
              f'#define WIFI_AUX_CONTROL_OFFSET {symbols["wifi_aux_control"]}u',
-             f'#define WIFI_AUX_RELOCATION_COUNT {len(report["relocations"])}u',
-             'static const unsigned char wifi_aux_blob[]={']
+             f'#define WIFI_AUX_RELOCATION_COUNT {len(report["relocations"])}u']
+    if 'wifi_aux_ftp_init' in symbols:
+        lines.append(f'#define FTP_AUX_INIT_OFFSET {symbols["wifi_aux_ftp_init"] & ~1}u')
+        for name in ('request', 'result', 'payload'):
+            lines.append(f'#define FTP_{name.upper()}_OFFSET {symbols[f"ftp_{name}"]}u')
+    lines.append('static const unsigned char wifi_aux_blob[]={')
     for offset in range(0,len(image),16):
         lines.append('    '+','.join(f'0x{value:02x}' for value in image[offset:offset+16])+',')
     lines.extend(['};', 'static const unsigned int wifi_aux_relocations[]={'])
@@ -52,10 +56,13 @@ def header(image, report):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output',type=Path,default=ROOT/'sdk/wifi_aux_blob.h')
+    parser.add_argument('--ftp',action='store_true',help='include the FTP client')
+    parser.add_argument('--output',type=Path)
     args = parser.parse_args()
-    image, report = build()
-    args.output.write_text(header(image,report),encoding='utf-8',newline='\n')
+    name = 'ftp_aux' if args.ftp else 'wifi_aux'
+    image, report = build(ROOT / f'plugins/{name}.c')
+    output = args.output or ROOT / f'sdk/{name}_blob.h'
+    output.write_text(header(image,report),encoding='utf-8',newline='\n')
     print(f'ARM926 Thumb1 auxiliary image: {len(image)} bytes, '
           f'{report["bss_bytes"]} BSS bytes, {len(report["relocations"])} relocations')
 

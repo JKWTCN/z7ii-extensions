@@ -1487,6 +1487,9 @@ static u32 disable_rotation(u32 a,u32 b,u32 c,u32 d)
 #ifdef Z72_WIFI_5GHZ
 static u32 wifi_header_owned(u32 header);
 #endif
+#ifdef Z72_FTP_FULL
+static u32 ftp_header_owned(u32 header);
+#endif
 #ifdef Z72_PHOTO_ZEBRA
 #ifdef Z72_AF_SHORTCUT
 static u32 af_menu_header_owned(u32 header);
@@ -1505,6 +1508,11 @@ static u32 disp_header_owned(u32 header);
 
 #ifdef Z72_JPEG_PRE_CAPTURE
 static u32 pre_capture_menu_source(u32 header);
+#endif
+#ifdef Z72_FTP_FULL
+#include "ftp_service.h"
+#include "ftp_menu.h"
+static u32 ftp_menu_available;
 #endif
 
 static u32 portrait_install_menu(void)
@@ -1588,8 +1596,14 @@ static u32 portrait_install_menu(void)
 #ifdef Z72_PIXEL_SHIFT
         {0},
 #endif
+#ifdef Z72_FTP_FULL
+        {0},
+#endif
     };
     u32 count=sizeof(rows)/sizeof(rows[0]);
+#ifdef Z72_FTP_FULL
+    --count;
+#endif
 #ifdef Z72_PIXEL_SHIFT
     --count;
 #endif
@@ -1623,6 +1637,11 @@ static u32 portrait_install_menu(void)
     /* This row is published only after assigning its localized text ID. */
     if (pixel_menu_available)
         rows[count++]=(struct z72_menu_row){0,pixel_menu_open,0xd7};
+#endif
+#ifdef Z72_FTP_FULL
+    const u32 ftp_row=count;
+    ftp_menu_available=ftp_menu_ready();
+    if (ftp_menu_available) rows[count++]=(struct z72_menu_row){0,open_ftp_menu,0xd7};
 #endif
     if (z72_menu_prepare_rows(&menu,rows,count)) return 1;
     if (z72_menu_locale_install()) {
@@ -1666,6 +1685,10 @@ static u32 portrait_install_menu(void)
 #endif
     } else {
         u32 unlocalized_count=count;
+#ifdef Z72_FTP_FULL
+        unlocalized_count-=ftp_menu_available;
+        ftp_menu_available=0;
+#endif
 #ifdef Z72_PIXEL_SHIFT
         unlocalized_count-=pixel_menu_available;
         pixel_menu_available=0;
@@ -1695,6 +1718,13 @@ static u32 portrait_install_menu(void)
 #endif
 #ifdef Z72_WIFI_5GHZ
     wifi_menu_prepare();
+#endif
+#ifdef Z72_FTP_FULL
+    if (ftp_menu_available) {
+        ftp_menu_prepare();
+        menu.rows[ftp_row][0]=FTP_WT7_UPLOAD_TEXT;
+        menu.rows[ftp_row][4]=0x1001u;
+    }
 #endif
     z72_menu_publish_rows(&menu,count);
     page[1]=WORD(SETUP_PAGE+4);

@@ -210,6 +210,9 @@ static u32 af_menu_open(u32 a,u32 b,u32 c,u32 d)
     u32 header=WORD(ROTATION_PAGE+0x28);
     u32 known=header==(u32)rotation_menu.header || af_menu_header_owned(header) ||
         disp_header_owned(header) || zebra_header_owned(header);
+#ifdef Z72_FTP_FULL
+    known=known || ftp_header_owned(header);
+#endif
 #ifdef Z72_JPEG_PRE_CAPTURE
     known=known || jpeg_menu_owned(header);
 #endif

@@ -38,4 +38,4 @@ Filtering applies to both full-frame playback and the thumbnail grid. In full-fr
 | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | ![播放 i 菜单中的筛选开关和筛选条件入口](images/filtered-playback/i-menu-zh.jpeg) | ![Filtered playback and criteria entries over a full-frame image](images/filtered-playback/i-menu-zh-alt.jpeg) |
 
-The supplemental Noto Sans SC glyph for the Simplified Chinese menu is distributed under the SIL Open Font License. 简体中文菜单的「筛」字补充字形取自 Noto Sans SC，采用 SIL 开放字体许可证。[Font license / 字体许可证](../releases/v0.1.0-preview.23/menu-font-license.txt)
+The supplemental Noto Sans SC glyph for the Simplified Chinese menu is distributed under the SIL Open Font License. 简体中文菜单的「筛」字补充字形取自 Noto Sans SC，采用 SIL 开放字体许可证。[Font license / 字体许可证](../releases/v0.1.0-preview.24/menu-font-license.txt)

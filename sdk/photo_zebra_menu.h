@@ -62,6 +62,9 @@ static u32 zebra_show(u32 view)
 {
     u32 header=WORD(ROTATION_PAGE+0x28),owned=zebra_header_owned(header);
     u32 known=header==(u32)rotation_menu.header || owned;
+#ifdef Z72_FTP_FULL
+    known=known || ftp_header_owned(header);
+#endif
 #ifdef Z72_JPEG_PRE_CAPTURE
     known=known || jpeg_menu_owned(header);
 #endif
@@ -192,6 +195,9 @@ static u32 open_rotation_choice(void)
 {
     u32 header=WORD(ROTATION_PAGE+0x28);
     u32 known=header==(u32)rotation_menu.header || zebra_header_owned(header);
+#ifdef Z72_FTP_FULL
+    known=known || ftp_header_owned(header);
+#endif
 #ifdef Z72_JPEG_PRE_CAPTURE
     known=known || jpeg_menu_owned(header);
 #endif
