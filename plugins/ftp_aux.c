@@ -13,6 +13,7 @@ _Alignas(64) unsigned char ftp_payload[FTP_SLOTS][FTP_SLOT_BYTES];
 _Alignas(64) static unsigned char ftp_stack[16384];
 static int started;
 
+
 static void sleep_ms(u32 ms)
 {
     CALL(0xb10a5f68u,u32,u32)(ms);
@@ -28,6 +29,8 @@ static int new_socket(void)
     return CALL(0xb10930cfu,int,int,int,int)(2,1,0);
 }
 
+#include "ftp_send_ring.h"
+
 static u32 send_buffer(int fd)
 {
     u32 size=0,length=sizeof(size);
@@ -36,9 +39,11 @@ static u32 send_buffer(int fd)
     return size;
 }
 
+
 static int prepare_data_socket(int fd)
 {
     u32 before=send_buffer(fd);
+    ftp_result.send_buffer=before;
     if (!before || before>=65536u || ftp_request.total<=65536u) return fd;
 
     /* Native allocator needs a new ring before freeing the old one.
@@ -51,12 +56,18 @@ static int prepare_data_socket(int fd)
         return fd;
 
     if (!CALL(0xb1093d35u,int,int,u32,u32,const void *,u32)(
-        fd,0xffffu,0x1001u,&wanted,sizeof(wanted)) && send_buffer(fd)==wanted) return fd;
+        fd,0xffffu,0x1001u,&wanted,sizeof(wanted)) && send_buffer(fd)==wanted) {
+        ftp_result.send_buffer=wanted;
+        return fd;
+    }
 
     /* A failed native resize can leave a capacity/ring mismatch. This socket
      * hasn't connected or sent anything. Discard it instead of using it. */
+    ftp_result.send_buffer=0;
     if (close_socket(fd)) return -1;
-    return new_socket();
+    fd=new_socket();
+    if (fd>=1) ftp_result.send_buffer=send_buffer(fd);
+    return fd;
 }
 
 static int open_socket(u32 port,int data)
@@ -65,8 +76,13 @@ static int open_socket(u32 port,int data)
         ftp_request.ip[0],ftp_request.ip[1],ftp_request.ip[2],ftp_request.ip[3]};
     const u32 timeout[4]={8,0,0,0};
     int fd=new_socket();
-    if (fd>=1 && data) fd=prepare_data_socket(fd);
-    if (fd<1) return -1;
+    if (fd>=1 && data
+        && (!ftp_request.large_send_address || ftp_ring_socket)
+        ) fd=prepare_data_socket(fd);
+    if (fd<1) {
+        ftp_result.error=CALL(0xb1084aedu,int,void)();
+        return -1;
+    }
     int (*option)(int,u32,u32,const void *,u32)=(void *)0xb1093d35u;
     /* On this firmware TCP level/option 6/2 takes a timeval and sets the
      * connect wait. The two SOL_SOCKET options control send and receive. */
@@ -74,6 +90,7 @@ static int open_socket(u32 port,int data)
         option(fd,0xffffu,0x1006u,timeout,sizeof(timeout)) ||
         option(fd,6,2,timeout,sizeof(timeout)) ||
         CALL(0xb10933cdu,int,int,const void *,u32)(fd,address,sizeof(address))) {
+        ftp_result.error=CALL(0xb1084aedu,int,void)();
         close_socket(fd);
         return -1;
     }
@@ -85,7 +102,10 @@ static int send_bytes(int fd,const void *buffer,u32 size)
     const unsigned char *p=buffer;
     while (size && ftp_request.state==FTP_READY) {
         int n=CALL(0xb1093495u,int,int,const void *,u32,u32)(fd,p,size,0);
-        if (n<=0 || (u32)n>size) return 0;
+        if (n<=0 || (u32)n>size) {
+            ftp_result.error=CALL(0xb1084aedu,int,void)();
+            return 0;
+        }
         p+=n; size-=(u32)n;
     }
     return size==0;
@@ -104,7 +124,10 @@ static int read_line(struct ftp_control *c)
         if (c->pos==c->end) {
             int n=CALL(0xb109366bu,int,int,void *,u32,u32)(
                 c->fd,c->input,sizeof(c->input),0);
-            if (n<=0 || (u32)n>sizeof(c->input)) return 0;
+            if (n<=0 || (u32)n>sizeof(c->input)) {
+                ftp_result.error=CALL(0xb1084aedu,int,void)();
+                return 0;
+            }
             c->pos=0; c->end=(u32)n;
         }
         char ch=c->input[c->pos++];
@@ -251,6 +274,18 @@ static int upload(struct ftp_control *c,int *data)
     ftp_result.stage=FTP_DATA_CONNECT;
     *data=open_socket(port,1);
     if (*data<1) return 0;
+    if (ftp_request.large_send_address && !ftp_ring_socket) {
+        ftp_result.stage=FTP_WAIT_BUFFER;
+        u32 attached=0;
+        for (u32 wait=0;;wait+=10u) {
+            if (ftp_request.state!=FTP_READY) return 0;
+            attached=ftp_attach_send_ring(*data);
+            if (attached || wait==500u) break;
+            sleep_ms(10);
+        }
+        /* A connected socket whose ring could not be replaced is still usable. */
+        ftp_result.send_buffer=attached ? FTP_LARGE_SEND_BYTES : send_buffer(*data);
+    }
     ftp_result.stage=FTP_STORE;
     code=command(c,"STOR",remote);
     if (code!=125 && code!=150) return 0;
@@ -285,6 +320,7 @@ static void transfer(void)
     int data=-1;
     ftp_result.stage=FTP_CONNECT;
     for (u32 attempt=0;attempt<6 && ftp_request.state==FTP_READY;++attempt) {
+        ftp_result.error=0;
         control.fd=open_socket(ftp_request.port,0);
         if (control.fd>=1) break;
         if (attempt!=5) sleep_ms(2500);
@@ -295,6 +331,7 @@ static void transfer(void)
     }
     if (data>=1) close_socket(data);
     if (control.fd>=1) close_socket(control.fd);
+    ftp_reclaim_send_ring();
     ftp_result.done=1;
 }
 
@@ -310,7 +347,16 @@ static int ftp_ap_active(void)
 
 static u32 ftp_network(void)
 {
+    /* Radio shutdown clears its mode before the STA context can be recycled. */
+    if (!AP_STATE) return 0;
     return ftp_ap_active() ? 1u : STA_CONTEXT ? 2u : 0u;
+}
+static void ftp_wifi_changed(u32 previous)
+{
+    /* Native Wi-Fi command callbacks run on the same auxiliary task. */
+    u32 mode=ftp_network();
+    if (previous && mode!=previous) ++ftp_result.wifi_stop;
+    ftp_result.network=mode;
 }
 
 __attribute__((used,noinline))
@@ -318,6 +364,7 @@ static void ftp_task(u32 argument)
 {
     (void)argument;
     for (;;) {
+        ftp_reclaim_send_ring();
         ftp_result.network=ftp_network();
         u32 generation=ftp_request.generation;
         if (generation && generation!=ftp_result.generation && ftp_request.state!=FTP_IDLE) {
@@ -325,12 +372,21 @@ static void ftp_task(u32 argument)
             ftp_result.consumed=0;
             ftp_result.sent=0;
             ftp_result.reply=0;
+            ftp_result.error=0;
+            ftp_result.send_buffer=0;
             ftp_result.stage=FTP_WAIT_AP;
             ftp_result.generation=generation;
             /* The main worker owns the deadline and publishes cancellation. */
             while (ftp_request.state==FTP_READY && !ftp_result.network) {
                 sleep_ms(250);
                 ftp_result.network=ftp_network();
+            }
+            if (ftp_request.large_send_address && ftp_ring_socket) {
+                ftp_result.stage=FTP_WAIT_BUFFER;
+                for (u32 wait=0;ftp_ring_socket && ftp_request.state==FTP_READY && wait<8000u;wait+=50u) {
+                    ftp_reclaim_send_ring();
+                    if (ftp_ring_socket) sleep_ms(50);
+                }
             }
             if (ftp_request.state==FTP_READY) transfer();
             else ftp_result.done=1;
@@ -352,6 +408,7 @@ static void start_worker(void)
     } task={2,0,0,(u32)ftp_task,10,0,sizeof(ftp_stack),(u32)ftp_stack};
     int id=CALL(0xb10a6d40u,int,const void *)(&task);
     if (id<=0) {
+        ftp_result.error=id;
         ftp_result.done=1;
         started=0; /* Retry after the next native connection request. */
     }
@@ -362,6 +419,7 @@ u32 wifi_aux_ap(u32 event,volatile u32 *request)
 {
     u32 start=request[0]!=0xffffffffu;
     u32 result=ftp_native_ap(event,request);
+    ftp_wifi_changed(0);
     if (start && ftp_ap_active()) start_worker();
     return result;
 }
@@ -371,6 +429,7 @@ u32 wifi_aux_ftp_init(u32 event,volatile u32 *request)
 {
     u32 initialize=request[0]!=0xffffffffu;
     u32 result=CALL(0xb107149du,u32,u32,volatile u32 *)(event,request);
+    ftp_wifi_changed(0);
     if (initialize) start_worker();
     return result;
 }
@@ -381,8 +440,27 @@ u32 wifi_aux_sta(u32 event,volatile u32 *request)
     u32 context=request[1];
     u32 start=request[0]!=0xffffffffu && context && !STA_CONTEXT;
     u32 result=ftp_native_sta(event,request);
+    ftp_wifi_changed(0);
     /* STA command 14 stores this context before scheduling association. The
      * FTP connect attempts wait out association/DHCP using normal TCP errors. */
     if (start && STA_CONTEXT==context) start_worker();
+    return result;
+}
+
+__attribute__((used,noinline))
+u32 wifi_aux_ftp_radio_stop(u32 event,volatile u32 *request)
+{
+    u32 previous=ftp_network();
+    u32 result=CALL(0xb10715fbu,u32,u32,volatile u32 *)(event,request);
+    ftp_wifi_changed(previous);
+    return result;
+}
+
+__attribute__((used,noinline))
+u32 wifi_aux_ftp_ap_stop(u32 event,volatile u32 *request)
+{
+    u32 previous=ftp_network();
+    u32 result=CALL(0xb1071a7du,u32,u32,volatile u32 *)(event,request);
+    ftp_wifi_changed(previous);
     return result;
 }

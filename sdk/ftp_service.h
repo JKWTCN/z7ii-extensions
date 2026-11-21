@@ -10,13 +10,14 @@
 enum ftp_local_state {
     FTP_LOCAL_IDLE, FTP_LOCAL_CONFIG, FTP_LOCAL_OPEN, FTP_LOCAL_BUSY,
     FTP_LOCAL_READ, FTP_LOCAL_TIMEOUT, FTP_LOCAL_COMPLETE, FTP_LOCAL_NETWORK,
-    FTP_LOCAL_TASK, FTP_LOCAL_CANCELLED, FTP_LOCAL_WAIT_WIFI
+    FTP_LOCAL_TASK, FTP_LOCAL_CANCELLED, FTP_LOCAL_WAIT_WIFI, FTP_LOCAL_TOO_LARGE,
 };
 enum ftp_job_type { FTP_JOB_NONE, FTP_JOB_UPLOAD, FTP_JOB_CONFIG_SAVE,
                     FTP_JOB_FOLDER_SEND, FTP_JOB_AUTO, FTP_JOB_CLAIM };
 enum ftp_edit_state { FTP_EDIT_READY, FTP_EDIT_NEW, FTP_EDIT_BAD_ADDRESS, FTP_EDIT_BAD_USER,
                       FTP_EDIT_SAVED, FTP_EDIT_SAVE_FAILED };
-enum { FTP_PHOTOS=6, FTP_PATH_BYTES=32, FTP_CONFIGS=3, FTP_BATCH=1000, FTP_AUTO_CAPACITY=128 };
+enum { FTP_FOLDERS=6, FTP_PATH_BYTES=32, FTP_CONFIGS=3, FTP_BATCH=1000, FTP_AUTO_CAPACITY=128 };
+_Static_assert(Z72_FTP_FILE_LABEL_UNITS>=FTP_PATH_BYTES-8u+2u,"FTP photo label with selection mark");
 enum { FTP_IMAGE_SLOT=0xb1888a9cu, FTP_IMAGE_CALLBACK=0x106d2f6du, FTP_IMAGE_CLOSED=0x041f0002u };
 struct ftp_cursor { unsigned short folder; z72_u32 id; };
 struct ftp_photo { z72_u32 id; char path[FTP_PATH_BYTES]; };
@@ -31,17 +32,18 @@ static const char *const ftp_temporary[FTP_CONFIGS]={
 };
 static struct ftp_config ftp_draft;
 static z72_u32 ftp_edit_status;
-static struct ftp_photo ftp_photos[FTP_PHOTOS],ftp_batch[FTP_BATCH];
+static struct ftp_photo ftp_photos[Z72_FTP_PHOTOS_PER_LIST],ftp_batch[FTP_BATCH];
 static struct ftp_cursor ftp_cursor;
 static z72_u32 ftp_photo_count, ftp_more, ftp_profile, ftp_task_control[8];
 static z72_u32 ftp_job, ftp_cancel, ftp_local, ftp_generation, ftp_total;
 static z72_u32 ftp_first,ftp_last,ftp_completed,ftp_jpeg_only,ftp_overwrite,ftp_queue_full,ftp_discard;
 static z72_u32 ftp_folder_count,ftp_folder_more,ftp_folder_next,ftp_folder_send;
-static unsigned short ftp_folders[FTP_PHOTOS];
+static unsigned short ftp_folders[FTP_FOLDERS];
 static struct { z72_u32 id,profile; } ftp_auto[FTP_AUTO_CAPACITY];
 static z72_u32 ftp_auto_read,ftp_auto_write,ftp_auto_epoch,ftp_auto_dropped,ftp_auto_guard,ftp_auto_retry;
 static z72_u32 ftp_auto_error,ftp_auto_profile,ftp_auto_lookup_tries;
 static _Alignas(4) unsigned char ftp_descriptor[28];
+static z72_u32 ftp_main_tick(void) { return FTP_CALL(0x1062e59du,z72_u32,void)(); }
 
 static z72_u32 ftp_load(const z72_u32 *p) { return __atomic_load_n(p,__ATOMIC_ACQUIRE); }
 static void ftp_store(z72_u32 *p,z72_u32 value) { __atomic_store_n(p,value,__ATOMIC_RELEASE); }
@@ -134,6 +136,75 @@ static int ftp_config_save(void)
     return !FTP_CALL(0x105beb5bu,z72_u32,const char *,const char *)(temp,path);
 }
 
+static z72_u32 ftp_large_send_address;
+static void *ftp_large_raw;
+static z72_u32 ftp_large_enabled,ftp_large_state,ftp_large_link,ftp_large_save_failed,ftp_large_attempt;
+enum { FTP_BUFFER_OFF, FTP_BUFFER_READY, FTP_BUFFER_NO_MEMORY, FTP_BUFFER_RELEASING };
+
+static z72_u32 ftp_prepare_large_send(z72_u32 total)
+{
+    if (total<FTP_LARGE_SEND_BYTES || ftp_large_send_address) return ftp_large_send_address;
+    const z72_u32 allocation_size=FTP_LARGE_SEND_BYTES+63u;
+    /* General and Heap are the two native main-CPU pools supported by this
+     * allocator. Preserve at least 4 MiB in whichever pool supplies the ring. */
+    const z72_u32 pool_count=2;
+    for (z72_u32 index=0;index<pool_count;++index) {
+        z72_u32 pool=*(const volatile z72_u32 *)(0xb1f7cbacu+20u*index);
+        z72_u32 status[4];
+        if (!pool || FTP_CALL(0x10104788u,int,z72_u32,z72_u32 *)(pool,status) ||
+            status[1] || status[2]<allocation_size+FTP_LARGE_SEND_BYTES ||
+            status[3]<allocation_size) continue;
+        void *raw=FTP_CALL(0x1034fe31u,void *,z72_u32,z72_u32)(allocation_size,index);
+        if (!raw) continue;
+        z72_u32 data=((z72_u32)raw+63u)&~63u;
+        if (data<FTP_SHARED_RAM_MIN || data>FTP_SHARED_RAM_END-FTP_LARGE_SEND_BYTES) {
+            FTP_CALL(0x1034fe7fu,void,void *)(raw);
+            continue;
+        }
+        publish((void *)data,FTP_LARGE_SEND_BYTES);
+        invalidate((void *)data,FTP_LARGE_SEND_BYTES);
+        ftp_large_raw=raw;
+        return ftp_large_send_address=data;
+    }
+    return 0;
+}
+
+static z72_u32 ftp_wifi_link(void)
+{
+    z72_u32 mode=FTP_RES->network;
+    return mode ? (FTP_RES->wifi_stop<<2)|mode : 0;
+}
+
+/* The main FTP worker owns the allocation. It calls this only between
+ * requests, after the auxiliary task has acknowledged the previous one. */
+static void ftp_large_update(z72_u32 retry_now)
+{
+    if (!ftp_large_raw && !ftp_load(&ftp_large_enabled) && !ftp_large_link) return;
+    invalidate(FTP_RES,sizeof(*FTP_RES));
+    z72_u32 link=ftp_load(&ftp_large_enabled) ? ftp_wifi_link() : 0;
+    if (link==ftp_large_link && ftp_load(&ftp_large_state)!=FTP_BUFFER_RELEASING) {
+        if (!link || ftp_large_raw) return;
+        if (!retry_now && ftp_main_tick()-ftp_large_attempt<2000u) return;
+    }
+    if (ftp_large_raw) {
+        if (FTP_RES->large_in_use) {
+            ftp_store(&ftp_large_state,FTP_BUFFER_RELEASING);
+            return;
+        }
+        invalidate((void *)ftp_large_send_address,FTP_LARGE_SEND_BYTES);
+        FTP_CALL(0x1034fe7fu,void,void *)(ftp_large_raw);
+        ftp_large_raw=0;
+        ftp_large_send_address=0;
+    }
+    ftp_large_link=link;
+    z72_u32 state=FTP_BUFFER_OFF;
+    if (link) {
+        ftp_large_attempt=ftp_main_tick();
+        state=ftp_prepare_large_send(FTP_LARGE_SEND_BYTES) ? FTP_BUFFER_READY : FTP_BUFFER_NO_MEMORY;
+    }
+    ftp_store(&ftp_large_state,state);
+}
+
 static const char *ftp_basename(const char *path)
 {
     const char *name=path;
@@ -141,7 +212,19 @@ static const char *ftp_basename(const char *path)
     return name;
 }
 
-static int ftp_photo_path(z72_u32 id,char path[FTP_PATH_BYTES])
+enum { FTP_MEDIA_UNKNOWN, FTP_MEDIA_JPEG, FTP_MEDIA_NEF, FTP_MEDIA_VIDEO };
+
+static int ftp_media_format(const char *ext)
+{
+    if (ext[0]!='.') return FTP_MEDIA_UNKNOWN;
+    if (ext[1]=='J' && ext[2]=='P' && ext[3]=='G') return FTP_MEDIA_JPEG;
+    if (ext[1]=='N' && ext[2]=='E' && ext[3]=='F') return FTP_MEDIA_NEF;
+    if (ext[1]=='M' && ((ext[2]=='O' && ext[3]=='V') || (ext[2]=='P' && ext[3]=='4')))
+        return FTP_MEDIA_VIDEO;
+    return FTP_MEDIA_UNKNOWN;
+}
+
+static int ftp_media_path(z72_u32 id,char path[FTP_PATH_BYTES])
 {
     /* Same reference/get-path/release sequence as native playback. */
     void *image=FTP_CALL(0x1063ea8bu,void *,z72_u32)(id);
@@ -158,9 +241,7 @@ static int ftp_photo_path(z72_u32 id,char path[FTP_PATH_BYTES])
     if (length<13 || path[0]!='B' || path[1]!=':' || path[2]!='\\' ||
         path[3]!='D' || path[4]!='C' || path[5]!='I' || path[6]!='M' || path[7]!='\\' ||
         !valid_path(path+3,1)) return 0;
-    const char *ext=path+length-4;
-    return ext[0]=='.' && ((ext[1]=='J' && ext[2]=='P' && ext[3]=='G') ||
-        (ext[1]=='N' && ext[2]=='E' && ext[3]=='F'));
+    return ftp_media_format(path+length-4);
 }
 
 static int ftp_previous_folder(unsigned short *folder)
@@ -177,7 +258,7 @@ static z72_u32 ftp_find_photo(unsigned short folder,z72_u32 old,z72_u32 directio
         unsigned short folder;
         z72_u32 reserved[2],formats;
         unsigned char sort,groups,extra,padding;
-    } query={1,0,folder,{0,0},7,7,1,0,0};
+    } query={1,0,folder,{0,0},7u|(1u<<5)|(1u<<6),7,1,0,0}; /* Include MOV and MP4. */
     z72_u32 id=old;
     z72_u32 status=FTP_CALL(0x106d3285u,z72_u32,const void *,const void *,z72_u32,z72_u32 *)(
         &query,0,direction,&id);
@@ -186,17 +267,25 @@ static z72_u32 ftp_find_photo(unsigned short folder,z72_u32 old,z72_u32 directio
     return id;
 }
 
-static void ftp_scan(void)
+static void ftp_scan(z72_u32 limit)
 {
     z72_u32 count=0;
-    for (z72_u32 tries=0;tries<64 && count<FTP_PHOTOS;++tries) {
+    for (z72_u32 tries=0;tries<3u*Z72_FTP_PHOTOS_PER_LIST;++tries) {
+        struct ftp_cursor previous=ftp_cursor;
         if (!ftp_cursor.id && !ftp_previous_folder(&ftp_cursor.folder)) {
             ftp_cursor.folder=0;
             break;
         }
         ftp_cursor.id=ftp_find_photo(ftp_cursor.folder,ftp_cursor.id,1);
-        if (ftp_cursor.id && ftp_photo_path(ftp_cursor.id,ftp_photos[count].path))
-            ftp_photos[count++].id=ftp_cursor.id;
+        struct ftp_photo photo;
+        if (!ftp_cursor.id || !ftp_media_path(ftp_cursor.id,photo.path)) continue;
+        if (count==limit) {
+            /* Leave this photo for the next list. */
+            ftp_cursor=previous;
+            break;
+        }
+        photo.id=ftp_cursor.id;
+        ftp_photos[count++]=photo;
     }
     ftp_photo_count=count;
     ftp_more=ftp_cursor.folder>=100;
@@ -206,9 +295,9 @@ static void ftp_scan_folders(void)
 {
     unsigned short folder=(unsigned short)ftp_folder_next;
     z72_u32 count=0;
-    while (count<FTP_PHOTOS && ftp_previous_folder(&folder)) ftp_folders[count++]=folder;
+    while (count<FTP_FOLDERS && ftp_previous_folder(&folder)) ftp_folders[count++]=folder;
     ftp_folder_count=count;
-    ftp_folder_more=count==FTP_PHOTOS;
+    ftp_folder_more=count==FTP_FOLDERS;
     if (count) ftp_folder_next=ftp_folders[count-1];
 }
 
@@ -226,11 +315,16 @@ static void ftp_compact_batch(void)
     ftp_store(&ftp_last,last-first);
 }
 
+static z72_u32 ftp_media_key(z72_u32 id)
+{
+    return (id&15u)<=1u ? id&~15u : id; /* Only JPEG and NEF share one selection. */
+}
+
 static z72_u32 ftp_marked(z72_u32 id)
 {
     z72_u32 first=ftp_load(&ftp_first),last=ftp_load(&ftp_last);
     for (z72_u32 i=first;i<last;++i)
-        if ((ftp_batch[i].id&~15u)==(id&~15u)) return 1;
+        if (ftp_media_key(ftp_batch[i].id)==ftp_media_key(id)) return 1;
     return 0;
 }
 
@@ -241,12 +335,12 @@ static int ftp_companion(const char *path,char other[FTP_PATH_BYTES],int jpeg_on
         other[length]=path[length];
         ++length;
     }
-    char format=other[length-3];
-    if (jpeg_only && format!='N') return 0;
-    ftp_copy_field(other+length-3,format=='N' ? "JPG" : "NEF");
+    int format=ftp_media_format(path+length-4);
+    if (format!=FTP_MEDIA_NEF && (jpeg_only || format!=FTP_MEDIA_JPEG)) return 0;
+    ftp_copy_field(other+length-3,format==FTP_MEDIA_NEF ? "JPG" : "NEF");
     z72_u32 file[10];
     if (!card_open(file,other)) return 0;
-    int valid=file[6] && file[6]<=FTP_MAX_FILE && !file[7];
+    int valid=file[6] && !file[7];
     return card_close(file) && valid;
 }
 
@@ -264,18 +358,21 @@ static int ftp_mark(const struct ftp_photo *photo)
     return 1;
 }
 
+static void ftp_unmark(z72_u32 id)
+{
+    z72_u32 last=ftp_load(&ftp_last),count=0;
+    for (z72_u32 i=0;i<last;++i)
+        if (ftp_media_key(ftp_batch[i].id)!=ftp_media_key(id)) ftp_batch[count++]=ftp_batch[i];
+    ftp_store(&ftp_last,count);
+}
+
 static int ftp_toggle_mark(const struct ftp_photo *photo)
 {
     if (!ftp_claim_job()) return 0;
     ftp_compact_batch();
     ftp_store(&ftp_queue_full,0);
     if (!ftp_marked(photo->id)) ftp_mark(photo);
-    else {
-        z72_u32 last=ftp_load(&ftp_last),count=0;
-        for (z72_u32 i=0;i<last;++i)
-            if ((ftp_batch[i].id&~15u)!=(photo->id&~15u)) ftp_batch[count++]=ftp_batch[i];
-        ftp_store(&ftp_last,count);
-    }
+    else ftp_unmark(photo->id);
     ftp_store(&ftp_job,FTP_JOB_NONE);
     return !ftp_load(&ftp_queue_full);
 }
@@ -292,11 +389,11 @@ static void ftp_send_file(z72_u32 *file,z72_u32 generation)
                 outcome=FTP_RES->stage==FTP_DONE ? FTP_LOCAL_COMPLETE : FTP_LOCAL_NETWORK;
             break;
         }
-        if (outcome==FTP_LOCAL_BUSY &&
-            (ftp_load(&ftp_cancel) || idle>=150000u)) {
-            z72_u32 cancel=ftp_load(&ftp_cancel);
-            outcome=cancel ? FTP_LOCAL_CANCELLED : FTP_LOCAL_TIMEOUT;
-            FTP_REQ->state=cancel ? FTP_FILE_CANCELLED : FTP_FILE_TIMEOUT;
+        z72_u32 cancel=ftp_load(&ftp_cancel),disconnected=0;
+        disconnected=FTP_REQ->large_send_address && ftp_wifi_link()!=ftp_large_link;
+        if (outcome==FTP_LOCAL_BUSY && (cancel || disconnected || idle>=150000u)) {
+            outcome=cancel ? FTP_LOCAL_CANCELLED : disconnected ? FTP_LOCAL_NETWORK : FTP_LOCAL_TIMEOUT;
+            FTP_REQ->state=(cancel || disconnected) ? FTP_FILE_CANCELLED : FTP_FILE_TIMEOUT;
             publish(FTP_REQ,sizeof(*FTP_REQ));
         }
         /* The pending request stays owned until the auxiliary task has
@@ -361,7 +458,8 @@ static void ftp_upload_file(const char *path,z72_u32 profile,z72_u32 wait_for_ne
         ftp_store(&ftp_local,FTP_LOCAL_OPEN);
         return;
     }
-    if (!file[6] || file[6]>FTP_MAX_FILE || file[7]) ftp_store(&ftp_local,FTP_LOCAL_OPEN);
+    if (file[7]) ftp_store(&ftp_local,FTP_LOCAL_TOO_LARGE);
+    else if (!file[6]) ftp_store(&ftp_local,FTP_LOCAL_OPEN);
     else {
         ftp_store(&ftp_total,file[6]);
         z72_u32 wait=0;
@@ -374,6 +472,10 @@ static void ftp_upload_file(const char *path,z72_u32 profile,z72_u32 wait_for_ne
         if (ftp_load(&ftp_cancel)) ftp_store(&ftp_local,FTP_LOCAL_CANCELLED);
         else if (!FTP_RES->network) ftp_store(&ftp_local,FTP_LOCAL_TIMEOUT);
         else {
+            ftp_large_update(1);
+            FTP_REQ->large_send_address=ftp_load(&ftp_large_enabled) &&
+                ftp_load(&ftp_large_state)==FTP_BUFFER_READY && ftp_wifi_link()==ftp_large_link ?
+                ftp_large_send_address : 0;
             static z72_u32 generation;
             if (!++generation) ++generation;
             ftp_store(&ftp_local,FTP_LOCAL_BUSY);
@@ -422,7 +524,7 @@ static void ftp_send_folder(void)
     for (z72_u32 visited=0;visited<20000u && !ftp_load(&ftp_cancel);++visited) {
         photo.id=ftp_find_photo((unsigned short)ftp_folder_send,photo.id,0);
         if (!photo.id) break;
-        if (ftp_photo_path(photo.id,photo.path) && !ftp_mark(&photo)) break;
+        if (ftp_media_path(photo.id,photo.path) && !ftp_mark(&photo)) break;
     }
     if (ftp_load(&ftp_cancel)) ftp_store(&ftp_local,FTP_LOCAL_CANCELLED);
     else if (!ftp_pending()) ftp_store(&ftp_local,FTP_LOCAL_OPEN);
@@ -457,7 +559,7 @@ static int ftp_try_auto(void)
     char path[FTP_PATH_BYTES];
     ftp_begin_transfer();
     ftp_store(&ftp_job,FTP_JOB_AUTO);
-    int found=ftp_photo_path(id,path);
+    int found=ftp_media_path(id,path);
     if (!found && !ftp_load(&ftp_cancel) && ++ftp_auto_lookup_tries<4) {
         ftp_auto_retry=2;
         ftp_store(&ftp_job,FTP_JOB_NONE);
@@ -491,6 +593,7 @@ static void ftp_worker(void *ignored)
         else if (job==FTP_JOB_FOLDER_SEND) ftp_send_folder();
         else {
             if (job==FTP_JOB_NONE) {
+                ftp_large_update(0);
                 if (ftp_load(&ftp_discard) && ftp_claim_job()) {
                     ftp_discard_pending();
                     ftp_store(&ftp_job,FTP_JOB_NONE);
@@ -519,11 +622,12 @@ static int ftp_service_ready(void)
     return 1;
 }
 
+static int ftp_worker_alive;
+
 static int ftp_start_job(z72_u32 job)
 {
-    static int alive;
     if (!ftp_claim_job()) return 0;
-    if (!alive) {
+    if (!ftp_worker_alive) {
         if (!(int)ftp_task_control[0])
             FTP_CALL(0x103dc46bu,int,void *,void (*)(void *),void *)(
                 ftp_task_control,ftp_worker,ftp_descriptor);
@@ -533,7 +637,7 @@ static int ftp_start_job(z72_u32 job)
             ftp_store(&ftp_job,FTP_JOB_NONE);
             return 0;
         }
-        alive=1;
+        ftp_worker_alive=1;
     }
     if (job==FTP_JOB_UPLOAD || job==FTP_JOB_FOLDER_SEND) {
         ftp_store(&ftp_cancel,0);
@@ -543,10 +647,36 @@ static int ftp_start_job(z72_u32 job)
     return 1;
 }
 
-static void ftp_toggle_auto(void)
+static void ftp_restore_large_option(void)
+{
+    if (z72_config_current.ftp_4mib) {
+        ftp_store(&ftp_large_enabled,1);
+        ftp_start_job(FTP_JOB_NONE);
+    }
+}
+
+static void ftp_set_large(z72_u32 enabled)
+{
+    if (enabled==ftp_load(&ftp_large_enabled) && !z72_config_pending && !ftp_large_save_failed) return;
+    if (enabled && !ftp_worker_alive && !ftp_start_job(FTP_JOB_NONE)) {
+        ftp_large_save_failed=1;
+        return;
+    }
+    struct z72_config config=z72_config_current;
+    config.ftp_4mib=enabled;
+    ftp_large_save_failed=z72_config_save(config)!=Z72_CFG_OK;
+    ftp_store(&ftp_large_enabled,enabled);
+}
+
+static void ftp_set_auto(z72_u32 enabled)
 {
     z72_u32 epoch=ftp_load(&ftp_auto_epoch);
-    if (epoch&1u) { ftp_store(&ftp_auto_epoch,epoch+1u); return; }
+    if (!enabled) {
+        if (epoch&1u) ftp_store(&ftp_auto_epoch,epoch+1u);
+        ftp_auto_error=0;
+        return;
+    }
+    if (epoch&1u) return;
     if (!ftp_start_job(FTP_JOB_NONE)) { ftp_auto_error=1; return; }
     z72_u32 native=FTP_IMAGE_CALLBACK;
     if (!__atomic_compare_exchange_n((z72_u32 *)FTP_IMAGE_SLOT,&native,(z72_u32)ftp_image_closed,0,
@@ -567,6 +697,9 @@ static int ftp_snapshot(struct ftp_result *out)
     out->stage=FTP_RES->stage;
     out->sent=FTP_RES->sent;
     out->reply=FTP_RES->reply;
+    out->error=FTP_RES->error;
+    out->done=FTP_RES->done;
+    out->send_buffer=FTP_RES->send_buffer;
     return generation==FTP_RES->generation;
 }
 #endif

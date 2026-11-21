@@ -22,6 +22,10 @@
 #ifdef Z72_FTP_FULL
 #define Z72_FTP_AUX_INIT_SLOT 0xb10d65e4u
 #define Z72_FTP_AUX_INIT_NATIVE 0xb107149du
+#define Z72_FTP_RADIO_STOP_SLOT 0xb10d65ecu
+#define Z72_FTP_RADIO_STOP_NATIVE 0xb10715fbu
+#define Z72_FTP_AP_STOP_SLOT 0xb10d65fcu
+#define Z72_FTP_AP_STOP_NATIVE 0xb1071a7du
 #endif
 
 /* This private ARM926 image runs through an uncached executable auxiliary
@@ -97,6 +101,10 @@ static z72_u32 wifi_ready(void)
 #ifdef Z72_FTP_FULL
         Z72_WIFI_WORD(Z72_FTP_AUX_INIT_SLOT-4)==1 &&
         Z72_WIFI_WORD(Z72_FTP_AUX_INIT_SLOT)==Z72_FTP_AUX_INIT_NATIVE &&
+        Z72_WIFI_WORD(Z72_FTP_RADIO_STOP_SLOT-4)==2 &&
+        Z72_WIFI_WORD(Z72_FTP_RADIO_STOP_SLOT)==Z72_FTP_RADIO_STOP_NATIVE &&
+        Z72_WIFI_WORD(Z72_FTP_AP_STOP_SLOT-4)==4 &&
+        Z72_WIFI_WORD(Z72_FTP_AP_STOP_SLOT)==Z72_FTP_AP_STOP_NATIVE &&
 #endif
         Z72_WIFI_WORD(Z72_WIFI_AP_SLOT-4)==3 &&
         Z72_WIFI_WORD(Z72_WIFI_AP_SLOT)==Z72_WIFI_AP_NATIVE &&
@@ -122,6 +130,9 @@ static void wifi_install(void)
 #ifdef Z72_FTP_FULL
     /* Initialization and AP dispatch share the same auxiliary cache line. */
     Z72_WIFI_WORD(Z72_FTP_AUX_INIT_SLOT)=((z72_u32)wifi_aux+FTP_AUX_INIT_OFFSET)|1u;
+    /* Both shutdown callbacks use the AP dispatch cache line. */
+    Z72_WIFI_WORD(Z72_FTP_RADIO_STOP_SLOT)=((z72_u32)wifi_aux+FTP_AUX_RADIO_STOP_OFFSET)|1u;
+    Z72_WIFI_WORD(Z72_FTP_AP_STOP_SLOT)=((z72_u32)wifi_aux+FTP_AUX_AP_STOP_OFFSET)|1u;
 #endif
     __asm__ volatile("dsb sy" ::: "memory");
     /* The auxiliary table is cached there. Its native blocking cache RPC

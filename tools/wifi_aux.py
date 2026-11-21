@@ -41,6 +41,8 @@ def header(image, report):
              f'#define WIFI_AUX_RELOCATION_COUNT {len(report["relocations"])}u']
     if 'wifi_aux_ftp_init' in symbols:
         lines.append(f'#define FTP_AUX_INIT_OFFSET {symbols["wifi_aux_ftp_init"] & ~1}u')
+        for name in ('radio_stop', 'ap_stop'):
+            lines.append(f'#define FTP_AUX_{name.upper()}_OFFSET {symbols[f"wifi_aux_ftp_{name}"] & ~1}u')
         for name in ('request', 'result', 'payload'):
             lines.append(f'#define FTP_{name.upper()}_OFFSET {symbols[f"ftp_{name}"]}u')
     lines.append('static const unsigned char wifi_aux_blob[]={')

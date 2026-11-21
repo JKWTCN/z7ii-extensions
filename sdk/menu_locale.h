@@ -17,6 +17,9 @@
 #ifdef Z72_FTP_FULL
 #define Z72_FTP_MENU_ROWS 8u
 #define Z72_FTP_LABEL_UNITS 48u
+#define Z72_FTP_PHOTOS_PER_LIST 64u
+#define Z72_FTP_FILE_ROWS (Z72_FTP_PHOTOS_PER_LIST+2u)
+#define Z72_FTP_FILE_LABEL_UNITS 26u
 #endif
 enum {
     Z72_TEXT_GRID_GOLDEN=Z72_MENU_STOCK_TEXTS,
@@ -138,6 +141,10 @@ enum {
     Z72_TEXT_FTP_MARK,
     Z72_TEXT_FTP_STATUS,
     Z72_TEXT_FTP_EDIT,
+    Z72_TEXT_FTP_AUTO,
+    Z72_TEXT_FTP_FORMAT,
+    Z72_TEXT_FTP_OVERWRITE,
+    Z72_TEXT_FTP_4M_BUFFER,
 #endif
 #ifdef Z72_FIRMWARE_INFO
     Z72_TEXT_FIRMWARE_INFO,
@@ -148,7 +155,7 @@ enum {
 #endif
 #ifdef Z72_FTP_FULL
     Z72_TEXT_FTP_ROW,
-    Z72_TEXT_FTP_LAST_ROW=Z72_TEXT_FTP_ROW+Z72_FTP_MENU_ROWS-1,
+    Z72_TEXT_FTP_LAST_ROW=Z72_TEXT_FTP_ROW+Z72_FTP_FILE_ROWS-1,
 #endif
     Z72_MENU_TEXT_END
 };
@@ -224,6 +231,7 @@ static inline int z72_menu_locale_install(void)
 #endif
 #ifdef Z72_FTP_FULL
          u"Mark/unmark for FTP",u"Transfer status",u"Edit FTP profile",
+         u"Auto send",u"Send file as",u"Overwrite if same name",u"Use 4 MiB buffer",
 #endif
 #ifdef Z72_FIRMWARE_INFO
          u"Custom firmware version",Z72_FIRMWARE_INFO_TEXT,
@@ -263,6 +271,7 @@ static inline int z72_menu_locale_install(void)
 #endif
 #ifdef Z72_FTP_FULL
          u"选择以FTP发送/取消",u"传输状态",u"编辑 FTP 配置",
+         u"自动发送",u"传送文件为",u"同名时重写",u"使用 4 MiB 内存",
 #endif
 #ifdef Z72_FIRMWARE_INFO
          u"自定义固件版本",Z72_FIRMWARE_INFO_TEXT,
@@ -301,6 +310,7 @@ static inline int z72_menu_locale_install(void)
 #endif
 #ifdef Z72_FTP_FULL
          u"選擇以FTP傳送/取消",u"傳輸狀態",u"編輯 FTP 設定",
+         u"自動傳送",u"傳送檔案為",u"同名時覆寫",u"使用 4 MiB 記憶體",
 #endif
 #ifdef Z72_FIRMWARE_INFO
          u"自訂韌體版本",Z72_FIRMWARE_INFO_TEXT,
@@ -309,7 +319,9 @@ static inline int z72_menu_locale_install(void)
     };
     z72_u32 bytes=sizeof(struct z72_menu_locale)+Z72_MENU_LANGUAGES*sizeof(translations[0]);
 #ifdef Z72_FTP_FULL
-    const z72_u32 ftp_label_bytes=Z72_FTP_MENU_ROWS*Z72_FTP_LABEL_UNITS*sizeof(unsigned short);
+    _Static_assert(Z72_FTP_FILE_ROWS*Z72_FTP_FILE_LABEL_UNITS>=Z72_FTP_MENU_ROWS*Z72_FTP_LABEL_UNITS,
+                   "FTP label buffer must hold either list");
+    const z72_u32 ftp_label_bytes=Z72_FTP_FILE_ROWS*Z72_FTP_FILE_LABEL_UNITS*sizeof(unsigned short);
     bytes+=Z72_MENU_LANGUAGES*ftp_label_bytes;
 #endif
     for (z72_u32 lang=0;lang<Z72_MENU_LANGUAGES;++lang)

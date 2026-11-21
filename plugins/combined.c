@@ -62,6 +62,7 @@ z72_u32 z72_main(const struct z72_api *api)
     af_menu_install();
     af_shortcut_install();
     wifi_install();
+    if (ftp_menu_available) ftp_restore_large_option();
     movie_limit_install();
     movie_rot_install();
     if (pre_capture_menu_available) pre_capture_install();

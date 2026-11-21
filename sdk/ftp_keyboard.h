@@ -106,7 +106,7 @@ static void ftp_key_hit_noop(u32 widget,u32 state)
     (void)state;
 }
 
-static u32 ftp_key_widget(const u32 *page,u32 *index,u32 type,u32 slot,u32 xy,u32 end)
+static u32 ftp_menu_widget(const u32 *page,u32 *index,u32 type,u32 slot,u32 xy,u32 end)
 {
     u32 pool=page[9];
     if (*index>=(unsigned short)HALF(pool+4)) return 0;
@@ -146,7 +146,7 @@ static void ftp_keyboard_init(const u32 *page)
         ftp_keyboard.labels[key]=0;
     if (!page[3] || !page[9]) return;
     u32 index=CALL(0x106345fbu,u32,u32,u32)(page[9],0);
-    ftp_keyboard.preview=ftp_key_widget(page,&index,2,FTP_KEY_PREVIEW,72|(60u<<16),686|(103u<<16));
+    ftp_keyboard.preview=ftp_menu_widget(page,&index,2,FTP_KEY_PREVIEW,72|(60u<<16),686|(103u<<16));
     for (u32 key=0;key<FTP_KEY_COUNT;++key) {
         if (!ftp_key_visible(key)) continue;
         u32 is_footer=key>=FTP_KEY_BANK, column=is_footer ? key-FTP_KEY_BANK : key%FTP_KEY_COLUMNS;
@@ -154,11 +154,11 @@ static void ftp_keyboard_init(const u32 *page)
         u32 y=is_footer ? 392u : 126u+key/FTP_KEY_COLUMNS*61u;
         u32 end=(x+width)|((y+47u)<<16);
         u32 resource=is_footer ? footer[column] : 0;
-        ftp_keyboard.labels[key]=ftp_key_widget(page,&index,resource ? 1u : 2u,
+        ftp_keyboard.labels[key]=ftp_menu_widget(page,&index,resource ? 1u : 2u,
             resource ? resource : FTP_KEY_SLOT+key,x|(y<<16),end);
         ftp_key_highlight(key,key==ftp_keyboard.selection);
     }
-    ftp_keyboard.touch_area=ftp_key_widget(page,&index,6,0,72|(126u<<16),686|(439u<<16));
+    ftp_keyboard.touch_area=ftp_menu_widget(page,&index,6,0,72|(126u<<16),686|(439u<<16));
     ftp_key_update_layout();
     ftp_key_text(ftp_keyboard.labels[FTP_KEY_LEFT],FTP_KEY_SLOT+FTP_KEY_LEFT,"<");
     ftp_key_text(ftp_keyboard.labels[FTP_KEY_RIGHT],FTP_KEY_SLOT+FTP_KEY_RIGHT,">");
