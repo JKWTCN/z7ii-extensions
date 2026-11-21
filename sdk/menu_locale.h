@@ -125,6 +125,8 @@ enum {
 #endif
 #ifdef Z72_SUBJECT_TRACKING
     Z72_TEXT_SUBJECT_TRACKING,
+    Z72_TEXT_AF_IMPROVEMENTS,
+    Z72_TEXT_AF_REACQUIRE,
 #endif
 #ifdef Z72_PIXEL_SHIFT
     Z72_TEXT_PIXEL_TITLE,Z72_TEXT_PIXEL_MODE,Z72_TEXT_PIXEL_COUNT,Z72_TEXT_PIXEL_DELAY,Z72_TEXT_PIXEL_GAP,
@@ -213,7 +215,7 @@ static inline int z72_menu_locale_install(void)
          u"Focus area size",u"MENU Done",u"C1",u"C2",
 #endif
 #ifdef Z72_SUBJECT_TRACKING
-         u"Subject tracking",
+         u"Subject tracking",u"Focus improvements",u"Reacquire after occlusion",
 #endif
 #ifdef Z72_PIXEL_SHIFT
          u"Pixel shift shooting",u"Pixel shift mode",u"Number of shots",u"Start delay",u"Shot interval",
@@ -252,7 +254,7 @@ static inline int z72_menu_locale_install(void)
          u"对焦区域大小",u"MENU 完成",u"C1",u"C2",
 #endif
 #ifdef Z72_SUBJECT_TRACKING
-         u"主体跟踪",
+         u"主体跟踪",u"对焦改进",u"遮挡后找回主体",
 #endif
 #ifdef Z72_PIXEL_SHIFT
          u"像素变化拍摄",u"像素变化拍摄模式",u"拍摄张数",u"开始拍摄延迟",u"拍摄间隔",
@@ -290,7 +292,7 @@ static inline int z72_menu_locale_install(void)
          u"對焦區域大小",u"MENU 完成",u"C1",u"C2",
 #endif
 #ifdef Z72_SUBJECT_TRACKING
-         u"主體追蹤",
+         u"主體追蹤",u"對焦改進",u"遮擋後找回主體",
 #endif
 #ifdef Z72_PIXEL_SHIFT
          u"像素變化拍攝",u"像素變化拍攝模式",u"拍攝張數",u"開始拍攝延遲",u"拍攝間隔",

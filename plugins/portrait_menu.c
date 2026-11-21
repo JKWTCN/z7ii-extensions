@@ -39,6 +39,9 @@ static void wide_af_prepare_live(void);
 static z72_u32 wide_af_active(void);
 static void wide_hud_update(z72_u32 preset,z72_u32 output_before);
 #endif
+#ifdef Z72_SUBJECT_TRACKING
+static z72_u32 focus_improvements_open(z72_u32,z72_u32,z72_u32,z72_u32);
+#endif
 
 #define Z72_PORTRAIT_MENU 1
 #ifndef Z72_PORTRAIT_TRACE
@@ -1599,6 +1602,9 @@ static u32 portrait_install_menu(void)
 #ifdef Z72_WIDE_AF
         {0},
 #endif
+#ifdef Z72_SUBJECT_TRACKING
+        {0},
+#endif
 #ifdef Z72_PIXEL_SHIFT
         {0},
 #endif
@@ -1617,6 +1623,9 @@ static u32 portrait_install_menu(void)
     --count;
 #endif
 #ifdef Z72_WIDE_AF
+    --count;
+#endif
+#ifdef Z72_SUBJECT_TRACKING
     --count;
 #endif
 #ifdef Z72_SHUTTER_SOUND
@@ -1639,6 +1648,10 @@ static u32 portrait_install_menu(void)
 #ifdef Z72_WIDE_AF
     const u32 wide_row=count;
     rows[count++]=(struct z72_menu_row){"Custom wide-area AF",wide_open,0xd7};
+#endif
+#ifdef Z72_SUBJECT_TRACKING
+    const u32 focus_row=count;
+    rows[count++]=(struct z72_menu_row){0,focus_improvements_open,0xd7};
 #endif
 #ifdef Z72_PIXEL_SHIFT
     const u32 pixel_row=count;
@@ -1686,6 +1699,10 @@ static u32 portrait_install_menu(void)
         menu.rows[wide_row][4]=0x1001;
         wide_menu_prepare();
 #endif
+#ifdef Z72_SUBJECT_TRACKING
+        menu.rows[focus_row][0]=Z72_TEXT_AF_IMPROVEMENTS;
+        menu.rows[focus_row][4]=0x1001;
+#endif
 #ifdef Z72_PIXEL_SHIFT
         if (pixel_menu_available) {
             menu.rows[pixel_row][0]=Z72_TEXT_PIXEL_TITLE;
@@ -1711,6 +1728,9 @@ static u32 portrait_install_menu(void)
         pixel_menu_available=0;
 #endif
 #ifdef Z72_WIDE_AF
+        --unlocalized_count;
+#endif
+#ifdef Z72_SUBJECT_TRACKING
         --unlocalized_count;
 #endif
 #ifdef Z72_SHUTTER_SOUND

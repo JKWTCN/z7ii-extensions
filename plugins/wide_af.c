@@ -136,8 +136,11 @@ static z72_u32 wide_af_live_scale(void)
 #include "wide_af_photo_menu.h"
 #include "wide_af_i_menu.h"
 
-enum { WIDE_ROW_ID=0x2e20, WIDE_ROOT=0, WIDE_PRESET, WIDE_SIZE, WIDE_SUBJECT_VIEW, WIDE_VIEW_COUNT,
-       WIDE_STOCK_EVENTS=ROTATION_EVENTS, WIDE_MAX_ROWS=3,
+enum { WIDE_ROW_ID=0x2e20, WIDE_ROOT=0, WIDE_PRESET, WIDE_SIZE, WIDE_SUBJECT_VIEW,
+#ifdef Z72_SUBJECT_TRACKING
+       WIDE_AF_IMPROVEMENTS, WIDE_AF_REACQUIRE,
+#endif
+       WIDE_VIEW_COUNT, WIDE_STOCK_EVENTS=ROTATION_EVENTS, WIDE_MAX_ROWS=3, WIDE_FOCUS_ROW_ID=0x2e34,
        WIDE_PREVIEW_EDGES=4, WIDE_PREVIEW_HINT_ID=0x2e30, WIDE_PREVIEW_WIDGET_ID=0x2e31 };
 static const z72_u32 wide_subject_values[]={1,2,0};
 static struct {
@@ -191,12 +194,15 @@ static z72_u32 wide_preview_widget(z72_u32 scene)
 
 static z72_u32 wide_row_id(z72_u32 view,z72_u32 row)
 {
+#ifdef Z72_SUBJECT_TRACKING
+    if (view>=WIDE_AF_IMPROVEMENTS) return WIDE_FOCUS_ROW_ID+(view-WIDE_AF_IMPROVEMENTS)*4+row;
+#endif
     return WIDE_ROW_ID+view*4+row;
 }
 
 static void wide_page_init(const z72_u32 *page)
 {
-    z72_u32 row=0;
+    z72_u32 row=0,choice=wide_view==WIDE_SUBJECT_VIEW;
     if (wide_view==WIDE_SIZE) {
         /* Keep native selection and navigation active on the backing row.
          * Only the separate, fixed preview widget paints the frame. */
@@ -215,10 +221,16 @@ static void wide_page_init(const z72_u32 *page)
     if (wide_view==WIDE_SUBJECT_VIEW)
         for (z72_u32 i=0;i<WIDE_MAX_ROWS;++i)
             if (wide_subject_values[i]==wide_subject[wide_editing]) row=i;
+#ifdef Z72_SUBJECT_TRACKING
+    if (wide_view==WIDE_AF_REACQUIRE) {
+        row=!tracking_assist_enabled();
+        choice=1;
+    }
+#endif
     z72_u32 id=wide_row_id(wide_view,row);
     if (CALL(0x1063bf77u,z72_u32,void)()!=1)
         CALL(0x10638983u,void,const z72_u32 *,z72_u32)(page,id);
-    if (wide_view==WIDE_SUBJECT_VIEW)
+    if (choice)
         CALL(0x1063ac0du,void,const z72_u32 *,z72_u32,z72_u32)(page,id,1);
 }
 
@@ -231,10 +243,18 @@ static z72_u32 wide_header_owned(z72_u32 header)
 
 static z72_u32 wide_show(z72_u32 view)
 {
+    z72_u32 root=view==WIDE_ROOT;
+#ifdef Z72_SUBJECT_TRACKING
+    root=root || view==WIDE_AF_IMPROVEMENTS;
+#endif
     if (WORD(ROTATION_PAGE)!=2 ||
-        (view!=WIDE_ROOT && !wide_header_owned(WORD(ROTATION_PAGE+0x28)))) return 1;
+        (!root && !wide_header_owned(WORD(ROTATION_PAGE+0x28)))) return 1;
     wide_view=view;
     wide_views[WIDE_PRESET].title[0]=Z72_TEXT_WIDE_C1+wide_editing;
+#ifdef Z72_SUBJECT_TRACKING
+    if (view==WIDE_AF_IMPROVEMENTS)
+        wide_views[WIDE_AF_IMPROVEMENTS].rows[0][5]=rotation_value(tracking_assist_enabled());
+#endif
     HALF(ROTATION_PAGE+0x16)=0;
     HALF(ROTATION_PAGE+0x18)=0;
     WORD(ROTATION_PAGE+0x10)=(z72_u32)wide_callbacks;
@@ -252,14 +272,34 @@ static z72_u32 wide_open(z72_u32 a,z72_u32 b,z72_u32 c,z72_u32 d)
     return wide_show(WIDE_ROOT);
 }
 
+#ifdef Z72_SUBJECT_TRACKING
+static z72_u32 focus_improvements_open(z72_u32 a,z72_u32 b,z72_u32 c,z72_u32 d)
+{
+    (void)a; (void)b; (void)c; (void)d;
+    if (WORD(ROTATION_PAGE+0x24)) return 1;
+    return wide_show(WIDE_AF_IMPROVEMENTS);
+}
+#endif
+
 static z72_u32 wide_back(z72_u32 a,z72_u32 b,z72_u32 c,z72_u32 d)
 {
     (void)a; (void)b; (void)c; (void)d;
+#ifdef Z72_SUBJECT_TRACKING
+    if (wide_view==WIDE_AF_REACQUIRE) return wide_show(WIDE_AF_IMPROVEMENTS);
+#endif
     return wide_show(wide_view==WIDE_PRESET ? WIDE_ROOT : WIDE_PRESET);
 }
 
 static z72_u32 wide_pick(z72_u32 row)
 {
+#ifdef Z72_SUBJECT_TRACKING
+    if (wide_view==WIDE_AF_IMPROVEMENTS) return wide_show(WIDE_AF_REACQUIRE);
+    if (wide_view==WIDE_AF_REACQUIRE) {
+        if (WORD(ROTATION_PAGE+0x28)!=(z72_u32)wide_views[WIDE_AF_REACQUIRE].header ||
+            tracking_assist_save(!row)) return 1;
+        return wide_show(WIDE_AF_IMPROVEMENTS);
+    }
+#endif
     if (wide_view==WIDE_ROOT) {
         wide_editing=row;
         wide_preset_row=0;
@@ -327,19 +367,37 @@ static void wide_menu_prepare(void)
     const z72_u32 *stock=(const z72_u32 *)0xb18545fcu;
     const z72_u32 *events=(const z72_u32 *)WORD(stock[4]);
 
-    const z72_u32 counts[]={2,2,1,3};
-    const z72_u32 titles[]={Z72_TEXT_WIDE_TITLE,Z72_TEXT_WIDE_C1,Z72_TEXT_WIDE_SIZE,Z72_TEXT_WIDE_SUBJECT};
-    const z72_u32 labels[]={Z72_TEXT_WIDE_C1,0,0,Z72_TEXT_WIDE_PEOPLE};
+    const z72_u32 counts[]={2,2,1,3,
+#ifdef Z72_SUBJECT_TRACKING
+        1,2,
+#endif
+    };
+    const z72_u32 titles[]={Z72_TEXT_WIDE_TITLE,Z72_TEXT_WIDE_C1,Z72_TEXT_WIDE_SIZE,Z72_TEXT_WIDE_SUBJECT,
+#ifdef Z72_SUBJECT_TRACKING
+        Z72_TEXT_AF_IMPROVEMENTS,Z72_TEXT_AF_REACQUIRE,
+#endif
+    };
+    const z72_u32 labels[]={Z72_TEXT_WIDE_C1,0,0,Z72_TEXT_WIDE_PEOPLE,
+#ifdef Z72_SUBJECT_TRACKING
+        Z72_TEXT_AF_REACQUIRE,0x52fu, /* Stock Enable and Disable. */
+#endif
+    };
     const z72_u32 preset_labels[]={Z72_TEXT_WIDE_SIZE,Z72_TEXT_WIDE_SUBJECT};
     const z72_menu_callback picks[]={wide_pick0,wide_pick1,wide_pick2};
     for (z72_u32 i=1;i<4;++i) wide_layout[i]=WORD(setup[1]+4*i);
     wide_layout[0]=2;
     for (z72_u32 view=0;view<WIDE_VIEW_COUNT;++view) {
         z72_u32 choice=view==WIDE_SUBJECT_VIEW;
+        z72_u32 nested=view!=WIDE_ROOT;
+#ifdef Z72_SUBJECT_TRACKING
+        choice=choice || view==WIDE_AF_REACQUIRE;
+        nested=nested && view!=WIDE_AF_IMPROVEMENTS;
+#endif
         z72_u32 *header=wide_views[view].header;
         const z72_u32 *source=choice ? stock : setup;
         for (z72_u32 i=0;i<6;++i) header[i]=source[i];
-        header[1]=choice ? 0x1187c510u : (z72_u32)(view==WIDE_SIZE ? wide_size_layout : wide_layout);
+        header[1]=choice ? (view==WIDE_SUBJECT_VIEW ? 0x1187c510u : stock[1]) :
+            (z72_u32)(view==WIDE_SIZE ? wide_size_layout : wide_layout);
         for (z72_u32 i=0;i<24;++i) wide_views[view].title[i]=WORD(stock[2]+4*i);
         wide_views[view].title[0]=titles[view];
         wide_views[view].title[1]=1;
@@ -381,8 +439,8 @@ static void wide_menu_prepare(void)
                     map[1]=(z72_u32)picks[row]; map[2]=0; map[3]=0x430;
                 }
                 if (map[0]==0x256 || map[0]==0x271 || map[0]==0x2cf || map[0]==0x27f) {
-                    map[1]=view ? (z72_u32)wide_back : 0;
-                    map[2]=0; map[3]=view ? 0x430 : 0x431;
+                    map[1]=nested ? (z72_u32)wide_back : 0;
+                    map[2]=0; map[3]=nested ? 0x430 : 0x431;
                 }
                 if (view==WIDE_SIZE) {
                     z72_menu_callback adjust=0;
@@ -428,6 +486,8 @@ static void wide_install(void)
     wide_i_install();
     wide_display_install();
 #ifdef Z72_SUBJECT_TRACKING
+    tracking_assist=z72_config_current.tracking_assist;
+    tracking_reacquire_install();
     /* The shared shooting-key slot delegates the original DISP path. */
     WORD(TRACK_KEY_SLOT)=(z72_u32)tracking_live_key;
 #endif
