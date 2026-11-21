@@ -11,6 +11,7 @@ enum {
     WIDE_I_EVENT=0xb1821a20u, WIDE_I_EVENT_NATIVE=0x105c1eb1u,
     WIDE_I_APP_STATE=0xb1821964u, WIDE_I_SETTING=0xb1824270u,
     WIDE_I_VALUES=0xb20327b4u, WIDE_I_CURSOR=0xb1824564u, WIDE_I_NAV=0xb203250cu,
+    WIDE_I_AF_S_SCENE=0x47, WIDE_I_AF_C_SCENE=0x48,
     WIDE_I_STOCK=9, WIDE_I_WIDE_CHOICES=11,
 #ifdef Z72_SUBJECT_TRACKING
     WIDE_I_CHOICES=WIDE_I_WIDE_CHOICES+1,
@@ -56,12 +57,9 @@ static void wide_i_copy(void *destination,const void *source,z72_u32 bytes)
     ((void (*)(void *,const void *,z72_u32))0x10360facu)(destination,source,bytes);
 }
 
-static z72_u32 wide_i_choice_count(void)
+static z72_u32 wide_i_choice_count(z72_u32 scene)
 {
-#ifdef Z72_SUBJECT_TRACKING
-    if (tracking_available()) return WIDE_I_CHOICES;
-#endif
-    return WIDE_I_WIDE_CHOICES;
+    return scene==WIDE_I_AF_C_SCENE ? WIDE_I_CHOICES : WIDE_I_WIDE_CHOICES;
 }
 
 static z72_u32 wide_i_active_selection(void)
@@ -76,7 +74,7 @@ static z72_u32 wide_i_is_open(void)
 {
     if (WORD(0xb25519b8u) ||
         (HALF(WIDE_I_APP_STATE)!=0x1601u && HALF(WIDE_I_APP_STATE)!=0x1701u) ||
-        (unsigned short)HALF(WIDE_I_VALUES+2)!=wide_i_choice_count()) return 0;
+        (unsigned short)HALF(WIDE_I_VALUES+2)!=wide_i_choice_count(WIDE_I_BYTE(WIDE_I_SETTING))) return 0;
     z72_u32 page=WORD(WIDE_I_SETTING+0x70);
     for (z72_u32 i=0;i<sizeof(wide_i_stock)/sizeof(wide_i_stock[0]);++i)
         if (page==(z72_u32)wide_i_pages[i].header) return 1;
@@ -86,7 +84,8 @@ static z72_u32 wide_i_is_open(void)
 static void wide_i_extend(z72_u32 count)
 {
     z72_u32 preset=wide_i_active_selection();
-    z72_u32 selected=preset ? WIDE_I_STOCK+preset-1 : WORD(WIDE_I_CURSOR+0xc);
+    z72_u32 selected=preset && preset<=count-WIDE_I_STOCK ?
+        WIDE_I_STOCK+preset-1 : WORD(WIDE_I_CURSOR+0xc);
     if (selected>=count) selected=0;
     for (z72_u32 i=WIDE_I_STOCK;i<count;++i) {
         z72_u32 address=WIDE_I_VALUES+i*8;
@@ -105,9 +104,9 @@ static void wide_i_extend(z72_u32 count)
 
 static z72_u32 wide_i_draw(z72_u32 scene,z72_u32 lcd,z72_u32 evf,z72_u32 pool,z72_u32 parent)
 {
-    z72_u32 count=HALF(WIDE_I_VALUES+2),choices=wide_i_choice_count();
+    z72_u32 count=HALF(WIDE_I_VALUES+2),choices=wide_i_choice_count(scene);
     if (!lcd || !evf || !pool || WORD(0xb25519b8u) ||
-        (scene!=0x47 && scene!=0x48) || WIDE_I_BYTE(WIDE_I_VALUES)!=scene-0x24 ||
+        (scene!=WIDE_I_AF_S_SCENE && scene!=WIDE_I_AF_C_SCENE) || WIDE_I_BYTE(WIDE_I_VALUES)!=scene-0x24 ||
         (count!=WIDE_I_STOCK && count!=choices) ||
         CALL(0x104e6403u,z72_u32,void)()>=0xf)
         return CALL(0x10613a3du,z72_u32,z72_u32,z72_u32,z72_u32,z72_u32,z72_u32)(
@@ -118,21 +117,16 @@ static z72_u32 wide_i_draw(z72_u32 scene,z72_u32 lcd,z72_u32 evf,z72_u32 pool,z7
     if (count==WIDE_I_STOCK) wide_i_extend(choices);
     z72_u32 display=CALL(0x10631947u,z72_u32,void)();
     z72_u32 first=display==1 || (display==4 && CALL(0x10632495u,z72_u32,void)());
-    struct wide_i_page *view=&wide_i_pages[(first ? 0u : 2u)+scene-0x47];
+    struct wide_i_page *view=&wide_i_pages[(first ? 0u : 2u)+scene-WIDE_I_AF_S_SCENE];
     if (wide_icons_load()) {
         for (z72_u32 i=WIDE_I_STOCK;i<WIDE_I_WIDE_CHOICES;++i) {
             view->icons[i][1]=0;
             view->icons[i][2]=wide_icon_id(i-WIDE_I_STOCK+1,0);
         }
 #ifdef Z72_SUBJECT_TRACKING
-        view->icons[WIDE_I_WIDE_CHOICES][2]=TRACK_ICON;
+        if (choices==WIDE_I_CHOICES) view->icons[WIDE_I_WIDE_CHOICES][2]=TRACK_ICON;
 #endif
     }
-#ifdef Z72_SUBJECT_TRACKING
-    view->entries[WIDE_I_WIDE_CHOICES+1][1]=(choices==WIDE_I_CHOICES);
-    view->title_spec[2]=choices;
-    for (z72_u32 i=0;i<choices;++i) view->tile_specs[i][2]=choices;
-#endif
     z72_u32 page=(z72_u32)view->header;
     CALL(0x1060cfa5u,void,void)();
     WIDE_I_BYTE(WIDE_I_SETTING)=scene;
@@ -172,7 +166,7 @@ static z72_u32 wide_i_confirm(void)
 {
     if (wide_i_is_open() && !CALL(0x1060e05fu,z72_u32,void)()) {
         z72_u32 selected=CALL(0x10601e77u,z72_u32,void)();
-        if (selected>=WIDE_I_STOCK && selected<wide_i_choice_count()) {
+        if (selected>=WIDE_I_STOCK && selected<(unsigned short)HALF(WIDE_I_VALUES+2)) {
             if (wide_af_choose(selected-WIDE_I_STOCK+1)) return 0;
         } else if (selected<WIDE_I_STOCK && wide_af_choose(0)) {
             return 0;
@@ -208,6 +202,9 @@ static void wide_i_build(z72_u32 variant)
 {
     const z72_u32 (*entries)[2]=(const z72_u32 (*)[2])wide_i_stock[variant].entries;
     struct wide_i_page *out=&wide_i_pages[variant];
+    /* Native redraw visits every non-null entry. Leave the AF-C-only tile's
+     * slot empty in AF-S, just like the other unused stock slots. */
+    z72_u32 choices=wide_i_choice_count(WIDE_I_AF_S_SCENE+(variant&1u));
     out->header[0]=(wide_i_stock[variant].header&255u)|(WIDE_I_LAYOUT<<8);
     out->header[1]=(z72_u32)out->entries;
     out->header[2]=WIDE_I_SLOTS;
@@ -217,13 +214,13 @@ static void wide_i_build(z72_u32 variant)
     wide_i_copy(out->title_rows,(const void *)out->title_spec[1],WIDE_I_STOCK*sizeof(out->title_rows[0]));
     out->title[0]=(z72_u32)out->title_spec;
     out->title_spec[1]=(z72_u32)out->title_rows;
-    out->title_spec[2]=WIDE_I_CHOICES;
+    out->title_spec[2]=choices;
     out->entries[0][0]=(z72_u32)out->title;
 
     const z72_u32 *first_tile=(const z72_u32 *)entries[1][0];
     const z72_u32 *first_spec=(const z72_u32 *)first_tile[1];
     wide_i_copy(out->icons,(const void *)first_spec[1],WIDE_I_STOCK*sizeof(out->icons[0]));
-    for (z72_u32 i=0;i<WIDE_I_CHOICES;++i) {
+    for (z72_u32 i=0;i<choices;++i) {
         if (i>=WIDE_I_STOCK && i<WIDE_I_WIDE_CHOICES) {
             z72_u32 preset=i-WIDE_I_STOCK;
             out->title_rows[i][0]=i;
@@ -250,7 +247,7 @@ static void wide_i_build(z72_u32 variant)
         out->tiles[i][1]=(z72_u32)out->tile_specs[i];
         out->tiles[i][4]=(z72_u32)out->outlines[i];
         out->tile_specs[i][1]=(z72_u32)out->icons;
-        out->tile_specs[i][2]=WIDE_I_CHOICES;
+        out->tile_specs[i][2]=choices;
         /* Center each 32-pixel icon within its compact highlight rectangle.
          * The original two-row icon offsets are too low for the shorter rows. */
         for (z72_u32 rect=0;rect<4;++rect) {
