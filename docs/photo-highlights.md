@@ -1,7 +1,5 @@
 # Photo shooting highlights / 照片拍摄加亮显示
 
-[English README](../README.en.md) · [中文说明](../README.md)
-
 Highlight stripes mark bright areas during photo live view on both the rear LCD and electronic viewfinder. The photo settings are independent of the camera’s native movie highlight settings.
 
 照片模式取景时，可在后屏 LCD 和电子取景器中以斑马纹标出高亮区域。照片设置与原厂视频加亮显示设置相互独立。

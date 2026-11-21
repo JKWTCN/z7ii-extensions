@@ -1,7 +1,5 @@
 # Silent shutter sound / 静音拍摄快门声音
 
-[English README](../README.en.md) · [中文说明](../README.md)
-
 The Nikon Z 7II running C 1.70 can play a custom WAV through its speaker when silent photography is enabled in photo mode. Put one or more WAV files named `SHUTTER1.WAV` through `SHUTTER5.WAV` in the SD card root. Fully power the camera off and on after adding or replacing a file. Open **Setup Menu → Silent shutter sound** to select a file and preview it.
 
 Nikon Z 7II C 1.70 在照片模式下开启静音拍摄后，可以通过机身扬声器播放自定义快门声。将一个或多个 WAV 文件放在 SD 卡根目录，文件名为 `SHUTTER1.WAV` 至 `SHUTTER5.WAV`。添加或替换音效后，请完整关机再开机。在「**设定菜单 → 静音拍摄快门声音**」中选择文件并试听。
@@ -23,7 +21,7 @@ Use 48 kHz, 16-bit PCM WAV files up to **1 second** long. Both mono and stereo a
 
 ## Sample WAV files / 示例音效
 
-[SHUTTER1.WAV](../releases/v0.1.0-preview.26/SHUTTER1.WAV) · [SHUTTER2.WAV](../releases/v0.1.0-preview.26/SHUTTER2.WAV) · [SHUTTER3.WAV](../releases/v0.1.0-preview.26/SHUTTER3.WAV) · [SHUTTER4.WAV](../releases/v0.1.0-preview.26/SHUTTER4.WAV) · [SHUTTER5.WAV](../releases/v0.1.0-preview.26/SHUTTER5.WAV)
+The [release directory](../releases/) includes five sample WAV files named `SHUTTER1.WAV` through `SHUTTER5.WAV`. 发布目录附带 `SHUTTER1.WAV` 至 `SHUTTER5.WAV` 五个示例音效。
 
 Use FFmpeg to convert a clip and keep its first second. 以下命令可转换音效并截取前 1 秒。
 
@@ -31,4 +29,4 @@ Use FFmpeg to convert a clip and keep its first second. 以下命令可转换音
 ffmpeg -i input.wav -t 1 -ar 48000 -ac 1 -c:a pcm_s16le SHUTTER1.WAV
 ```
 
-The supplemental Noto Sans SC menu glyphs are distributed under the SIL Open Font License. 菜单补充字形取自 Noto Sans SC，采用 SIL 开放字体许可证。[Font license / 字体许可证](../releases/v0.1.0-preview.26/menu-font-license.txt)
+The supplemental Noto Sans SC menu glyphs are distributed under the SIL Open Font License. 菜单补充字形取自 Noto Sans SC，采用 SIL 开放字体许可证。

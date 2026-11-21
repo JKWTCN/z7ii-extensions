@@ -10,8 +10,6 @@ The tester confirmed the 2×2 grid and the five-option menu order on the combine
 
 测试者已实机确认组合版的 2×2 显示和五项菜单顺序。
 
-[English README](../README.en.md) · [中文说明](../README.md)
-
 ## Usage / 使用
 
 In d12, choose Off, 2×2, 3×3, 4×4, or Golden ratio. The 2×2 option draws one horizontal and one vertical line through the center. The selected type is saved to `Z72APP.CFG` and restored after restart.

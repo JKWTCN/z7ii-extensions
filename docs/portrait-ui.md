@@ -1,7 +1,5 @@
 # Portrait display / 后屏竖拍界面
 
-[English README](../README.en.md) · [中文说明](../README.md)
-
 On the rear screen, shooting information, the 4×3 i menu, its supported settings panels, and the live histogram rotate with the camera. The directional buttons and touch targets follow the portrait i-menu layout.
 
 竖拿相机时，后屏的拍摄信息、4×3 i 菜单、支持的 i 菜单设置页及实时直方图会转正。方向键和触控位置跟随 i 菜单的竖拍布局。
@@ -24,9 +22,9 @@ The photo AF-area picker and command-dial strip also include [Subject tracking](
 
 ## Verification / 验证
 
-Portrait display was verified on a Z 7II. The localized Setup Menu label was also verified in Simplified Chinese and English. [Menu localization](menu-localization.md)
+Portrait display was verified on a Z 7II. The localized Setup Menu label was also verified in Simplified Chinese and English.
 
-后屏竖拍界面已在 Z 7II 实机验证。设定菜单的简体中文和英文标签也已实机验证。[菜单本地化](menu-localization.md)
+后屏竖拍界面已在 Z 7II 实机验证。设定菜单的简体中文和英文标签也已实机验证。
 
 The movie portrait layout, including the audio meters, WIDE indicator, and tracking hints, passed hardware verification on November 15, 2026. Local checks also cover both portrait orientations, restoration of native audio coordinates, and the battery-percentage display.
 

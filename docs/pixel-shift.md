@@ -1,7 +1,5 @@
 # 像素变化拍摄 / Pixel shift shooting
 
-[中文 README](../README.md) · [English README](../README.en.md)
-
 ## 中文
 
 在 Nikon Z 7II C 1.70 上，像素变化拍摄通过机身防抖机构逐张移动传感器。相机把一组 4、8、16 或 32 张 NEF 保存到 `DCIM`，尼康工坊（NX Studio）可读取照片中的分组信息并合成为 NEFX。

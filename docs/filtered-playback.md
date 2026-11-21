@@ -1,7 +1,5 @@
 # Filtered playback / 筛选的播放
 
-[English README](../README.en.md) · [中文说明](../README.md)
-
 On the Nikon Z 7II, open **Playback Menu → Filtered playback criteria** to set the criteria. While reviewing an image, press **i** and choose **Filtered playback → On**. The playback i menu also offers **Filtered playback criteria**, with the same settings as the Playback Menu.
 
 在 Nikon Z 7II 的「**播放菜单 → 筛选的播放条件**」中设置条件。浏览照片时按 **i** 键，选择「**筛选的播放 → 开启**」。播放 i 菜单中的「筛选的播放条件」与播放菜单共用同一套设置。
@@ -38,4 +36,4 @@ Filtering applies to both full-frame playback and the thumbnail grid. In full-fr
 | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | ![播放 i 菜单中的筛选开关和筛选条件入口](images/filtered-playback/i-menu-zh.jpeg) | ![Filtered playback and criteria entries over a full-frame image](images/filtered-playback/i-menu-zh-alt.jpeg) |
 
-The supplemental Noto Sans SC glyph for the Simplified Chinese menu is distributed under the SIL Open Font License. 简体中文菜单的「筛」字补充字形取自 Noto Sans SC，采用 SIL 开放字体许可证。[Font license / 字体许可证](../releases/v0.1.0-preview.26/menu-font-license.txt)
+The supplemental Noto Sans SC glyph for the Simplified Chinese menu is distributed under the SIL Open Font License. 简体中文菜单的「筛」字补充字形取自 Noto Sans SC，采用 SIL 开放字体许可证。

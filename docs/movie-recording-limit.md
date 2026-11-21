@@ -1,7 +1,5 @@
 # Movie recording duration / 解除录像时长限制
 
-[English README](../README.en.md) · [中文说明](../README.md)
-
 Extend ordinary movie recording beyond the native 29-minute-59-second limit on the Nikon Z 7II running C 1.70. The complete combined SD module applies this automatically, with no additional setting. Both standby and active-recording countdowns use the extended duration.
 
 Nikon Z 7II C 1.70 的普通视频录制可超过原厂 29 分 59 秒上限。完整组合 SD 模块加载后自动生效，无需额外设置；视频待机及实际录制时的剩余时间均随延长后的时限更新。

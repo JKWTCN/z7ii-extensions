@@ -1,7 +1,5 @@
 # Custom DISP pages / 自定义 DISP 页面
 
-[English README](../README.en.md) · [中文说明](../README.md)
-
 In photo mode on the rear LCD, choose which pages participate in the DISP cycle and select each page's components. Disabled pages are skipped, and at least one page remains enabled. The Setup Menu entry **Custom DISP pages** follows the camera's language in English, Simplified Chinese, or Traditional Chinese.
 
 照片模式的后屏 LCD 支持自定义 DISP 循环：选择参与循环的页面，并分别设置每页组件。禁用页面自动跳过，至少保留一页启用。设定菜单中的「自定义DISP页面」支持简体中文、繁体中文和英文。
@@ -57,9 +55,9 @@ Preferences share `Z72APP.CFG` with the other extensions. Existing v1–v7 recor
 
 ## Verification / 验证
 
-**Hardware verified:** on November 13, 2026, the user confirmed the 47,708-byte complete combined build, including the global battery percentage switch. The seven-item root menu and Chinese/English labels are shown in the [battery percentage verification photos](battery-percent.md#verification--验证). Enabling the setting saves the 80-byte v9 configuration; v1–v8 records leave it off and retain the existing page selections. Local menu/configuration and native icon-restoration checks passed.
+**Hardware verified:** on November 13, 2026, the user confirmed the 47,708-byte complete combined build, including the seven-item root menu, Chinese/English labels, and the global battery percentage switch. Enabling the setting saves the 80-byte v9 configuration; v1–v8 records leave it off and retain the existing page selections. Local menu/configuration and native icon-restoration checks passed.
 
-**已实机验证：** 2026-11-13，用户确认包含全局电量百分比开关的 47,708 字节完整组合版本通过实机验证。七项主菜单及中英文标签见[电量百分比验证照片](battery-percent.md#verification--验证)。启用后采用 80 字节的 v9 配置，v1–v8 旧配置默认关闭此项并保留已有页面选择。本地菜单、配置和原厂电量图标恢复检查通过。
+**已实机验证：** 2026-11-13，用户确认 47,708 字节完整组合版本的七项主菜单、中英文标签和全局电量百分比开关通过实机验证。启用后采用 80 字节的 v9 配置，v1–v8 旧配置默认关闭此项并保留已有页面选择。本地菜单、配置和原厂电量图标恢复检查通过。
 
 On November 13, 2026, the user confirmed the 42,748-byte combined build passed testing on a Z 7II. This update adds the independent focal-length switch, corrected native list columns and scrollbar, and the `--` submenu indicator to the previously verified custom DISP cycle, native information page, focus-operation masks, and horizon label.
 

@@ -1,7 +1,5 @@
 # Battery percentage display / 电量百分比显示
 
-[English README](../README.en.md) · [中文说明](../README.md)
-
 Show the camera-reported battery percentage inside the battery outline on the rear LCD in photo mode and movie standby or recording. Small centered digits replace the charge bars, with a transparent background that lets the live image show through. The value comes from the same native snapshot as Battery info, rather than an estimate based on the number of bars.
 
 照片模式及视频待机、录制期间，后屏 LCD 均支持在电池框内显示机身报告的真实电量百分比。数字以小字号居中，替换原厂电量填充条，背景透明，可透出取景画面。读数来自原厂「电池信息」使用的同一电量快照，不按图标格数估算。
