@@ -2,6 +2,15 @@
 #ifndef Z72_MENU_LOCALE_H
 #define Z72_MENU_LOCALE_H
 #include "menu_golden_font.h"
+#ifdef Z72_FIRMWARE_INFO
+#include "version.h"
+#define Z72_FIRMWARE_INFO_TEXT \
+    u"" Z72_MODULE_VERSION,u"Z7II Extensions",u"github.com/JKWTCN/z7ii-extensions",u"Nikon Z 7II C 1.70"
+#define Z72_MENU_TEXT_UNITS 34u
+#define Z72_MENU_LATIN_STYLE 4u /* Stock Latin face for all language banks. */
+#else
+#define Z72_MENU_TEXT_UNITS 26u
+#endif
 
 #define Z72_MENU_LANGUAGES 36u
 #define Z72_MENU_STOCK_TEXTS 0x9e4u
@@ -127,6 +136,15 @@ enum {
     Z72_TEXT_FTP_MARK,
     Z72_TEXT_FTP_STATUS,
     Z72_TEXT_FTP_EDIT,
+#endif
+#ifdef Z72_FIRMWARE_INFO
+    Z72_TEXT_FIRMWARE_INFO,
+    Z72_TEXT_FIRMWARE_INFO_VERSION,
+    Z72_TEXT_FIRMWARE_INFO_PROJECT,
+    Z72_TEXT_FIRMWARE_INFO_URL,
+    Z72_TEXT_FIRMWARE_INFO_TARGET,
+#endif
+#ifdef Z72_FTP_FULL
     Z72_TEXT_FTP_ROW,
     Z72_TEXT_FTP_LAST_ROW=Z72_TEXT_FTP_ROW+Z72_FTP_MENU_ROWS-1,
 #endif
@@ -167,7 +185,7 @@ static inline int z72_menu_locale_install(void)
         !z72_golden_font_ready()) return 0;
 
     /* The firmware stores consecutive UTF-16LE strings with byte offsets. */
-    static const unsigned short translations[][Z72_MENU_STATIC_TEXT_END-Z72_MENU_STOCK_TEXTS][26]={
+    static const unsigned short translations[][Z72_MENU_STATIC_TEXT_END-Z72_MENU_STOCK_TEXTS][Z72_MENU_TEXT_UNITS]={
         {u"Golden ratio",u"Auto rotate info",u"Photo shooting highlights",u"Highlight threshold",u"Display pattern",
          u"Custom DISP pages",u"Custom pages",u"Standard",u"Minimal",u"Composition",u"Exposure",
          u"Page enabled",u"Shooting info",u"Framing grid",u"Histogram",u"Virtual horizon",
@@ -205,6 +223,9 @@ static inline int z72_menu_locale_install(void)
 #ifdef Z72_FTP_FULL
          u"Mark/unmark for FTP",u"Transfer status",u"Edit FTP profile",
 #endif
+#ifdef Z72_FIRMWARE_INFO
+         u"Custom firmware version",Z72_FIRMWARE_INFO_TEXT,
+#endif
         },
         {u"黄金分割",u"自动旋转信息显示",u"照片拍摄加亮显示",u"加亮阈值",u"显示图案",
          u"自定义DISP页面",u"自定义页面",u"标准",u"极简",u"构图",u"曝光",u"页面启用",u"拍摄信息",
@@ -241,6 +262,9 @@ static inline int z72_menu_locale_install(void)
 #ifdef Z72_FTP_FULL
          u"选择以FTP发送/取消",u"传输状态",u"编辑 FTP 配置",
 #endif
+#ifdef Z72_FIRMWARE_INFO
+         u"自定义固件版本",Z72_FIRMWARE_INFO_TEXT,
+#endif
         },
         {u"黃金分割",u"自動旋轉資訊顯示",u"照片拍攝加亮顯示",u"加亮閾值",u"顯示圖案",
          u"自訂DISP頁面",u"自訂頁面",u"標準",u"精簡",u"構圖",u"曝光",u"頁面啟用",u"拍攝資訊",
@@ -257,6 +281,10 @@ static inline int z72_menu_locale_install(void)
          u"SHUTTER1.WAV（無法使用）",u"SHUTTER2.WAV（無法使用）",u"SHUTTER3.WAV（無法使用）",
          u"SHUTTER4.WAV（無法使用）",u"SHUTTER5.WAV（無法使用）",
 #endif
+#ifdef Z72_FILTERED_PLAYBACK
+         /* Filtered playback resolves its labels from the English or Simplified Chinese bank. */
+         [TEXT_OFF-Z72_MENU_STOCK_TEXTS]=u"",
+#endif
 #ifdef Z72_WIDE_AF
          u"自訂寬區域 AF",u"寬區域 AF（C1）",u"寬區域 AF（C2）",u"主體偵測",u"人物",u"動物",u"關閉",
          u"對焦區域大小",u"MENU 完成",u"C1",u"C2",
@@ -271,6 +299,9 @@ static inline int z72_menu_locale_install(void)
 #endif
 #ifdef Z72_FTP_FULL
          u"選擇以FTP傳送/取消",u"傳輸狀態",u"編輯 FTP 設定",
+#endif
+#ifdef Z72_FIRMWARE_INFO
+         u"自訂韌體版本",Z72_FIRMWARE_INFO_TEXT,
 #endif
         }
     };
@@ -301,6 +332,10 @@ static inline int z72_menu_locale_install(void)
     for (z72_u32 id=TEXT_FILTER;id<=TEXT_OFF;++id)
         locale->styles[id]=id<=TEXT_CONDITIONS ? Z72_PLAYBACK_TITLE_STYLE : Z72_PLAYBACK_ROW_STYLE;
 #endif
+#ifdef Z72_FIRMWARE_INFO
+    for (z72_u32 id=Z72_TEXT_FIRMWARE_INFO_VERSION;id<=Z72_TEXT_FIRMWARE_INFO_TARGET;++id)
+        locale->styles[id]=Z72_MENU_LATIN_STYLE;
+#endif
     z72_golden_font_prepare(&locale->golden,copy,styles[template]);
     unsigned char *text=locale->text;
     for (z72_u32 lang=0;lang<Z72_MENU_LANGUAGES;++lang) {
@@ -321,6 +356,9 @@ static inline int z72_menu_locale_install(void)
             }
 #endif
             const unsigned short *label=translations[label_language][id-Z72_MENU_STOCK_TEXTS];
+#ifdef Z72_FIRMWARE_INFO
+            if (lang==10 && id==Z72_TEXT_FIRMWARE_INFO) label=u"사용자 펌웨어 버전";
+#endif
             z72_u32 length=0;
             while (length<sizeof(translations[0][0])/sizeof(*label) && label[length]) ++length;
             length*=sizeof(*label);

@@ -1497,6 +1497,9 @@ static u32 af_menu_header_owned(u32 header);
 #ifdef Z72_CUSTOM_DISP
 static u32 disp_header_owned(u32 header);
 #endif
+#ifdef Z72_FIRMWARE_INFO
+static u32 firmware_info_header_owned(u32 header);
+#endif
 #include "photo_zebra_menu.h"
 #endif
 #ifdef Z72_CUSTOM_DISP
@@ -1508,6 +1511,9 @@ static u32 disp_header_owned(u32 header);
 
 #ifdef Z72_JPEG_PRE_CAPTURE
 static u32 pre_capture_menu_source(u32 header);
+#endif
+#ifdef Z72_FIRMWARE_INFO
+#include "firmware_info_menu.h"
 #endif
 #ifdef Z72_FTP_FULL
 #include "ftp_service.h"
@@ -1600,6 +1606,9 @@ static u32 portrait_install_menu(void)
         {0},
 #endif
     };
+#ifdef Z72_FIRMWARE_INFO
+    _Static_assert(sizeof(rows)/sizeof(rows[0])+1<=Z72_MENU_EXTRA_ROWS,"Setup menu row capacity");
+#endif
     u32 count=sizeof(rows)/sizeof(rows[0]);
 #ifdef Z72_FTP_FULL
     --count;
@@ -1682,6 +1691,14 @@ static u32 portrait_install_menu(void)
             menu.rows[pixel_row][0]=Z72_TEXT_PIXEL_TITLE;
             menu.rows[pixel_row][4]=0x1001;
         }
+#endif
+#ifdef Z72_FIRMWARE_INFO
+        u32 last=Z72_MENU_ROWS+count;
+        firmware_info_prepare();
+        z72_menu_prepare_row(&menu,last,count,open_firmware_info,0xd7u);
+        menu.rows[last][0]=Z72_TEXT_FIRMWARE_INFO;
+        menu.rows[last][4]=0x1001;
+        ++count;
 #endif
     } else {
         u32 unlocalized_count=count;
