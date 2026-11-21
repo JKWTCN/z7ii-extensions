@@ -21,6 +21,7 @@
 #include "disp.h"
 #include "af_shortcut.h"
 #include "movie_limit.h"
+#include "movie_rotation.h"
 #include "wifi.h"
 #ifndef Z72_ZEBRA_OBSERVE_ONLY
 #define Z72_ZEBRA_OBSERVE_ONLY 0
@@ -61,6 +62,7 @@ z72_u32 z72_main(const struct z72_api *api)
     af_shortcut_install();
     wifi_install();
     movie_limit_install();
+    movie_rot_install();
     if (pre_capture_menu_available) pre_capture_install();
     if (pixel_menu_available) {
         if (WORD(INPUT_SLOT)==INPUT_NATIVE) install_shared_capture_hooks();

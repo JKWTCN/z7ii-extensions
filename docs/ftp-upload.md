@@ -4,7 +4,7 @@
 
 Nikon Z 7II C 1.70 安装 SD 加载宿主后，可通过设定菜单的「FTP 上传」将 SD 卡上的 JPEG 和 NEF 传到 FTP 服务器。更换组合模块时，SD 卡根目录已有的 `Z72APP.CFG` 和 FTP 配置可以保留。
 
-「FTP 上传」已在 Z 7II C 1.70 上通过 [v0.1.0-preview.24 组合 SD 模块](../releases/v0.1.0-preview.24/Z72APP.BIN) 实机验证。
+「FTP 上传」已在 Z 7II C 1.70 上通过 `v0.1.0-preview.24` 组合 SD 模块实机验证。
 
 ## 连接相机和电脑
 
@@ -72,7 +72,7 @@ FileZilla Server 收到 `STOR` 并回复 `226` 表示上传完成。若先看到
 
 The SD extension adds **Setup menu → FTP upload** on the Nikon Z 7II C 1.70 with the SD loader installed. It uploads JPEG and NEF photos from the SD card, up to 256 MiB per file.
 
-FTP upload was verified on a Z 7II running C 1.70 with the [v0.1.0-preview.24 combined SD module](../releases/v0.1.0-preview.24/Z72APP.BIN).
+FTP upload was verified on a Z 7II running C 1.70 with the `v0.1.0-preview.24` combined SD module.
 
 1. Join the camera hotspot from the PC, or connect both devices to the same LAN using the camera's **Connect to PC → Network settings**. Run `ipconfig` on the PC and use the IPv4 address of the adapter on that LAN. You can connect before or after starting a manual upload. The camera waits for Wi‑Fi and lets you retry pending photos if the connection takes too long.
 2. In FileZilla Server, allow plain FTP in **Server → Configure → Server listeners** on TCP port `21` or the port you choose. Under **Protocol settings → FTP and FTP over TLS (FTPS) → Passive mode**, set a custom range such as `49160–49169`. Enable a password-protected user and map the virtual path `/` to a local upload folder with **Read + Write** access. Use IPv4 on a trusted LAN because plain FTP sends credentials and files without encryption. [FileZilla listeners](https://filezillapro.com/docs/server/advanced-options/setting-up-ftp-listeners-and-connection-security/) · [Passive mode](https://filezillapro.com/docs/server/advanced-options/filezilla-server-passive-mode/) · [Mount points](https://filezillapro.com/docs/server/advanced-options/how-to-edit-mount-points-virtual-native-paths/)
