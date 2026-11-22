@@ -223,16 +223,19 @@ static void gallery_worker(void *argument)
                 struct gallery_image image;
                 if (gallery_open(route,value,file,path,&image)) {
                     if (request_active(serial,epoch)) {
-                        z72_u32 send_address=0;
+                        z72_u32 flags=GALLERY_REQUEST->flags,send_address=0;
+                        z72_u32 large=(flags&GALLERY_ARCHIVE) ? flags&GALLERY_LARGE :
+                            image.length>=TCP_LARGE_SEND_BYTES;
                         if ((route==GALLERY_JPG || route==GALLERY_NEF) &&
-                            !GALLERY_REQUEST->head && image.length>=TCP_LARGE_SEND_BYTES) {
+                            !(flags&GALLERY_META) && large) {
                             if (!gallery_send_owner)
                                 gallery_send_address=tcp_allocate_send_buffer(2,&gallery_send_owner);
                             send_address=gallery_send_address;
                             if (send_address) gallery_send_serial=serial;
                         }
-                        gallery_reply(serial,200,image.length,0,basename(path),send_address);
-                        gallery_stream(serial,epoch,file,image);
+                        const char *name=(flags&GALLERY_ARCHIVE) ? path+8 : basename(path);
+                        gallery_reply(serial,200,image.length,0,name,send_address);
+                        if (!(flags&GALLERY_META)) gallery_stream(serial,epoch,file,image);
                     }
                     card_close(file);
                 } else gallery_reply(serial,404,0,0,"",0);

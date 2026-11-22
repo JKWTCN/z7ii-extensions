@@ -5,28 +5,163 @@
 :root{color-scheme:dark;font:16px system-ui,sans-serif;background:#161817;color:#f4f4ef}
 *{box-sizing:border-box}body{max-width:52rem;margin:auto;padding:1rem}
 header,nav{display:flex;align-items:center;justify-content:space-between;gap:.7rem}
-h1{font-size:1.45rem;margin:.3rem 0 1rem}button,a{font:inherit;color:inherit}
-button,a.download{border:1px solid #555d57;background:#272d29;border-radius:.5rem;padding:.65rem .85rem;text-decoration:none}
-button:disabled{opacity:.4}#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(6.8rem,1fr));gap:.55rem}
+.album-head{position:sticky;top:0;z-index:1;background:#161817;padding:.25rem 0 .75rem}
+.tools{display:flex;gap:.45rem;flex-wrap:wrap;justify-content:flex-end}
+h1{font-size:1.45rem;margin:.3rem 0 1rem}button,a,select{font:inherit;color:inherit}
+button,a.download,select{border:1px solid #555d57;background:#272d29;border-radius:.5rem;padding:.65rem .85rem;text-decoration:none}
+button:disabled,select:disabled,a[aria-disabled=true]{opacity:.4}#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(6.8rem,1fr));gap:.55rem}
 .tile{min-width:0;padding:0;overflow:hidden;text-align:left}
+.tile[aria-pressed=true]{outline:2px solid #92c9a1;outline-offset:-2px;background:#304138}
+.tile[aria-pressed=true] span::before{content:"✓ ";color:#b0e3bb}
 .thumb,#preview{display:grid;place-items:center;background:#202420;color:#a6aca5}
 .thumb{aspect-ratio:4/3}.thumb img{width:100%;height:100%;object-fit:contain}
 .tile span{display:block;padding:.45rem;font-size:.72rem;overflow:hidden;text-overflow:ellipsis}
-nav{margin-top:1rem}#message,#detailMessage{color:#c0c6bf}
+#message,#detailMessage,#selected{color:#c0c6bf}
+#selection nav{flex-wrap:wrap}
+#selection .tools{align-items:center;flex-wrap:nowrap;justify-content:flex-start;margin-left:auto;max-width:100%;overflow-x:auto;white-space:nowrap}
+#selection label{display:flex;align-items:center;gap:.45rem}
+@media(max-width:28rem){
+  #selection .tools{gap:.3rem;font-size:.875rem}
+  #selection label{gap:.3rem}
+  #selection .tools :is(button,a,select){padding:.55rem .25rem}
+}
+#listEnd{min-height:1px}
 #preview{margin:.8rem 0;min-height:9rem}#preview img,#preview canvas{width:100%;max-height:72vh;object-fit:contain}
 #downloads{display:flex;flex-wrap:wrap;gap:.55rem}#detailName{overflow-wrap:anywhere}
 [hidden]{display:none!important}
 </style>
-<section id="album"><header><h1>相机相册</h1><button id="refresh">刷新</button></header>
-<p id="message" role="status"></p><div id="grid"></div>
-<nav><button id="previous" disabled>上一页</button><button id="next" disabled>下一页</button></nav></section>
+<section id="album"><div class="album-head"><header><h1>相机相册</h1><div class="tools">
+<button id="select">多选</button><button id="refresh">刷新</button></div></header>
+<div id="selection" hidden><nav><span id="selected" role="status"></span>
+<div class="tools">
+<label>格式 <select id="downloadFormat"><option value="all" selected>JPG + RAW</option>
+<option value="jpg">只下载 JPG</option><option value="nef">只下载 RAW</option></select></label>
+<button id="direct" disabled>下载所选</button>
+<a class="download" id="zip" download="Z72-Photos.zip" aria-disabled="true">打包 ZIP</a></div></nav>
+<p id="directMessage" role="status" hidden></p></div></div>
+<div id="grid"></div><div id="listEnd"><p id="message" role="status"></p>
+<button id="retry" hidden>重试加载</button></div></section>
 <section id="detail" hidden><header><button id="back">返回相册</button><span id="detailName"></span></header>
 <div id="preview"></div><p id="detailMessage" role="status"></p><div id="downloads"></div></section>
 <script>
 const el=id=>document.getElementById(id);
-const cursors=[''];
-let page=0,next='',busy=false;
+const selected=new Map(),fileLimit=128;
+let next='',more=true,busy=false,failedPage=false,selecting=false,scrollPosition=0;
 let thumbs=[],thumbJob=null,pendingPreview=null;
+let directRunning=false,directStopped=false,directController=null;
+let nextToken=(Math.random()*0xffffffff)>>>0;
+function photoFiles(photo,format){
+  const files=[];
+  if(photo.jpg&&format!=='nef')files.push(photo.id+'j');
+  if(photo.nef&&format!=='jpg')files.push(photo.id+'n');
+  return files;
+}
+function selectedFiles(){
+  const format=el('downloadFormat').value;
+  return Array.from(selected.values()).flatMap(photo=>photoFiles(photo,format));
+}
+function updateSelection(){
+  const files=selectedFiles(),zip=el('zip');
+  const count=files.length,canDownload=count>0&&count<=fileLimit;
+  el('selected').textContent='已选 '+selected.size+' 张 · '+
+    (selected.size&&!count?'当前格式无文件':count+' 个原文件')+
+    (count>fileLimit?'（单次最多 '+fileLimit+' 个）':'');
+  el('downloadFormat').disabled=directRunning;
+  el('direct').disabled=!directRunning&&!canDownload;
+  el('direct').textContent=directRunning?'停止后续':'下载所选';
+  el('select').disabled=directRunning;
+  el('refresh').disabled=busy||directRunning;
+  const canZip=canDownload&&!directRunning;
+  zip.setAttribute('aria-disabled',String(!canZip));
+  if(canZip)zip.href='/zip/'+files.join(',');
+  else zip.removeAttribute('href');
+}
+function selectionMode(enabled){
+  selecting=enabled;
+  selected.clear();
+  el('selection').hidden=!enabled;
+  el('directMessage').hidden=true;
+  el('select').textContent=enabled?'取消多选':'多选';
+  for(const tile of el('grid').children){
+    if(enabled)tile.setAttribute('aria-pressed','false');
+    else tile.removeAttribute('aria-pressed');
+  }
+  updateSelection();
+}
+function selectPhoto(photo,tile){
+  if(directRunning)return;
+  if(selected.has(photo.id))selected.delete(photo.id);
+  else{
+    if(selectedFiles().length+photoFiles(photo,el('downloadFormat').value).length>fileLimit){
+      el('selected').textContent='每次最多 '+fileLimit+' 个原文件';
+      return;
+    }
+    selected.set(photo.id,photo);
+  }
+  tile.setAttribute('aria-pressed',String(selected.has(photo.id)));
+  updateSelection();
+}
+async function directStatus(token){
+  const deadline=Date.now()+30000;
+  while(!directStopped){
+    const controller=new AbortController();
+    directController=controller;
+    const timer=setTimeout(()=>controller.abort(),180000);
+    try{
+      const response=await fetch('/direct-status/'+token,{signal:controller.signal});
+      if(response.ok){
+        const status=await response.text();
+        if(status==='1'||status==='2')return status;
+      }
+    }catch(error){
+      // A temporary connection error can be retried without resending a file.
+    }finally{
+      clearTimeout(timer);
+      directController=null;
+    }
+    if(directStopped||Date.now()>=deadline)break;
+    await new Promise(resolve=>setTimeout(resolve,750));
+  }
+  return '0';
+}
+async function downloadSelected(){
+  if(directRunning){
+    directStopped=true;
+    if(directController)directController.abort();
+    return;
+  }
+  const files=selectedFiles();
+  if(!files.length||files.length>fileLimit)return;
+  directRunning=true;directStopped=false;
+  pauseThumbs();updateSelection();
+  const message=el('directMessage');
+  message.hidden=false;
+  let sent=0,status='1';
+  for(const file of files){
+    nextToken=((nextToken+1)>>>0)||1;
+    const token=nextToken.toString(16).padStart(8,'0');
+    message.textContent='相机正在发送 '+(sent+1)+' / '+files.length+'，请允许浏览器下载。';
+    const link=document.createElement('a');
+    link.href='/direct/'+token+'/'+file;
+    link.download='';
+    link.hidden=true;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    status=await directStatus(token);
+    if(status!=='1')break;
+    ++sent;
+    if(directStopped)break;
+  }
+  const summary='相机已发送 '+sent+' / '+files.length+' 个文件。';
+  message.textContent=summary+(directStopped?' 已停止后续下载。':
+    status==='2'?' 相机传输失败。':
+    status==='0'?' 等待下载超时，请检查热点连接和浏览器的自动下载权限。':' 请在浏览器下载列表查看。');
+  directRunning=false;
+  updateSelection();
+  nextThumb();
+  checkForMore();
+}
 function retryThumb(item,queue){
   if(item.retried)item.thumb.textContent='缩略图读取失败';
   else{item.retried=true;queue.push(item);}
@@ -44,7 +179,7 @@ function pauseThumbs(){
   thumbJob.controller.abort();
 }
 async function nextThumb(){
-  if(busy||thumbJob||!el('detail').hidden||!thumbs.length)return;
+  if(busy||directRunning||thumbJob||!el('detail').hidden||!thumbs.length)return;
   const queue=thumbs,batch=queue.splice(0,1);
   if(!batch[0].retried)
     while(batch.length<6&&queue.length&&!queue[0].retried)batch.push(queue.shift());
@@ -106,6 +241,7 @@ function showPreview(photo,route){
   image.src='/'+route+'/'+photo.id;
 }
 function detail(photo,thumbnail){
+  scrollPosition=window.scrollY;
   el('detailName').textContent=photo.name;
   el('album').hidden=true;el('detail').hidden=false;
   pauseThumbs();
@@ -136,19 +272,33 @@ function detail(photo,thumbnail){
 el('back').onclick=()=>{
   cancelPreview();
   el('preview').replaceChildren();el('detail').hidden=true;el('album').hidden=false;
+  window.scrollTo(0,scrollPosition);
   nextThumb();
+  checkForMore();
 };
-async function load(number,cursor){
-  if(busy)return;
-  busy=true;el('refresh').disabled=el('previous').disabled=el('next').disabled=true;
-  pauseThumbs();
+function checkForMore(){
+  if(more&&!busy&&!directRunning&&!failedPage&&el('detail').hidden&&
+     el('listEnd').getBoundingClientRect().top<=window.innerHeight+160)load();
+}
+async function load(reset=false){
+  if(busy||directRunning||(!reset&&!more))return;
+  busy=true;el('refresh').disabled=true;el('retry').hidden=true;
+  if(reset)pauseThumbs();
+  const cursor=reset?'':next;
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),8000);
   el('message').textContent='正在读取照片…';
   try{
-    const response=await fetch('/photos'+(cursor?'/'+cursor:''));
+    const response=await fetch('/photos'+(cursor?'/'+cursor:''),{signal:controller.signal});
     if(!response.ok)throw new Error(response.status);
     const data=await response.json();
     const tiles=document.createDocumentFragment();
-    thumbs=[];
+    if(reset){
+      thumbs=[];
+      el('grid').replaceChildren();
+      selectionMode(false);
+      window.scrollTo(0,0);
+    }
     for(const photo of data.items){
       const button=document.createElement('button');
       button.className='tile';
@@ -156,24 +306,34 @@ async function load(number,cursor){
       thumb.className='thumb';
       const image=new Image();
       image.alt='';image.decoding='async';image.hidden=true;
-      button.onclick=()=>detail(photo,image);
+      if(selecting)button.setAttribute('aria-pressed','false');
+      button.onclick=()=>selecting?selectPhoto(photo,button):detail(photo,image);
       const caption=document.createElement('span');
       caption.textContent=photo.name;
       thumb.append(image);button.append(thumb,caption);tiles.append(button);
       thumbs.push({photo,image,thumb});
     }
-    el('grid').replaceChildren(tiles);
-    page=number;cursors[page]=cursor;cursors.length=page+1;next=data.next;
-    el('message').textContent=data.items.length?'':next?'这一页没有可显示的照片':'没有照片';
-    window.scrollTo(0,0);
-  }catch(error){el('message').textContent='读取失败，请检查热点连接后重试';}
+    el('grid').append(tiles);
+    next=data.next;more=!!next&&next!==cursor;failedPage=false;
+    el('message').textContent=el('grid').children.length||more?'':'没有照片';
+  }catch(error){
+    failedPage=true;el('retry').hidden=false;
+    el('retry').onclick=()=>load(reset);
+    el('message').textContent='读取失败，请检查热点连接后重试';
+  }
   finally{
-    busy=false;el('refresh').disabled=false;el('previous').disabled=page===0;el('next').disabled=!next;
+    clearTimeout(timer);
+    busy=false;el('refresh').disabled=false;
     nextThumb();
+    window.requestAnimationFrame(checkForMore);
   }
 }
-el('refresh').onclick=()=>load(0,'');
-el('previous').onclick=()=>load(page-1,cursors[page-1]);
-el('next').onclick=()=>load(page+1,next);
-load(0,'');
+el('refresh').onclick=()=>load(true);
+el('select').onclick=()=>selectionMode(!selecting);
+el('downloadFormat').onchange=updateSelection;
+el('direct').onclick=downloadSelected;
+window.addEventListener('scroll',checkForMore,{passive:true});
+window.addEventListener('resize',checkForMore);
+updateSelection();
+load();
 </script></html>

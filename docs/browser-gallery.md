@@ -7,40 +7,48 @@
 | 浏览器相册 | 进入「关闭／开启」。每次开机默认关闭 |
 | 刷新当前状态 | 更新菜单下方的服务状态和最近一次原图下载的 TCP 发送缓冲 |
 
-网页每页可浏览 24 张 SD 卡照片。点开照片后会先显示已加载的缩略图，再读取内嵌预览。JPG 可点「查看全尺寸 JPG」。同组 RAW+JPEG 共用一个相册条目，可分别下载 JPG 或 NEF 原文件。
+向下滑动时，相册会继续加载 SD 卡上的照片，每批最多 24 张。点开照片后会先显示已加载的缩略图，再读取内嵌预览。JPG 可点「查看全尺寸 JPG」。同组 RAW+JPEG 共用一个相册条目，可分别下载 JPG 或 NEF 原文件。
 
-下载至少 4 MiB 的原文件时，相册会尝试使用 4 MiB TCP 发送缓冲。内存不足时使用原厂缓冲。相册开启期间会延后 Wi‑Fi 空闲关闭。关闭相册后恢复原厂计时，也可机内手动关闭热点。
+点「多选」后可以边滑动边勾选。选择「JPG + RAW」（默认）、「只下载 JPG」或「只下载 RAW」，页面会更新符合格式的文件数。点「下载所选」会按顺序逐个下载原文件，浏览器可能会要求允许多文件下载。点「停止后续」可以停止发送剩余文件，当前下载可在浏览器中取消。「打包 ZIP」会将符合所选格式的原文件合为一个存档。单次最多 128 个原文件，ZIP 总大小须小于 4 GiB。
 
-独立 SD 模块的相册浏览、翻页和预览已有实机反馈。组合版菜单、帮助文本和状态刷新通过本地执行检查，组合版待实机复测。
+下载至少 4 MiB 的原文件或 ZIP 时，相册会尝试使用 4 MiB TCP 发送缓冲。内存不足时使用原厂缓冲。相册开启期间会延后 Wi‑Fi 空闲关闭。关闭相册后恢复原厂计时，也可机内手动关闭热点。
+
+独立 SD 模块已在实机上展示滚动浏览、预览和多选逐个下载。新版组合包已完成本地构建，待实机复测。
 
 ## 实机截图
 
-**电脑端缩略图列表**
-
-![浏览器相册显示 24 张照片和翻页按钮 / Gallery page with 24 thumbnails and pagination controls](images/z7ii-browser-gallery-thumbnails.png)
-
 **手机端缩略图列表**
 
-![手机浏览器显示相机相册的三列照片缩略图 / Camera gallery with a three-column thumbnail grid in a phone browser](images/z7ii-browser-gallery-mobile.jpg)
+![iPhone Safari 显示三列照片缩略图和多选按钮 / Three-column thumbnail grid with the multi-select button in iPhone Safari](images/z7ii-browser-gallery-mobile.jpg)
 
 **单张预览与原图下载**
 
 ![单张照片预览及 JPG、NEF 原图下载按钮 / Photo preview with original JPG and NEF download buttons](images/z7ii-browser-gallery-preview.png)
 
-**手机端下载 NEF 原图**
+**电脑端多选下载**
 
-![手机浏览器询问 NEF 原图的下载位置 / Phone browser asking where to save the original NEF file](images/z7ii-browser-gallery-mobile-download.jpg)
+![电脑浏览器显示六张已选照片、下载格式和逐个下载进度 / Desktop browser showing six selected photos, the format selector, and individual download progress](images/z7ii-browser-gallery-desktop-batch.png)
+
+**iPhone Safari 多选下载**
+
+![Safari 下载列表显示同一组照片的 JPG 和 NEF / Safari's download list showing JPG and NEF files from the same selection](images/z7ii-browser-gallery-mobile-batch.png)
+
+**iPhone 下载进度**
+
+![iPhone 灵动岛显示 Safari 的 NEF 原图下载进度 / Safari's original NEF download progress in the iPhone Dynamic Island](images/z7ii-browser-gallery-safari-download.jpg)
 
 ## English
 
-See the [hardware screenshots](#实机截图) for thumbnail browsing, photo preview, and the phone download dialog.
+See the [hardware screenshots](#实机截图) for thumbnail browsing, photo preview, and batch downloads on desktop and iPhone.
 
 Open **Setup Menu → Browser gallery** on the Nikon Z 7II running C 1.70. Set **Browser gallery** to **On**, connect your phone or computer to the camera hotspot, then open the camera IP address in a browser. The default AP address is [http://192.168.1.1/](http://192.168.1.1/).
 
 **Refresh status** updates the service status and the TCP send buffer used by the most recent original download. The gallery defaults to **Off** at power-up.
 
-Browse thumbnails and previews from the SD card and download original JPG and NEF files individually. A RAW+JPEG pair appears as one entry with both download buttons. **View full-size JPG** loads the complete JPEG in the browser.
+Scroll to load more photos from the SD card, up to 24 per batch. A RAW+JPEG pair appears as one entry with separate JPG and NEF download buttons. **View full-size JPG** loads the complete JPEG in the browser.
 
-Original downloads of at least 4 MiB can use a 4 MiB TCP send buffer when memory is available. While the gallery is on, it defers the Wi-Fi idle timer. Choosing **Off** restores the camera's usual timer. You can also turn off the hotspot manually.
+In multi-select mode, selected photos stay selected as you scroll. Choose **JPG + RAW** (default), **JPG only**, or **RAW only**. Download selected originals as separate files in sequence or as one ZIP archive. Your browser may ask to allow multiple downloads. You can stop the remaining files from the page and cancel the current download in your browser. Each batch supports up to 128 originals, with a ZIP size limit below 4 GiB.
 
-Gallery browsing, paging and previews were exercised on hardware with the standalone SD module. The integrated menu and status controls passed local execution checks and await a hardware retest in the combined build.
+Original and ZIP downloads of at least 4 MiB can use a 4 MiB TCP send buffer when memory is available. The gallery defers the Wi-Fi idle timer while it is on. Choosing **Off** restores the camera's usual timer. You can also turn off the hotspot manually.
+
+Scrolling, previews, and sequential batch downloads were exercised on hardware with the standalone SD module. The updated combined build was built locally and awaits a hardware retest.

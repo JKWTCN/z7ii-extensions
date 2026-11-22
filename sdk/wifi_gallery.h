@@ -9,13 +9,15 @@
 #define GALLERY_SLOTS 2u
 #define GALLERY_NAME_BYTES 32u
 #define GALLERY_THUMB_BATCH 6u
+#define GALLERY_ZIP_FILES 128u
 
 enum gallery_route { GALLERY_HOME, GALLERY_LIST, GALLERY_THUMB, GALLERY_PREVIEW,
                      GALLERY_JPG, GALLERY_NEF, GALLERY_VIEW_JPG, GALLERY_THUMBS,
-                     GALLERY_MISSING };
+                     GALLERY_ZIP, GALLERY_DIRECT, GALLERY_DIRECT_STATUS, GALLERY_MISSING };
 enum gallery_status { GALLERY_OFF, GALLERY_WAIT_AP, GALLERY_LISTEN, GALLERY_SERVE,
                       GALLERY_SOCKET_ERROR, GALLERY_TASK_ERROR };
 enum gallery_buffer { GALLERY_BUFFER_UNUSED, GALLERY_BUFFER_NATIVE, GALLERY_BUFFER_LARGE };
+enum gallery_flags { GALLERY_META=1u, GALLERY_ARCHIVE=2u, GALLERY_LARGE=4u };
 
 /* The main CPU invalidates request/state lines written by the uncached ARM926.
  * Each side publishes only its own cache lines. A request's slot space stays
@@ -25,7 +27,7 @@ struct gallery_control {
     volatile unsigned int epoch; /* Odd while enabled. */
 };
 struct gallery_request {
-    volatile unsigned int serial, epoch, route, value, head, consumed, cancelled;
+    volatile unsigned int serial, epoch, route, value, flags, consumed, cancelled;
 };
 struct gallery_response {
     volatile unsigned int serial, status, length, produced, failed, released;
