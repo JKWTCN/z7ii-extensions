@@ -17,12 +17,18 @@ static int ftp_media_format(const char *ext)
     return FTP_MEDIA_UNKNOWN;
 }
 
-static int ftp_media_path(z72_u32 id,char path[FTP_PATH_BYTES])
+static int dcim_media_path(z72_u32 id,char path[FTP_PATH_BYTES],z72_u32 protection,z72_u32 dates)
 {
     /* Same reference/get-path/release sequence as native playback. */
     void *image=Z72_CARD_CALL(0x1063ea8bu,void *,z72_u32)(id);
     if (!image) return 0;
-    const char *name=Z72_CARD_CALL(0x10567f61u,const char *,void *)(image);
+    int matches=!protection || Z72_CARD_CALL(0x10567e19u,z72_u32,void *)(image)==(protection==1);
+    if (matches && dates) {
+        const unsigned short *date=Z72_CARD_CALL(0x10567f05u,const unsigned short *,void *)(image);
+        z72_u32 captured=date ? *date : 0, end=dates>>16;
+        matches=captured && captured>=(dates&0xffffu) && (!end || captured<=end);
+    }
+    const char *name=matches ? Z72_CARD_CALL(0x10567f61u,const char *,void *)(image) : 0;
     z72_u32 length=0;
     if (name) {
         length=Z72_CARD_CALL(0x10509831u,z72_u32,const char *)(name);
@@ -37,6 +43,11 @@ static int ftp_media_path(z72_u32 id,char path[FTP_PATH_BYTES])
     return ftp_media_format(path+length-4);
 }
 
+static int ftp_media_path(z72_u32 id,char path[FTP_PATH_BYTES])
+{
+    return dcim_media_path(id,path,0,0);
+}
+
 static int ftp_previous_folder(unsigned short *folder)
 {
     unsigned short previous=*folder;
@@ -44,7 +55,8 @@ static int ftp_previous_folder(unsigned short *folder)
     return status==FS_OK && *folder>=100 && *folder<previous;
 }
 
-static z72_u32 ftp_find_photo(unsigned short folder,z72_u32 old,z72_u32 direction)
+static inline z72_u32 dcim_find_photo(unsigned short folder,z72_u32 old,z72_u32 direction,
+                                      const unsigned short *predicate)
 {
     struct {
         unsigned char slot,pad;
@@ -54,10 +66,15 @@ static z72_u32 ftp_find_photo(unsigned short folder,z72_u32 old,z72_u32 directio
     } query={1,0,folder,{0,0},7u|(1u<<5)|(1u<<6),7,1,0,0}; /* Include MOV and MP4. */
     z72_u32 id=old;
     z72_u32 status=Z72_CARD_CALL(0x106d3285u,z72_u32,const void *,const void *,z72_u32,z72_u32 *)(
-        &query,0,direction,&id);
+        &query,predicate,direction,&id);
     if (status!=0x042b0080u || id>>29!=1u || ((id>>19)&0x3ffu)!=folder ||
         (old && (direction ? id>=old : id<=old))) return 0;
     return id;
+}
+
+static inline z72_u32 ftp_find_photo(unsigned short folder,z72_u32 old,z72_u32 direction)
+{
+    return dcim_find_photo(folder,old,direction,0);
 }
 
 static z72_u32 ftp_media_key(z72_u32 id)

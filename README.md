@@ -27,7 +27,7 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 | [像素变化拍摄](docs/pixel-shift.md)                     | 机身防抖移位拍摄 4／8／16／32 张 NEF，支持尼康工坊合并                          | 已实机验证 |
 | [WiFi 设置](docs/wifi-settings.md)                      | 统一子菜单，包含地区选择与80 MHz热点开关，支持5 GHz STA与Wi-Fi 5 AP             | 已实机验证 |
 | [FTP 上传](docs/ftp-upload.md)                          | 机内配置 FTP，触屏双击多选，支持批量上传照片和视频及 4 MiB 发送缓冲             | 已实机验证 |
-| [浏览器相册](docs/browser-gallery.md)                   | 手机直连相机热点，滚动浏览缩略图和预览，按格式多选下载 JPG／NEF 原文件          | 已实机验证 |
+| [浏览器相册](docs/browser-gallery.md)                   | 滚动浏览缩略图和预览，按星级、保护状态和拍摄日期筛选，多选下载 JPG／NEF 原文件     | 已实机验证 |
 | [菜单本地化](docs/menu-localization.md)                 | 扩展设置支持简体中文、繁体中文和英文标签                                        | 已实机验证 |
 
 ## 已知问题
@@ -56,10 +56,10 @@ Wi-Fi 设置的[使用限制与风险声明](docs/wifi-settings.md#important-lim
 如果要自己构建固件升级包的生成方法见[构建](#构建)。
 
 1. 等待存储卡访问结束，关机并取出存储卡。
-2. 将 [Z72APP.BIN](releases/v0.1.0-preview.31/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.32/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
 3. 装回卡和电池，等待到 i 按键旁边的读取灯灭了再开机。
 
-当前版本为 `v0.1.0-preview.31`，模块 239,340 字节。[SHA-256 校验](releases/v0.1.0-preview.31/SHA256SUMS)
+当前版本为 `v0.1.0-preview.32`，模块 243,820 字节。[SHA-256 校验](releases/v0.1.0-preview.32/SHA256SUMS)
 
 这是试用版本，休眠唤醒和长期稳定性尚未单独确认。替换或移除模块请完整断电。只加载可信模块。
 
@@ -109,4 +109,4 @@ python -B tools/build.py --stock-package "path/to/original/Z7_2_0170.bin" --outp
 
 ## 许可证
 
-采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」「筛选的播放」和「浏览器相册」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.31/menu-font-license.txt)。
+采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」「筛选的播放」和「浏览器相册」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.32/menu-font-license.txt)。

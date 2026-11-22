@@ -66,7 +66,7 @@ static u32 gallery_zip_prepare(u32 count,u32 epoch,u32 *length,u32 *directory)
     u32 total=ZIP_END,local=0;
     for (u32 i=0;i<count;++i) {
         struct gallery_zip_entry *entry=&gallery_zip_entries[i];
-        u32 status=gallery_request_media(entry->route,entry->id,GALLERY_META|GALLERY_ARCHIVE,epoch);
+        u32 status=gallery_request_media(entry->route,entry->id,GALLERY_META|GALLERY_ARCHIVE,0,epoch);
         gallery_request.cancelled=gallery_request.serial;
         if (status!=200u) return status;
         const char *name=gallery_response.name;
@@ -171,7 +171,7 @@ static void gallery_zip_download(int fd,u32 count,int head,u32 epoch)
     for (u32 i=0;i<count;++i) {
         struct gallery_zip_entry *entry=&gallery_zip_entries[i];
         u32 flags=GALLERY_ARCHIVE|(!i && length>=TCP_LARGE_SEND_BYTES ? GALLERY_LARGE : 0);
-        status=gallery_request_media(entry->route,entry->id,flags,epoch);
+        status=gallery_request_media(entry->route,entry->id,flags,0,epoch);
         int ready=status==200u && gallery_zip_matches(entry);
         if (!i) {
             if (ready) {

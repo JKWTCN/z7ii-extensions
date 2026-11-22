@@ -4,6 +4,7 @@
 
 #include "wifi_gallery.h"
 #include "dcim_index.h"
+#include "playback_filter_config.h"
 #include "tcp_send_storage.h"
 #include "wifi_gallery_preview.h"
 
@@ -96,20 +97,28 @@ static int open_photo(z72_u32 *file,const char *path)
     return 0;
 }
 
-static z72_u32 gallery_list(z72_u32 cursor,z72_u32 serial,z72_u32 epoch)
+static z72_u32 gallery_list(z72_u32 cursor,z72_u32 serial,z72_u32 epoch,z72_u32 flags,z72_u32 dates)
 {
+    z72_u32 rating=(flags>>GALLERY_RATING_SHIFT)&7u,protection=(flags>>GALLERY_PROTECTION_SHIFT)&3u;
+    /* Native rating bits 1–6 represent no rating and one through five stars. */
+    const unsigned short predicate[]={(unsigned short)(1u<<rating),0xfff};
     unsigned short folder=cursor ? (unsigned short)photo_folder(cursor) : 1000u;
     z72_u32 id=cursor,last=cursor,previous=cursor ? ftp_media_key(cursor) : 0;
+    /* A scan can stop on a rejected NEF immediately before its matching JPG. */
+    if ((protection || dates) && (cursor&15u)==1u) {
+        char path[FTP_PATH_BYTES];
+        if (!photo_format(dcim_media_path(cursor,path,protection,dates))) previous=0;
+    }
     unsigned count=0,scanned=0;
     char *start=(char *)GALLERY_DATA[0],*out=copy_text(start,"{\"items\":[");
     while (scanned<256u && request_active(serial,epoch)) {
         if (!id && !ftp_previous_folder(&folder)) { last=0; break; }
-        id=ftp_find_photo(folder,id,1);
+        id=dcim_find_photo(folder,id,1,rating ? predicate : 0);
         if (!id) continue;
         ++scanned;
         z72_u32 key=ftp_media_key(id);
         char path[FTP_PATH_BYTES];
-        int format=key!=previous ? ftp_media_path(id,path) : 0;
+        int format=key!=previous ? dcim_media_path(id,path,protection,dates) : 0;
         if (!photo_format(format)) { last=id; continue; }
         if (count==GALLERY_PAGE) break;
         previous=key;
@@ -215,8 +224,12 @@ static void gallery_worker(void *argument)
         z72_u32 epoch=GALLERY_REQUEST->epoch,route=GALLERY_REQUEST->route,value=GALLERY_REQUEST->value;
         if (request_active(serial,epoch)) {
             if (route==GALLERY_LIST && (!value || photo_id(value))) {
-                z72_u32 length=gallery_list(value,serial,epoch);
-                gallery_reply(serial,200,length,1,"",0);
+                z72_u32 dates=GALLERY_REQUEST->dates;
+                if (z72_playback_filter_valid((dates&0xffffu)<<Z72_DATE_SHIFT) &&
+                    z72_playback_filter_valid((dates>>16)<<Z72_DATE_SHIFT)) {
+                    z72_u32 length=gallery_list(value,serial,epoch,GALLERY_REQUEST->flags,dates);
+                    gallery_reply(serial,200,length,1,"",0);
+                } else gallery_reply(serial,400,0,0,"",0);
             } else if (route>=GALLERY_THUMB && route<=GALLERY_VIEW_JPG) {
                 char path[FTP_PATH_BYTES];
                 z72_u32 file[10];

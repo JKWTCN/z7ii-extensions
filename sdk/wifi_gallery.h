@@ -18,6 +18,7 @@ enum gallery_status { GALLERY_OFF, GALLERY_WAIT_AP, GALLERY_LISTEN, GALLERY_SERV
                       GALLERY_SOCKET_ERROR, GALLERY_TASK_ERROR };
 enum gallery_buffer { GALLERY_BUFFER_UNUSED, GALLERY_BUFFER_NATIVE, GALLERY_BUFFER_LARGE };
 enum gallery_flags { GALLERY_META=1u, GALLERY_ARCHIVE=2u, GALLERY_LARGE=4u };
+enum { GALLERY_RATING_SHIFT=3, GALLERY_PROTECTION_SHIFT=6 };
 
 /* The main CPU invalidates request/state lines written by the uncached ARM926.
  * Each side publishes only its own cache lines. A request's slot space stays
@@ -28,6 +29,7 @@ struct gallery_control {
 };
 struct gallery_request {
     volatile unsigned int serial, epoch, route, value, flags, consumed, cancelled;
+    volatile unsigned int dates; /* Packed start date in low 16 bits, end date in high 16 bits. */
 };
 struct gallery_response {
     volatile unsigned int serial, status, length, produced, failed, released;

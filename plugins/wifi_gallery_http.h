@@ -191,10 +191,56 @@ static const char *gallery_photo_hex(const char *text,u32 *id)
 
 static u32 gallery_zip_parse(const char *text);
 
+static u32 gallery_date_pair(const char *text)
+{
+    u32 tens=(u32)(text[0]-'0');
+    if (tens>9u) return 100u;
+    u32 ones=(u32)(text[1]-'0');
+    return ones>9u ? 100u : tens*10u+ones;
+}
+
+static const char *gallery_date(const char *text,u32 *packed)
+{
+    if (*text=='0' && (!text[1] || text[1]=='/')) {
+        *packed=0;
+        return text+1;
+    }
+    if (!(text=gallery_prefix(text,"20"))) return 0;
+    u32 year=gallery_date_pair(text);
+    if (year>99u || text[2]!='-') return 0;
+    u32 month=gallery_date_pair(text+3);
+    if (!month || month>12u || text[5]!='-') return 0;
+    u32 day=gallery_date_pair(text+6);
+    if (!day || day>31u) return 0;
+    *packed=((20u+year)<<9)|(month<<5)|day;
+    return text+8;
+}
+
 static u32 gallery_route_for(const char *path,u32 ids[GALLERY_THUMB_BATCH],u32 *count)
 {
     if (gallery_equal(path,"/")) return GALLERY_HOME;
     if (gallery_equal(path,"/photos")) return GALLERY_LIST;
+    const char *filter=gallery_prefix(path,"/photos/filter/");
+    if (filter) {
+        u32 rating=(u32)(*filter++-'0');
+        if (rating>6u) return GALLERY_MISSING;
+        u32 protection=(u32)(*filter++-'0');
+        if (protection>2u) return GALLERY_MISSING;
+        ids[1]=(rating<<GALLERY_RATING_SHIFT)|(protection<<GALLERY_PROTECTION_SHIFT);
+        const char *dates=gallery_prefix(filter,"/dates/");
+        if (dates) {
+            u32 start,end;
+            dates=gallery_date(dates,&start);
+            if (!dates || *dates++!='/') return GALLERY_MISSING;
+            filter=gallery_date(dates,&end);
+            if (!filter || (end && start>end)) return GALLERY_MISSING;
+            ids[2]=start|(end<<16);
+        }
+        if (!*filter) return GALLERY_LIST;
+        if (*filter++!='/') return GALLERY_MISSING;
+        const char *end=gallery_photo_hex(filter,ids);
+        return end && !*end ? GALLERY_LIST : GALLERY_MISSING;
+    }
     const char *zip=gallery_prefix(path,"/zip/");
     if (zip) {
         *count=gallery_zip_parse(zip);
@@ -325,7 +371,7 @@ static u32 gallery_prepare_download_ring(int fd,u32 address,u32 epoch)
     return GALLERY_BUFFER_NATIVE;
 }
 
-static u32 gallery_request_media(u32 route,u32 id,u32 flags,u32 epoch)
+static u32 gallery_request_media(u32 route,u32 id,u32 flags,u32 dates,u32 epoch)
 {
     u32 start=gallery_tick();
     while (gallery_response.released!=gallery_request.serial && gallery_serving(epoch) &&
@@ -337,6 +383,7 @@ static u32 gallery_request_media(u32 route,u32 id,u32 flags,u32 epoch)
     gallery_request.route=route;
     gallery_request.value=id;
     gallery_request.flags=flags;
+    gallery_request.dates=dates;
     gallery_request.consumed=0;
     gallery_request.cancelled=0;
     __asm__ volatile("" ::: "memory");
@@ -346,9 +393,10 @@ static u32 gallery_request_media(u32 route,u32 id,u32 flags,u32 epoch)
     return gallery_response.serial==serial ? gallery_response.status : 503u;
 }
 
-static u32 gallery_media_request(int fd,u32 route,u32 id,int head,u32 epoch)
+static u32 gallery_media_request(int fd,u32 route,u32 id,u32 flags,u32 dates,u32 epoch)
 {
-    u32 status=gallery_request_media(route,id,head ? GALLERY_META : 0,epoch);
+    int head=(flags&GALLERY_META)!=0;
+    u32 status=gallery_request_media(route,id,flags,dates,epoch);
     if (status==200u) {
         int download=route==GALLERY_JPG || route==GALLERY_NEF;
         const char *type=route==GALLERY_LIST ? "application/json" :
@@ -394,7 +442,7 @@ static void gallery_thumbnail_batch(int fd,const u32 *ids,u32 count,int head,u32
 {
     if (!gallery_reply(fd,200,"application/octet-stream",CHUNKED_LENGTH,0,epoch) || head) return;
     for (u32 i=0;i<count && gallery_serving(epoch);++i) {
-        u32 status=gallery_request_media(GALLERY_THUMB,ids[i],0,epoch);
+        u32 status=gallery_request_media(GALLERY_THUMB,ids[i],0,0,epoch);
         /* Each thumbnail has a little-endian length followed by its JPEG.
          * Zero marks an unavailable preview and all ones asks for a retry. */
         u32 length=status==200 ? gallery_response.length : status==404 ? 0 : ~0u;
@@ -417,9 +465,12 @@ static void gallery_serve(int fd,u32 epoch)
     u32 status=(u32)gallery_read_header(fd,epoch),route=GALLERY_MISSING,count=0;
     u32 ids[GALLERY_THUMB_BATCH];
     ids[0]=0;
+    ids[1]=0;
+    ids[2]=0;
     int head=0;
     if (!status) return;
     if (status==200u) status=gallery_parse_header(&route,ids,&count,&head);
+    u32 flags=head ? GALLERY_META : 0;
     if (status!=200u) gallery_reply(fd,status,0,0,0,epoch);
     else if (route==GALLERY_HOME) {
         if (gallery_reply(fd,200,"text/html; charset=utf-8",sizeof(gallery_html),0,epoch) && !head)
@@ -427,10 +478,11 @@ static void gallery_serve(int fd,u32 epoch)
     } else if (route==GALLERY_THUMBS) gallery_thumbnail_batch(fd,ids,count,head,epoch);
     else if (route==GALLERY_ZIP) gallery_zip_download(fd,count,head,epoch);
     else if (route==GALLERY_DIRECT) {
-        u32 sent=gallery_media_request(fd,ids[2],ids[0],head,epoch);
+        u32 sent=gallery_media_request(fd,ids[2],ids[0],flags,0,epoch);
         if (!head) gallery_direct_result(ids[1],sent==200u ? '1' : '2');
     } else if (route==GALLERY_DIRECT_STATUS) gallery_direct_status(fd,ids[0],head,epoch);
-    else gallery_media_request(fd,route,ids[0],head,epoch);
+    else if (route==GALLERY_LIST) gallery_media_request(fd,route,ids[0],flags|ids[1],ids[2],epoch);
+    else gallery_media_request(fd,route,ids[0],flags,0,epoch);
 }
 
 static int gallery_open_listener(void)
