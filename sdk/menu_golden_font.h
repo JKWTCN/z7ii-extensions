@@ -19,18 +19,29 @@ enum { Z72_PLAYBACK_GLYPHS=7, Z72_PLAYBACK_FONT_BYTES=2079+sizeof(playback_u7b5b
 enum { Z72_PLAYBACK_GLYPHS=0, Z72_PLAYBACK_FONT_BYTES=0, Z72_PLAYBACK_STYLES=0 };
 #endif
 
+struct z72_menu_glyph {
+    unsigned short character,bytes;
+    z72_u32 address;
+};
+#ifdef Z72_WIFI_GALLERY
+#include "menu_gallery_glyphs.h"
+#else
+enum { Z72_GALLERY_GLYPHS=0, Z72_GALLERY_FONT_BYTES=0 };
+#endif
+
 /* C 1.70 supplemental menu font. */
 enum {
     Z72_GOLDEN_FACE=24, Z72_GOLDEN_STYLE=18,
     Z72_PLAYBACK_TITLE_STYLE=Z72_GOLDEN_STYLE+1, Z72_PLAYBACK_ROW_STYLE=Z72_GOLDEN_STYLE+2,
-    Z72_GOLDEN_GLYPHS=31+Z72_SOUND_GLYPHS+Z72_PLAYBACK_GLYPHS, Z72_GOLDEN_HEADER=0x40,
+    Z72_BASE_GLYPHS=31+Z72_SOUND_GLYPHS+Z72_PLAYBACK_GLYPHS,
+    Z72_GOLDEN_GLYPHS=Z72_BASE_GLYPHS+Z72_GALLERY_GLYPHS, Z72_GOLDEN_HEADER=0x40,
     Z72_GOLDEN_INDEX=Z72_GOLDEN_HEADER+8+Z72_GOLDEN_GLYPHS*6,
     Z72_GOLDEN_OUTLINES=Z72_GOLDEN_INDEX+10+(Z72_GOLDEN_GLYPHS+1)*2,
     Z72_GOLDEN_FONT_BYTES=Z72_GOLDEN_OUTLINES+2860+
         sizeof(battery_u663e)+sizeof(battery_u6bd4)+sizeof(battery_u7535)+sizeof(battery_u767e)+
         sizeof(battery_u793a)+sizeof(battery_u91cf)+sizeof(battery_u96fb)+sizeof(battery_u986f)+
         2922+sizeof(region_u570b)+sizeof(region_u7f8e)+sizeof(region_u9646)+sizeof(region_u9678)+
-        Z72_SOUND_FONT_BYTES+Z72_PLAYBACK_FONT_BYTES
+        Z72_SOUND_FONT_BYTES+Z72_PLAYBACK_FONT_BYTES+Z72_GALLERY_FONT_BYTES
 };
 #define Z72_MENU_FONT_ROOTS ((volatile z72_u32 *)0xb1d60b58u)
 #define Z72_MENU_STYLE_CLASSES (*(volatile z72_u32 *)0xb1d60b7cu)
@@ -154,10 +165,7 @@ static inline void z72_golden_font_prepare(struct z72_golden_font *font,
 
     /* Copy the encoded outlines from the stock faces that actually draw them.
      * A glyph listed in a fallback map may have no outline in that face. */
-    static const struct {
-        unsigned short character,bytes;
-        z72_u32 address;
-    } glyphs[Z72_GOLDEN_GLYPHS]={
+    static const struct z72_menu_glyph glyphs[Z72_BASE_GLYPHS]={
         {0x0000,207,0x109e2fe2u+0x10a52u}, /* .notdef */
         {0x4e2d,122,0x109e2fe2u+0x481a6u}, /* 中 */
         {0x4eea,sizeof(instrument_simplified),(z72_u32)instrument_simplified}, /* 仪 */
@@ -252,14 +260,26 @@ static inline void z72_golden_font_prepare(struct z72_golden_font *font,
     z72_font_write32(index+4,0);
     z72_font_write16(index+8,Z72_GOLDEN_GLYPHS+1);
     z72_u32 offset=0;
+#ifdef Z72_WIFI_GALLERY
+    z72_u32 base_index=0,gallery_index=0;
+#endif
     for (z72_u32 i=0;i<Z72_GOLDEN_GLYPHS;++i) {
+#ifdef Z72_WIFI_GALLERY
+        const struct z72_menu_glyph *glyph;
+        if (gallery_index<Z72_GALLERY_GLYPHS &&
+            (base_index==Z72_BASE_GLYPHS || gallery_glyphs[gallery_index].character<glyphs[base_index].character))
+            glyph=&gallery_glyphs[gallery_index++];
+        else glyph=&glyphs[base_index++];
+#else
+        const struct z72_menu_glyph *glyph=&glyphs[i];
+#endif
         unsigned char *entry=map+8+i*6;
-        z72_font_write16(entry,glyphs[i].character);
+        z72_font_write16(entry,glyph->character);
         z72_font_write16(entry+2,i);
         z72_font_write16(entry+4,i!=0);
         z72_font_write16(index+10+i*2,offset);
-        copy(data+Z72_GOLDEN_OUTLINES+offset,(const void *)glyphs[i].address,glyphs[i].bytes);
-        offset+=glyphs[i].bytes;
+        copy(data+Z72_GOLDEN_OUTLINES+offset,(const void *)glyph->address,glyph->bytes);
+        offset+=glyph->bytes;
     }
     z72_font_write16(index+10+Z72_GOLDEN_GLYPHS*2,offset);
 }

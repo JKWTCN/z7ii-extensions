@@ -19,6 +19,9 @@ enum {
 
 static int ftp_holds_wifi(void)
 {
+#ifdef Z72_WIFI_GALLERY
+    if (gallery_holds_wifi()) return 1;
+#endif
     return ftp_transferring(ftp_load(&ftp_job)) || (ftp_load(&ftp_auto_epoch)&1u) ||
         (WORD(ROTATION_PAGE)==2 && WORD(ROTATION_PAGE+0x24) &&
          ftp_header_owned(WORD(ROTATION_PAGE+0x28)));

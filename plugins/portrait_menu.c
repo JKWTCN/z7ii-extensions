@@ -1520,7 +1520,13 @@ static u32 pre_capture_menu_source(u32 header);
 #endif
 #ifdef Z72_FTP_FULL
 #include "ftp_service.h"
+#ifdef Z72_WIFI_GALLERY
+#include "wifi_gallery_service.h"
+#endif
 #include "ftp_menu.h"
+#ifdef Z72_WIFI_GALLERY
+#include "wifi_gallery_menu.h"
+#endif
 static u32 ftp_menu_available;
 #endif
 
@@ -1611,11 +1617,17 @@ static u32 portrait_install_menu(void)
 #ifdef Z72_FTP_FULL
         {0},
 #endif
+#ifdef Z72_WIFI_GALLERY
+        {0},
+#endif
     };
 #ifdef Z72_FIRMWARE_INFO
     _Static_assert(sizeof(rows)/sizeof(rows[0])+1<=Z72_MENU_EXTRA_ROWS,"Setup menu row capacity");
 #endif
     u32 count=sizeof(rows)/sizeof(rows[0]);
+#ifdef Z72_WIFI_GALLERY
+    --count;
+#endif
 #ifdef Z72_FTP_FULL
     --count;
 #endif
@@ -1665,6 +1677,12 @@ static u32 portrait_install_menu(void)
     ftp_menu_available=ftp_menu_ready();
     if (ftp_menu_available) rows[count++]=(struct z72_menu_row){0,open_ftp_menu,0xd7};
 #endif
+#ifdef Z72_WIFI_GALLERY
+    const u32 gallery_row=count;
+    gallery_menu_available=gallery_menu_prepare();
+    if (gallery_menu_available)
+        rows[count++]=(struct z72_menu_row){0,gallery_menu_open,0xd7};
+#endif
     if (z72_menu_prepare_rows(&menu,rows,count)) return 1;
     if (z72_menu_locale_install()) {
         menu.rows[0][0]=Z72_TEXT_AUTO_ROTATE;
@@ -1709,6 +1727,12 @@ static u32 portrait_install_menu(void)
             menu.rows[pixel_row][4]=0x1001;
         }
 #endif
+#ifdef Z72_WIFI_GALLERY
+        if (gallery_menu_available) {
+            menu.rows[gallery_row][0]=Z72_TEXT_GALLERY_TITLE;
+            menu.rows[gallery_row][4]=0x1001;
+        }
+#endif
 #ifdef Z72_FIRMWARE_INFO
         u32 last=Z72_MENU_ROWS+count;
         firmware_info_prepare();
@@ -1719,6 +1743,10 @@ static u32 portrait_install_menu(void)
 #endif
     } else {
         u32 unlocalized_count=count;
+#ifdef Z72_WIFI_GALLERY
+        unlocalized_count-=gallery_menu_available;
+        gallery_menu_available=0;
+#endif
 #ifdef Z72_FTP_FULL
         unlocalized_count-=ftp_menu_available;
         ftp_menu_available=0;

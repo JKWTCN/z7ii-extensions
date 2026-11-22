@@ -3,6 +3,8 @@
 #define Z72_FTP_SERVICE_H
 
 #include "ftp_card.h"
+#include "dcim_index.h"
+#include "tcp_send_storage.h"
 #define FTP_REQ ((struct ftp_request *)(wifi_aux+FTP_REQUEST_OFFSET))
 #define FTP_RES ((const struct ftp_result *)(wifi_aux+FTP_RESULT_OFFSET))
 #define FTP_DATA (wifi_aux+FTP_PAYLOAD_OFFSET)
@@ -16,7 +18,7 @@ enum ftp_job_type { FTP_JOB_NONE, FTP_JOB_UPLOAD, FTP_JOB_CONFIG_SAVE,
                     FTP_JOB_FOLDER_SEND, FTP_JOB_AUTO, FTP_JOB_CLAIM };
 enum ftp_edit_state { FTP_EDIT_READY, FTP_EDIT_NEW, FTP_EDIT_BAD_ADDRESS, FTP_EDIT_BAD_USER,
                       FTP_EDIT_SAVED, FTP_EDIT_SAVE_FAILED };
-enum { FTP_FOLDERS=6, FTP_PATH_BYTES=32, FTP_CONFIGS=3, FTP_BATCH=1000, FTP_AUTO_CAPACITY=128 };
+enum { FTP_FOLDERS=6, FTP_CONFIGS=3, FTP_BATCH=1000, FTP_AUTO_CAPACITY=128 };
 _Static_assert(Z72_FTP_FILE_LABEL_UNITS>=FTP_PATH_BYTES-8u+2u,"FTP photo label with selection mark");
 enum { FTP_IMAGE_SLOT=0xb1888a9cu, FTP_IMAGE_CALLBACK=0x106d2f6du, FTP_IMAGE_CLOSED=0x041f0002u };
 struct ftp_cursor { unsigned short folder; z72_u32 id; };
@@ -144,29 +146,8 @@ enum { FTP_BUFFER_OFF, FTP_BUFFER_READY, FTP_BUFFER_NO_MEMORY, FTP_BUFFER_RELEAS
 static z72_u32 ftp_prepare_large_send(z72_u32 total)
 {
     if (total<FTP_LARGE_SEND_BYTES || ftp_large_send_address) return ftp_large_send_address;
-    const z72_u32 allocation_size=FTP_LARGE_SEND_BYTES+63u;
-    /* General and Heap are the two native main-CPU pools supported by this
-     * allocator. Preserve at least 4 MiB in whichever pool supplies the ring. */
-    const z72_u32 pool_count=2;
-    for (z72_u32 index=0;index<pool_count;++index) {
-        z72_u32 pool=*(const volatile z72_u32 *)(0xb1f7cbacu+20u*index);
-        z72_u32 status[4];
-        if (!pool || FTP_CALL(0x10104788u,int,z72_u32,z72_u32 *)(pool,status) ||
-            status[1] || status[2]<allocation_size+FTP_LARGE_SEND_BYTES ||
-            status[3]<allocation_size) continue;
-        void *raw=FTP_CALL(0x1034fe31u,void *,z72_u32,z72_u32)(allocation_size,index);
-        if (!raw) continue;
-        z72_u32 data=((z72_u32)raw+63u)&~63u;
-        if (data<FTP_SHARED_RAM_MIN || data>FTP_SHARED_RAM_END-FTP_LARGE_SEND_BYTES) {
-            FTP_CALL(0x1034fe7fu,void,void *)(raw);
-            continue;
-        }
-        publish((void *)data,FTP_LARGE_SEND_BYTES);
-        invalidate((void *)data,FTP_LARGE_SEND_BYTES);
-        ftp_large_raw=raw;
-        return ftp_large_send_address=data;
-    }
-    return 0;
+    ftp_large_send_address=tcp_allocate_send_buffer(2,&ftp_large_raw);
+    return ftp_large_send_address;
 }
 
 static z72_u32 ftp_wifi_link(void)
@@ -191,8 +172,7 @@ static void ftp_large_update(z72_u32 retry_now)
             ftp_store(&ftp_large_state,FTP_BUFFER_RELEASING);
             return;
         }
-        invalidate((void *)ftp_large_send_address,FTP_LARGE_SEND_BYTES);
-        FTP_CALL(0x1034fe7fu,void,void *)(ftp_large_raw);
+        tcp_free_send_buffer(ftp_large_raw,ftp_large_send_address);
         ftp_large_raw=0;
         ftp_large_send_address=0;
     }
@@ -210,61 +190,6 @@ static const char *ftp_basename(const char *path)
     const char *name=path;
     for (;*path;++path) if (*path=='\\' || *path=='/') name=path+1;
     return name;
-}
-
-enum { FTP_MEDIA_UNKNOWN, FTP_MEDIA_JPEG, FTP_MEDIA_NEF, FTP_MEDIA_VIDEO };
-
-static int ftp_media_format(const char *ext)
-{
-    if (ext[0]!='.') return FTP_MEDIA_UNKNOWN;
-    if (ext[1]=='J' && ext[2]=='P' && ext[3]=='G') return FTP_MEDIA_JPEG;
-    if (ext[1]=='N' && ext[2]=='E' && ext[3]=='F') return FTP_MEDIA_NEF;
-    if (ext[1]=='M' && ((ext[2]=='O' && ext[3]=='V') || (ext[2]=='P' && ext[3]=='4')))
-        return FTP_MEDIA_VIDEO;
-    return FTP_MEDIA_UNKNOWN;
-}
-
-static int ftp_media_path(z72_u32 id,char path[FTP_PATH_BYTES])
-{
-    /* Same reference/get-path/release sequence as native playback. */
-    void *image=FTP_CALL(0x1063ea8bu,void *,z72_u32)(id);
-    if (!image) return 0;
-    const char *name=FTP_CALL(0x10567f61u,const char *,void *)(image);
-    z72_u32 length=0;
-    if (name) {
-        length=FTP_CALL(0x10509831u,z72_u32,const char *)(name);
-        if (length>=FTP_PATH_BYTES) length=0;
-        for (z72_u32 i=0;i<length;++i) path[i]=name[i];
-    }
-    FTP_CALL(0x1056788bu,void,void *)(image);
-    path[length]=0;
-    if (length<13 || path[0]!='B' || path[1]!=':' || path[2]!='\\' ||
-        path[3]!='D' || path[4]!='C' || path[5]!='I' || path[6]!='M' || path[7]!='\\' ||
-        !valid_path(path+3,1)) return 0;
-    return ftp_media_format(path+length-4);
-}
-
-static int ftp_previous_folder(unsigned short *folder)
-{
-    unsigned short previous=*folder;
-    z72_u32 status=FTP_CALL(0x10507d0du,z72_u32,z72_u32,unsigned short *,z72_u32)(1,folder,1);
-    return status==FS_OK && *folder>=100 && *folder<previous;
-}
-
-static z72_u32 ftp_find_photo(unsigned short folder,z72_u32 old,z72_u32 direction)
-{
-    struct {
-        unsigned char slot,pad;
-        unsigned short folder;
-        z72_u32 reserved[2],formats;
-        unsigned char sort,groups,extra,padding;
-    } query={1,0,folder,{0,0},7u|(1u<<5)|(1u<<6),7,1,0,0}; /* Include MOV and MP4. */
-    z72_u32 id=old;
-    z72_u32 status=FTP_CALL(0x106d3285u,z72_u32,const void *,const void *,z72_u32,z72_u32 *)(
-        &query,0,direction,&id);
-    if (status!=0x042b0080u || id>>29!=1u || ((id>>19)&0x3ffu)!=folder ||
-        (old && (direction ? id>=old : id<=old))) return 0;
-    return id;
 }
 
 static void ftp_scan(z72_u32 limit)
@@ -313,11 +238,6 @@ static void ftp_compact_batch(void)
     for (z72_u32 i=first;i<last;++i) ftp_batch[i-first]=ftp_batch[i];
     ftp_store(&ftp_first,0);
     ftp_store(&ftp_last,last-first);
-}
-
-static z72_u32 ftp_media_key(z72_u32 id)
-{
-    return (id&15u)<=1u ? id&~15u : id; /* Only JPEG and NEF share one selection. */
 }
 
 static z72_u32 ftp_marked(z72_u32 id)

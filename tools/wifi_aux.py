@@ -45,6 +45,12 @@ def header(image, report):
             lines.append(f'#define FTP_AUX_{name.upper()}_OFFSET {symbols[f"wifi_aux_ftp_{name}"] & ~1}u')
         for name in ('request', 'result', 'payload'):
             lines.append(f'#define FTP_{name.upper()}_OFFSET {symbols[f"ftp_{name}"]}u')
+    if 'gallery_control' in symbols:
+        for name in ('control', 'request', 'response', 'state', 'data'):
+            offset = symbols[f'gallery_{name}']
+            if offset % 64:
+                raise ValueError(f'Unaligned gallery area: {name}')
+            lines.append(f'#define GALLERY_{name.upper()}_OFFSET {offset}u')
     lines.append('static const unsigned char wifi_aux_blob[]={')
     for offset in range(0,len(image),16):
         lines.append('    '+','.join(f'0x{value:02x}' for value in image[offset:offset+16])+',')

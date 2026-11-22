@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>相机相册</title>
+<style>
+:root{color-scheme:dark;font:16px system-ui,sans-serif;background:#161817;color:#f4f4ef}
+*{box-sizing:border-box}body{max-width:52rem;margin:auto;padding:1rem}
+header,nav{display:flex;align-items:center;justify-content:space-between;gap:.7rem}
+h1{font-size:1.45rem;margin:.3rem 0 1rem}button,a{font:inherit;color:inherit}
+button,a.download{border:1px solid #555d57;background:#272d29;border-radius:.5rem;padding:.65rem .85rem;text-decoration:none}
+button:disabled{opacity:.4}#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(6.8rem,1fr));gap:.55rem}
+.tile{min-width:0;padding:0;overflow:hidden;text-align:left}
+.thumb,#preview{display:grid;place-items:center;background:#202420;color:#a6aca5}
+.thumb{aspect-ratio:4/3}.thumb img{width:100%;height:100%;object-fit:contain}
+.tile span{display:block;padding:.45rem;font-size:.72rem;overflow:hidden;text-overflow:ellipsis}
+nav{margin-top:1rem}#message,#detailMessage{color:#c0c6bf}
+#preview{margin:.8rem 0;min-height:9rem}#preview img,#preview canvas{width:100%;max-height:72vh;object-fit:contain}
+#downloads{display:flex;flex-wrap:wrap;gap:.55rem}#detailName{overflow-wrap:anywhere}
+[hidden]{display:none!important}
+</style>
+<section id="album"><header><h1>相机相册</h1><button id="refresh">刷新</button></header>
+<p id="message" role="status"></p><div id="grid"></div>
+<nav><button id="previous" disabled>上一页</button><button id="next" disabled>下一页</button></nav></section>
+<section id="detail" hidden><header><button id="back">返回相册</button><span id="detailName"></span></header>
+<div id="preview"></div><p id="detailMessage" role="status"></p><div id="downloads"></div></section>
+<script>
+const el=id=>document.getElementById(id);
+const cursors=[''];
+let page=0,next='',busy=false;
+let thumbs=[],thumbJob=null,pendingPreview=null;
+function retryThumb(item,queue){
+  if(item.retried)item.thumb.textContent='缩略图读取失败';
+  else{item.retried=true;queue.push(item);}
+}
+function showThumb(item,blob){
+  const {image,thumb}=item;
+  const url=URL.createObjectURL(blob);
+  image.onload=()=>{image.hidden=false;URL.revokeObjectURL(url);};
+  image.onerror=()=>{thumb.textContent='缩略图读取失败';URL.revokeObjectURL(url);};
+  image.src=url;
+}
+function pauseThumbs(){
+  if(!thumbJob)return;
+  thumbJob.paused=true;
+  thumbJob.controller.abort();
+}
+async function nextThumb(){
+  if(busy||thumbJob||!el('detail').hidden||!thumbs.length)return;
+  const queue=thumbs,batch=queue.splice(0,1);
+  if(!batch[0].retried)
+    while(batch.length<6&&queue.length&&!queue[0].retried)batch.push(queue.shift());
+  const job={controller:new AbortController(),paused:false};
+  thumbJob=job;
+  const timer=setTimeout(()=>job.controller.abort(),5000);
+  try{
+    const response=await fetch('/thumbs/'+batch.map(item=>item.photo.id).join(','),{signal:job.controller.signal});
+    if(!response.ok)throw new Error(response.status);
+    const data=await response.arrayBuffer(),view=new DataView(data);
+    let offset=0;
+    const records=batch.map(()=>{
+      const length=view.getUint32(offset,true);
+      offset+=4;
+      if(length===0||length===0xffffffff)return length;
+      if(length>data.byteLength-offset)throw new Error('Incomplete thumbnail');
+      const blob=new Blob([new Uint8Array(data,offset,length)],{type:'image/jpeg'});
+      offset+=length;
+      return blob;
+    });
+    if(offset!==data.byteLength)throw new Error('Unexpected thumbnail data');
+    batch.forEach((item,i)=>{
+      const record=records[i];
+      if(record===0)item.thumb.textContent='无缩略图';
+      else if(record===0xffffffff)retryThumb(item,queue);
+      else showThumb(item,record);
+    });
+  }catch(error){
+    if(job.paused)queue.unshift(...batch);
+    else for(const item of batch)retryThumb(item,queue);
+  }finally{
+    clearTimeout(timer);
+    thumbJob=null;
+    nextThumb();
+  }
+}
+function cancelPreview(){
+  if(!pendingPreview)return;
+  pendingPreview.onload=pendingPreview.onerror=null;
+  pendingPreview.removeAttribute('src');
+  pendingPreview=null;
+}
+function showPreview(photo,route){
+  cancelPreview();
+  const preview=el('preview'),message=el('detailMessage');
+  message.textContent='正在读取预览…';
+  const image=new Image();
+  pendingPreview=image;
+  image.alt=photo.name;
+  image.onload=()=>{
+    pendingPreview=null;
+    preview.replaceChildren(image);
+    message.textContent='';
+  };
+  image.onerror=()=>{
+    pendingPreview=null;
+    message.textContent='这张照片暂无可用预览';
+  };
+  image.src='/'+route+'/'+photo.id;
+}
+function detail(photo,thumbnail){
+  el('detailName').textContent=photo.name;
+  el('album').hidden=true;el('detail').hidden=false;
+  pauseThumbs();
+  const preview=el('preview'),actions=el('downloads');
+  preview.replaceChildren();actions.replaceChildren();
+  if(thumbnail.complete&&thumbnail.naturalWidth){
+    const image=document.createElement('canvas');
+    image.width=thumbnail.naturalWidth;image.height=thumbnail.naturalHeight;
+    image.setAttribute('role','img');image.setAttribute('aria-label',photo.name);
+    image.getContext('2d').drawImage(thumbnail,0,0);
+    preview.append(image);
+  }
+  showPreview(photo,'preview');
+  if(photo.jpg){
+    const full=document.createElement('button');
+    full.textContent='查看全尺寸 JPG';
+    full.onclick=()=>showPreview(photo,'view-jpg');
+    actions.append(full);
+  }
+  for(const format of ['jpg','nef']){
+    if(!photo[format])continue;
+    const link=document.createElement('a');
+    link.className='download';link.href='/'+format+'/'+photo.id;
+    link.textContent='下载 '+format.toUpperCase()+' 原图';
+    actions.append(link);
+  }
+}
+el('back').onclick=()=>{
+  cancelPreview();
+  el('preview').replaceChildren();el('detail').hidden=true;el('album').hidden=false;
+  nextThumb();
+};
+async function load(number,cursor){
+  if(busy)return;
+  busy=true;el('refresh').disabled=el('previous').disabled=el('next').disabled=true;
+  pauseThumbs();
+  el('message').textContent='正在读取照片…';
+  try{
+    const response=await fetch('/photos'+(cursor?'/'+cursor:''));
+    if(!response.ok)throw new Error(response.status);
+    const data=await response.json();
+    const tiles=document.createDocumentFragment();
+    thumbs=[];
+    for(const photo of data.items){
+      const button=document.createElement('button');
+      button.className='tile';
+      const thumb=document.createElement('div');
+      thumb.className='thumb';
+      const image=new Image();
+      image.alt='';image.decoding='async';image.hidden=true;
+      button.onclick=()=>detail(photo,image);
+      const caption=document.createElement('span');
+      caption.textContent=photo.name;
+      thumb.append(image);button.append(thumb,caption);tiles.append(button);
+      thumbs.push({photo,image,thumb});
+    }
+    el('grid').replaceChildren(tiles);
+    page=number;cursors[page]=cursor;cursors.length=page+1;next=data.next;
+    el('message').textContent=data.items.length?'':next?'这一页没有可显示的照片':'没有照片';
+    window.scrollTo(0,0);
+  }catch(error){el('message').textContent='读取失败，请检查热点连接后重试';}
+  finally{
+    busy=false;el('refresh').disabled=false;el('previous').disabled=page===0;el('next').disabled=!next;
+    nextThumb();
+  }
+}
+el('refresh').onclick=()=>load(0,'');
+el('previous').onclick=()=>load(page-1,cursors[page-1]);
+el('next').onclick=()=>load(page+1,next);
+load(0,'');
+</script></html>

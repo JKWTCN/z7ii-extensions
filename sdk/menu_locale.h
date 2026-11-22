@@ -146,6 +146,11 @@ enum {
     Z72_TEXT_FTP_OVERWRITE,
     Z72_TEXT_FTP_4M_BUFFER,
 #endif
+#ifdef Z72_WIFI_GALLERY
+    Z72_TEXT_GALLERY_TITLE,Z72_TEXT_GALLERY_REFRESH,Z72_TEXT_GALLERY_OFF,Z72_TEXT_GALLERY_ON,
+    Z72_TEXT_GALLERY_HINT1,Z72_TEXT_GALLERY_HINT2,Z72_TEXT_GALLERY_WAIT,Z72_TEXT_GALLERY_READY,
+    Z72_TEXT_GALLERY_RETRY,Z72_TEXT_GALLERY_ERROR,Z72_TEXT_GALLERY_LARGE,Z72_TEXT_GALLERY_NATIVE,
+#endif
 #ifdef Z72_FIRMWARE_INFO
     Z72_TEXT_FIRMWARE_INFO,
     Z72_TEXT_FIRMWARE_INFO_VERSION,
@@ -233,6 +238,12 @@ static inline int z72_menu_locale_install(void)
          u"Mark/unmark for FTP",u"Transfer status",u"Edit FTP profile",
          u"Auto send",u"Send file as",u"Overwrite if same name",u"Use 4 MiB buffer",
 #endif
+#ifdef Z72_WIFI_GALLERY
+         u"Browser gallery",u"Refresh status",u"Off",u"On",
+         u"Open the camera IP address.",u"AP default: http://192.168.1.1/",
+         u"Waiting for camera hotspot",u"Gallery ready",u"Network retry in progress",
+         u"Gallery could not start",u"TCP send buffer: 4 MiB",u"TCP send buffer: native",
+#endif
 #ifdef Z72_FIRMWARE_INFO
          u"Custom firmware version",Z72_FIRMWARE_INFO_TEXT,
 #endif
@@ -273,6 +284,12 @@ static inline int z72_menu_locale_install(void)
          u"选择以FTP发送/取消",u"传输状态",u"编辑 FTP 配置",
          u"自动发送",u"传送文件为",u"同名时重写",u"使用 4 MiB 内存",
 #endif
+#ifdef Z72_WIFI_GALLERY
+         u"浏览器相册",u"刷新当前状态",u"关闭",u"开启",
+         u"请访问相机 IP，如果是 AP 模式的话",u"默认为 http://192.168.1.1/",
+         u"等待相机热点",u"相册已就绪",u"正在重试网络",
+         u"相册启动失败",u"TCP 发送缓冲：4 MiB",u"TCP 发送缓冲：原厂",
+#endif
 #ifdef Z72_FIRMWARE_INFO
          u"自定义固件版本",Z72_FIRMWARE_INFO_TEXT,
 #endif
@@ -312,6 +329,12 @@ static inline int z72_menu_locale_install(void)
          u"選擇以FTP傳送/取消",u"傳輸狀態",u"編輯 FTP 設定",
          u"自動傳送",u"傳送檔案為",u"同名時覆寫",u"使用 4 MiB 記憶體",
 #endif
+#ifdef Z72_WIFI_GALLERY
+         u"瀏覽器相簿",u"重新整理目前狀態",u"關閉",u"開啟",
+         u"請存取相機 IP，如果是 AP 模式",u"預設為 http://192.168.1.1/",
+         u"等待相機熱點",u"相簿已就緒",u"正在重試網路",
+         u"相簿啟動失敗",u"TCP 傳送緩衝：4 MiB",u"TCP 傳送緩衝：原廠",
+#endif
 #ifdef Z72_FIRMWARE_INFO
          u"自訂韌體版本",Z72_FIRMWARE_INFO_TEXT,
 #endif
@@ -349,6 +372,13 @@ static inline int z72_menu_locale_install(void)
 #ifdef Z72_FIRMWARE_INFO
     for (z72_u32 id=Z72_TEXT_FIRMWARE_INFO_VERSION;id<=Z72_TEXT_FIRMWARE_INFO_TARGET;++id)
         locale->styles[id]=Z72_MENU_LATIN_STYLE;
+#endif
+#ifdef Z72_WIFI_GALLERY
+    const z72_u32 gallery_supplemental[]={Z72_TEXT_GALLERY_TITLE,Z72_TEXT_GALLERY_REFRESH,
+        Z72_TEXT_GALLERY_HINT1,Z72_TEXT_GALLERY_READY,Z72_TEXT_GALLERY_ERROR,
+        Z72_TEXT_GALLERY_LARGE,Z72_TEXT_GALLERY_NATIVE};
+    for (z72_u32 i=0;i<sizeof(gallery_supplemental)/sizeof(gallery_supplemental[0]);++i)
+        locale->styles[gallery_supplemental[i]]=Z72_GOLDEN_STYLE;
 #endif
     z72_golden_font_prepare(&locale->golden,copy,styles[template]);
     unsigned char *text=locale->text;

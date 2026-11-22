@@ -30,6 +30,7 @@ static int new_socket(void)
 }
 
 #include "ftp_send_ring.h"
+#include "wifi_gallery_http.h"
 
 static u32 send_buffer(int fd)
 {
@@ -77,7 +78,7 @@ static int open_socket(u32 port,int data)
     const u32 timeout[4]={8,0,0,0};
     int fd=new_socket();
     if (fd>=1 && data
-        && (!ftp_request.large_send_address || ftp_ring_socket)
+        && (!ftp_request.large_send_address || ftp_ring.socket)
         ) fd=prepare_data_socket(fd);
     if (fd<1) {
         ftp_result.error=CALL(0xb1084aedu,int,void)();
@@ -274,7 +275,7 @@ static int upload(struct ftp_control *c,int *data)
     ftp_result.stage=FTP_DATA_CONNECT;
     *data=open_socket(port,1);
     if (*data<1) return 0;
-    if (ftp_request.large_send_address && !ftp_ring_socket) {
+    if (ftp_request.large_send_address && !ftp_ring.socket) {
         ftp_result.stage=FTP_WAIT_BUFFER;
         u32 attached=0;
         for (u32 wait=0;;wait+=10u) {
@@ -381,11 +382,11 @@ static void ftp_task(u32 argument)
                 sleep_ms(250);
                 ftp_result.network=ftp_network();
             }
-            if (ftp_request.large_send_address && ftp_ring_socket) {
+            if (ftp_request.large_send_address && ftp_ring.socket) {
                 ftp_result.stage=FTP_WAIT_BUFFER;
-                for (u32 wait=0;ftp_ring_socket && ftp_request.state==FTP_READY && wait<8000u;wait+=50u) {
+                for (u32 wait=0;ftp_ring.socket && ftp_request.state==FTP_READY && wait<8000u;wait+=50u) {
                     ftp_reclaim_send_ring();
-                    if (ftp_ring_socket) sleep_ms(50);
+                    if (ftp_ring.socket) sleep_ms(50);
                 }
             }
             if (ftp_request.state==FTP_READY) transfer();
@@ -420,7 +421,10 @@ u32 wifi_aux_ap(u32 event,volatile u32 *request)
     u32 start=request[0]!=0xffffffffu;
     u32 result=ftp_native_ap(event,request);
     ftp_wifi_changed(0);
-    if (start && ftp_ap_active()) start_worker();
+    if (start && ftp_ap_active()) {
+        start_worker();
+        gallery_aux_start();
+    }
     return result;
 }
 

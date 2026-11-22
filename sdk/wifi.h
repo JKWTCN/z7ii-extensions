@@ -30,7 +30,7 @@
 
 /* This private ARM926 image runs through an uncached executable auxiliary
  * mapping. Main-CPU code must never branch into this Thumb1 callback. */
-_Alignas(64) static unsigned char wifi_aux[WIFI_AUX_IMAGE_BYTES+WIFI_AUX_BSS_BYTES];
+_Alignas(64) static unsigned char wifi_aux[(WIFI_AUX_IMAGE_BYTES+WIFI_AUX_BSS_BYTES+63u)&~63u];
 
 /* Read only by the native wireless task; changing the setting applies at the
  * next initialization, without restarting a connection from the GUI task. */

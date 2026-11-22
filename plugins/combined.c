@@ -4,7 +4,7 @@
 #define Z72_PORTRAIT_TRACE 0
 #define Z72_GRID_WITH_PORTRAIT 1
 #define Z72_PHOTO_ZEBRA 1
-#define Z72_MENU_EXTRA_ROWS 11u
+#define Z72_MENU_EXTRA_ROWS 12u
 #define Z72_FIRMWARE_INFO 1
 #define Z72_WIDE_AF 1
 #define Z72_SUBJECT_TRACKING 1
@@ -14,6 +14,7 @@
 #define Z72_AF_SHORTCUT 1
 #define Z72_WIFI_5GHZ 1
 #define Z72_FTP_FULL 1
+#define Z72_WIFI_GALLERY 1
 #define Z72_JPEG_PRE_CAPTURE 1
 #define Z72_SHUTTER_SOUND 1
 #define Z72_MENU_SOUND_FONT 1
@@ -39,7 +40,7 @@ static u32 pre_capture_menu_source(u32 header)
     return header==(u32)rotation_menu.header || zebra_header_owned(header) ||
         disp_header_owned(header) || wifi_header_owned(header) || af_menu_header_owned(header) ||
         sound_header_owned(header) || filter_header_owned(header) || wide_header_owned(header) ||
-        pixel_header_owned(header) || ftp_header_owned(header);
+        pixel_header_owned(header) || ftp_header_owned(header) || gallery_menu_owned(header);
 }
 
 static void sound_shutter_event(z72_u32 fn);

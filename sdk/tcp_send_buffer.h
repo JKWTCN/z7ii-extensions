@@ -1,0 +1,9 @@
+/* SPDX-License-Identifier: MIT */
+#ifndef Z72_TCP_SEND_BUFFER_H
+#define Z72_TCP_SEND_BUFFER_H
+
+#define TCP_LARGE_SEND_BYTES (4u*1024u*1024u)
+#define TCP_SHARED_RAM_MIN 0xb1600000u
+#define TCP_SHARED_RAM_END 0xc0000000u
+
+#endif
