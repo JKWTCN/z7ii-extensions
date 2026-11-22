@@ -27,13 +27,11 @@
 | NEF 记录格式  | 合成后的处理                                                                                                                                                                                     |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 14 位未压缩   | 尼康工坊可直接打开合成的 NEFX，并导出 JPEG 或 16 位 TIFF。                                                                                                                                       |
-| 14 位无损压缩 | 尼康工坊 1.10.1 合成时可能沿用源 NEF 的压缩标记，导致生成的 NEFX 无法打开或导出。遇到此问题时，将合成后的 **NEFX 文件**拖到 `Repair-NEFX.cmd`，再打开新生成的 `*_NX_compatible.NEFX`。 |
+| 14 位无损压缩 | 尼康工坊 1.10.1 合成时可能沿用源 NEF 的压缩标记，导致生成的 NEFX 无法打开或导出。遇到此问题时，用下方工具修复合成后的 NEFX，再用尼康工坊打开生成的副本。 |
 
-修复工具需要 Python 3。它将压缩标记修正到新副本中，保留源 NEF 和原来的合成文件。[Windows 启动器](../tools/Repair-NEFX.cmd) · [Python 脚本](../tools/ibis_nefx_repair.py)
+在 Windows x64 上双击修复工具。点击 **选择 NEFX 文件** 可多选合成文件，点击 **选择文件夹** 可批量处理该目录中的合成文件。也可以将文件或文件夹拖入窗口。运行无需安装 Python。[下载 NEFX 修复工具](../releases/ibis-nefx-repair.exe) · [SHA-256 校验](../releases/SHA256SUMS) · [Rust 源码](../tools/ibis_nefx_repair)
 
-```powershell
-python tools/ibis_nefx_repair.py "DSC_8027_merged.NEFX"
-```
+工具在原目录生成 `*_NX_compatible.NEFX`，只修正副本的压缩标记，并保留源 NEF、原合成文件和已有输出。处理记录会显示每个文件的结果。
 
 ## English
 
@@ -62,13 +60,11 @@ In continuous mode, each full press starts one series. Single-set mode turns its
 | NEF recording format       | After merging                                                                                                                                                                                                                                     |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 14-bit uncompressed        | NX Studio can open the merged NEFX directly and export JPEG or 16-bit TIFF.                                                                                                                                                                       |
-| 14-bit lossless compressed | NX Studio 1.10.1 may carry over the source compression marker, which can prevent the merged NEFX from opening or exporting. If this happens, drag the **merged NEFX** onto `Repair-NEFX.cmd`, then open the new `*_NX_compatible.NEFX`. |
+| 14-bit lossless compressed | NX Studio 1.10.1 may carry over the source compression marker, which can prevent the merged NEFX from opening or exporting. If this happens, use the repair tool below on the merged NEFX, then open the new copy in NX Studio. |
 
-The repair tool requires Python 3. It corrects the compression marker in a new copy and preserves the source NEFs and the original merge. [Windows launcher](../tools/Repair-NEFX.cmd) · [Python script](../tools/ibis_nefx_repair.py)
+Double-click the repair tool on Windows x64. Use **选择 NEFX 文件** to select one or more merged NEFX files, or **选择文件夹** to process the merged files in a folder. You can also drag files or folders into the window. The tool runs without Python. [Download the NEFX repair tool](../releases/ibis-nefx-repair.exe) · [SHA-256](../releases/SHA256SUMS) · [Rust source](../tools/ibis_nefx_repair)
 
-```powershell
-python tools/ibis_nefx_repair.py "DSC_8027_merged.NEFX"
-```
+The tool saves a `*_NX_compatible.NEFX` copy next to each original and corrects the compression marker in the copy. It preserves source NEFs, original merges and existing outputs. The log shows the result for each file.
 
 ## 尼康工坊示例 / NX Studio examples
 

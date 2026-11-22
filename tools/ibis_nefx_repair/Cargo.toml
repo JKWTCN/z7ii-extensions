@@ -1,0 +1,12 @@
+[package]
+name = "ibis-nefx-repair"
+version = "1.0.0"
+edition = "2024"
+
+[dependencies]
+native-windows-gui = { version = "1.0.13", default-features = false, features = ["file-dialog", "notice", "textbox"] }
+tempfile = "3.27.0"
+
+[profile.release]
+lto = true
+strip = true
