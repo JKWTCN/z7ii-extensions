@@ -19,10 +19,6 @@
 
 筛选依据相机记录的照片信息。照片需满足所有已设条件，向下滑动会继续加载匹配结果。「清除日期」保留星级和保护条件。更换筛选条件会清除当前多选勾选。
 
-### 筛选实机截图
-
-![电脑端相册选择「仅已保护」后的结果 / Desktop gallery with the Protected only filter applied](images/z7ii-browser-gallery-filters.png)
-
 ## 下载照片
 
 点「多选」后可以边滑动边勾选。选择「JPG + RAW」（默认）、「只下载 JPG」或「只下载 RAW」，页面会更新符合格式的文件数。点「下载所选」会按顺序逐个下载原文件，浏览器可能会要求允许多文件下载。点「停止后续」可以停止发送剩余文件，当前下载可在浏览器中取消。「打包 ZIP」会将符合所选格式的原文件合为一个存档。单次最多 128 个原文件，ZIP 总大小须小于 4 GiB。
@@ -31,15 +27,21 @@
 
 独立 SD 模块已在实机验证滚动浏览、预览、多选逐个下载，以及星级、保护状态和拍摄日期的组合筛选。新版组合包已完成本地构建，待实机复测。
 
-## 实机截图
+## 版本更新与实机截图
+
+### v0.1.0-preview.32 版本更新
+
+新增星级、保护状态和拍摄日期筛选，支持同时使用三项条件。
+
+![电脑端相册选择「仅已保护」后的结果 / Desktop gallery with the Protected only filter applied](images/z7ii-browser-gallery-filters.png)
+
+### v0.1.0-preview.31 版本更新
+
+首页改为滚动加载，新增多选逐个下载和 ZIP 打包。批量下载可选择 JPG + RAW、仅 JPG 或仅 RAW。
 
 **手机端缩略图列表**
 
 ![iPhone Safari 显示三列照片缩略图和多选按钮 / Three-column thumbnail grid with the multi-select button in iPhone Safari](images/z7ii-browser-gallery-mobile.jpg)
-
-**单张预览与原图下载**
-
-![单张照片预览及 JPG、NEF 原图下载按钮 / Photo preview with original JPG and NEF download buttons](images/z7ii-browser-gallery-preview.png)
 
 **电脑端多选下载**
 
@@ -53,9 +55,15 @@
 
 ![iPhone 灵动岛显示 Safari 的 NEF 原图下载进度 / Safari's original NEF download progress in the iPhone Dynamic Island](images/z7ii-browser-gallery-safari-download.jpg)
 
+### v0.1.0-preview.30 版本更新
+
+首次加入浏览器相册，支持缩略图、单张预览和 JPG、NEF 原文件下载。
+
+![单张照片预览及 JPG、NEF 原图下载按钮 / Photo preview with original JPG and NEF download buttons](images/z7ii-browser-gallery-preview.png)
+
 ## English
 
-See the [filter screenshot](#筛选实机截图) and the [hardware screenshots](#实机截图) for thumbnail browsing, photo preview, and batch downloads on desktop and iPhone.
+See the [release notes and hardware screenshots](#版本更新与实机截图) for gallery filters, thumbnail browsing, photo preview, and batch downloads on desktop and iPhone.
 
 Open **Setup Menu → Browser gallery** on the Nikon Z 7II running C 1.70. Set **Browser gallery** to **On**, connect your phone or computer to the camera hotspot, then open the camera IP address in a browser. The default AP address is [http://192.168.1.1/](http://192.168.1.1/).
 
