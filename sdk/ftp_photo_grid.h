@@ -2,9 +2,11 @@
 #ifndef Z72_FTP_PHOTO_GRID_H
 #define Z72_FTP_PHOTO_GRID_H
 
+#include "ftp_photo_grid_layout.h"
+
 enum { FTP_GRID_THUMBNAILS, FTP_GRID_PREVIEW, FTP_GRID_VIEWS };
 enum { FTP_GRID_CARD=0x3b14, FTP_GRID_IMAGE=0x3b10, FTP_GRID_ROW=0x2d70 };
-enum { FTP_GRID_TILES=6, FTP_GRID_RENDER_TABLE=0xb208f558u, FTP_GRID_STOCK_RENDER=0x109724a4u };
+enum { FTP_GRID_TILES=FTP_PHOTO_GRID_TILES, FTP_GRID_RENDER_TABLE=0xb208f558u, FTP_GRID_STOCK_RENDER=0x109724a4u };
 enum { FTP_GRID_DOUBLE_TAP_MS=450 };
 enum { FTP_GRID_INPUT_SLOT=0xb1824f14u, FTP_GRID_STOCK_INPUT=0x1044f6e1u };
 enum { FTP_GRID_INPUT_READ=0xb181d309u };
@@ -334,7 +336,7 @@ static void ftp_prepare_photo_grid(void)
 {
     /* Use the standard playback multi-select renderer and the zoom widget.
      * FTP owns all selection, confirmation and exit events. */
-    static const u32 widgets[]={0x117b4a68u,0x11720fa8u};
+    static const u32 widgets[]={FTP_PHOTO_GRID_WIDGETS,FTP_PHOTO_PREVIEW_WIDGETS};
     static const u32 layouts[]={0x02252002u,0x00251040u};
     static const u32 thumbnail_events[][4]={
         {0x24f,0,0,1}, {0x250,0x1063aec7u,0x1063af65u,0x430}, {0x251,0x1063aeedu,0,0x430},

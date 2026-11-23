@@ -1,0 +1,15 @@
+/* SPDX-License-Identifier: MIT */
+#ifndef Z72_COMPOSITION_REFERENCE_FORMAT_H
+#define Z72_COMPOSITION_REFERENCE_FORMAT_H
+
+#define Z72_REFERENCE_SLOTS 6u
+enum { REFERENCE_W=360, REFERENCE_H=240, REFERENCE_STRIDE=368, REFERENCE_MAGIC=0x3146525a,
+       REFERENCE_HEADER_BYTES=128, REFERENCE_BYTES=REFERENCE_HEADER_BYTES+4*REFERENCE_STRIDE*REFERENCE_H };
+
+static inline int reference_header_valid(const unsigned int *header)
+{
+    return header[0]==REFERENCE_MAGIC && header[1]==REFERENCE_W &&
+           header[2]==REFERENCE_H && header[3]==REFERENCE_STRIDE;
+}
+
+#endif

@@ -46,7 +46,7 @@ def header(image, report):
         for name in ('request', 'result', 'payload'):
             lines.append(f'#define FTP_{name.upper()}_OFFSET {symbols[f"ftp_{name}"]}u')
     if 'gallery_control' in symbols:
-        for name in ('control', 'request', 'response', 'state', 'data'):
+        for name in ('control', 'request', 'response', 'state', 'data', 'upload'):
             offset = symbols[f'gallery_{name}']
             if offset % 64:
                 raise ValueError(f'Unaligned gallery area: {name}')

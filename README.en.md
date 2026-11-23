@@ -28,6 +28,7 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 | [Wi-Fi settings](docs/wifi-settings.md)                       | One submenu for region selection and an optional 80 MHz AP switch; 5 GHz STA and Wi-Fi 5 AP                                             | Hardware verified  |
 | [FTP upload](docs/ftp-upload.md#english)                      | In-camera FTP profiles, double-tap selection, batch photo and video uploads, and an optional 4 MiB send buffer                          | Hardware verified  |
 | [Browser gallery](docs/browser-gallery.md#english)            | Browse SD card previews, filter photos by rating, protection, and capture date, and batch-download original JPG and NEF files         | Hardware verified  |
+| [Composition reference](docs/composition-reference.md#english) | Edit and upload reference images, choose from six thumbnails, and show an adjustable-opacity overlay in photo live view                 | Hardware verified  |
 | [Menu localization](docs/menu-localization.md)                | English, Simplified Chinese, and Traditional Chinese labels for the extension settings                                                  | Hardware verified  |
 
 ## Known issues
@@ -56,10 +57,10 @@ The Windows GUI host firmware builder is available from [Releases](https://githu
 For instructions on building the firmware update package yourself, see [Building](#building).
 
 1. Wait for card access to finish, turn off the camera, and remove the memory card.
-2. Copy [Z72APP.BIN](releases/v0.1.0-preview.32/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
+2. Copy [Z72APP.BIN](releases/v0.1.0-preview.33/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
 3. Reinsert the card and battery, wait until the card access lamp next to the **i** button goes out, then turn on the camera.
 
-Current release `v0.1.0-preview.32` · 243,820 bytes · [SHA-256 checksums](releases/v0.1.0-preview.32/SHA256SUMS)
+Current release `v0.1.0-preview.33` · 273,576 bytes · [SHA-256 checksums](releases/v0.1.0-preview.33/SHA256SUMS)
 
 This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
 
@@ -109,4 +110,4 @@ Both scripts extract the master internally and reuse the verified release's publ
 
 ## License
 
-[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound, filtered playback, and the browser gallery carry their own [font license](releases/v0.1.0-preview.32/menu-font-license.txt).
+[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound, filtered playback, and the browser gallery carry their own [font license](releases/v0.1.0-preview.33/menu-font-license.txt).

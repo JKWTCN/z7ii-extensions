@@ -3,6 +3,7 @@
 #define Z72_WIFI_GALLERY_HTTP_H
 
 #include "../sdk/wifi_gallery.h"
+#include "../sdk/composition_reference_format.h"
 
 #include "tcp_send_ring.h"
 #define HEADER_LIMIT 4096u
@@ -13,6 +14,7 @@ _Alignas(64) struct gallery_request gallery_request;
 _Alignas(64) struct gallery_response gallery_response;
 _Alignas(64) struct gallery_state gallery_state;
 _Alignas(64) unsigned char gallery_data[GALLERY_SLOTS][GALLERY_SLOT_BYTES];
+_Alignas(64) u32 gallery_upload[REFERENCE_BYTES/4];
 _Alignas(64) static unsigned char gallery_stack[16384];
 static char gallery_http_request[HEADER_LIMIT+1u];
 static int gallery_worker_started;
@@ -24,6 +26,9 @@ static unsigned gallery_direct_next;
 #pragma clang diagnostic ignored "-Wc23-extensions"
 static const unsigned char gallery_html[]={
 #embed "wifi_gallery.html"
+};
+static const unsigned char gallery_reference_html[]={
+#embed "../tools/composition_reference.html"
 };
 #pragma clang diagnostic pop
 
@@ -88,7 +93,8 @@ static int gallery_reply(int fd,u32 status,const char *type,u32 length,const cha
 {
     const char *reason=status==200 ? "200 OK" : status==404 ? "404 Not Found" :
         status==503 ? "503 Service Unavailable" : status==431 ? "431 Request Header Fields Too Large" :
-        status==405 ? "405 Method Not Allowed" : status==413 ? "413 Content Too Large" : "400 Bad Request";
+        status==405 ? "405 Method Not Allowed" : status==413 ? "413 Content Too Large" :
+        status==500 ? "500 Internal Server Error" : "400 Bad Request";
     char header[448],*out=gallery_append(header,"HTTP/1.1 ");
     out=gallery_append(out,reason);
     out=gallery_append(out,"\r\nConnection: close\r\nCache-Control: no-store\r\n"
@@ -103,7 +109,7 @@ static int gallery_reply(int fd,u32 status,const char *type,u32 length,const cha
         out=gallery_append(out,name);
         out=gallery_append(out,"\"\r\n");
     }
-    if (status==405u) out=gallery_append(out,"Allow: GET, HEAD\r\n");
+    if (status==405u) out=gallery_append(out,"Allow: GET, HEAD, PUT\r\n");
     if (length==CHUNKED_LENGTH) out=gallery_append(out,"Transfer-Encoding: chunked");
     else {
         out=gallery_append(out,"Content-Length: ");
@@ -113,7 +119,7 @@ static int gallery_reply(int fd,u32 status,const char *type,u32 length,const cha
     return gallery_write_all(fd,header,(u32)(out-header),epoch);
 }
 
-static int gallery_read_header(int fd,u32 epoch)
+static int gallery_read_header(int fd,u32 epoch,u32 *body_start,u32 *received_bytes)
 {
     u32 used=0,start=gallery_tick();
     while (used<HEADER_LIMIT && gallery_serving(epoch) && gallery_tick()-start<6000u) {
@@ -124,7 +130,9 @@ static int gallery_read_header(int fd,u32 epoch)
         for (u32 i=used>3u ? used-3u : 0;i+3u<end;++i) {
             if (gallery_http_request[i]=='\r' && gallery_http_request[i+1]=='\n' &&
                 gallery_http_request[i+2]=='\r' && gallery_http_request[i+3]=='\n') {
-                gallery_http_request[i+4]=0;
+                gallery_http_request[end]=0;
+                *body_start=i+4;
+                *received_bytes=end;
                 return 200;
             }
         }
@@ -151,6 +159,14 @@ static char *gallery_end_line(char *p)
     if (*p!='\r' || p[1]!='\n') return 0;
     *p=0;
     return p+2;
+}
+
+static const char *gallery_header_value(const char *line,const char *name)
+{
+    while (*name) if ((*line++|32)!=*name++) return 0;
+    if (*line++!=':') return 0;
+    while (*line==' ' || *line=='\t') ++line;
+    return line;
 }
 
 static int gallery_valid_host(const char *p)
@@ -219,6 +235,14 @@ static const char *gallery_date(const char *text,u32 *packed)
 static u32 gallery_route_for(const char *path,u32 ids[GALLERY_THUMB_BATCH],u32 *count)
 {
     if (gallery_equal(path,"/")) return GALLERY_HOME;
+    if (gallery_equal(path,"/reference")) return GALLERY_REFERENCE;
+    const char *slot=gallery_prefix(path,"/reference/");
+    if (slot) {
+        u32 value=(u32)(*slot-'1');
+        if (value>=Z72_REFERENCE_SLOTS || slot[1]) return GALLERY_MISSING;
+        ids[0]=value+1;
+        return GALLERY_REFERENCE_UPLOAD;
+    }
     if (gallery_equal(path,"/photos")) return GALLERY_LIST;
     const char *filter=gallery_prefix(path,"/photos/filter/");
     if (filter) {
@@ -287,28 +311,48 @@ static unsigned gallery_parse_header(u32 *route,u32 ids[GALLERY_THUMB_BATCH],u32
 {
     char *headers=gallery_end_line(gallery_http_request),*path=gallery_http_request;
     if (!headers) return 400;
+    int upload=0;
     if (gallery_prefix(path,"GET ")) path+=4;
     else if (gallery_prefix(path,"HEAD ")) { path+=5; *head=1; }
+    else if (gallery_prefix(path,"PUT ")) { path+=4; upload=1; }
     else return 405;
     char *version=path;
     while (*version && *version!=' ') ++version;
     if (!*version) return 400;
     *version++=0;
     if (!gallery_equal(version,"HTTP/1.1") && !gallery_equal(version,"HTTP/1.0")) return 400;
-    int host=0;
+    int host=0,has_length=0,has_type=0;
+    u32 length=0;
     while (*headers!='\r') {
         char *line=headers;
         headers=gallery_end_line(headers);
         if (!headers) return 400;
-        if ((line[0]|32)=='h' && (line[1]|32)=='o' && (line[2]|32)=='s' &&
-            (line[3]|32)=='t' && line[4]==':') {
-            if (host || !gallery_valid_host(line+5)) return 400;
+        const char *value=gallery_header_value(line,"host");
+        if (value) {
+            if (host || !gallery_valid_host(value)) return 400;
             host=1;
+        } else if (upload) {
+            if ((value=gallery_header_value(line,"content-length"))) {
+                if (has_length || *value<'0' || *value>'9') return 400;
+                while (*value>='0' && *value<='9' && length<=REFERENCE_BYTES)
+                    length=length*10u+(u32)(*value++-'0');
+                if (length>REFERENCE_BYTES) return 413;
+                while (*value==' ' || *value=='\t') ++value;
+                if (*value) return 400;
+                has_length=1;
+            } else if ((value=gallery_header_value(line,"content-type"))) {
+                if (has_type || !gallery_equal(value,"application/octet-stream")) return 400;
+                has_type=1;
+            } else if (gallery_header_value(line,"transfer-encoding") ||
+                       gallery_header_value(line,"expect")) return 400;
         }
     }
     if (!host) return 400;
     *route=gallery_route_for(path,ids,count);
-    return *route==GALLERY_MISSING ? 404 : 200;
+    if (*route==GALLERY_MISSING) return 404;
+    if (upload!=(*route==GALLERY_REFERENCE_UPLOAD)) return 405;
+    if (upload && (!has_length || length!=REFERENCE_BYTES || !has_type)) return 400;
+    return 200;
 }
 
 static int gallery_write_chunk(int fd,const void *data,u32 length,u32 epoch)
@@ -371,12 +415,17 @@ static u32 gallery_prepare_download_ring(int fd,u32 address,u32 epoch)
     return GALLERY_BUFFER_NATIVE;
 }
 
-static u32 gallery_request_media(u32 route,u32 id,u32 flags,u32 dates,u32 epoch)
+static int gallery_wait_release(u32 epoch)
 {
     u32 start=gallery_tick();
     while (gallery_response.released!=gallery_request.serial && gallery_serving(epoch) &&
         gallery_tick()-start<6000u) gallery_delay(5);
-    if (!gallery_serving(epoch) || gallery_response.released!=gallery_request.serial) return 503;
+    return gallery_serving(epoch) && gallery_response.released==gallery_request.serial;
+}
+
+static u32 gallery_request_media(u32 route,u32 id,u32 flags,u32 dates,u32 epoch)
+{
+    if (!gallery_wait_release(epoch)) return 503;
     u32 serial=gallery_request.serial+1u;
     if (!serial) ++serial;
     gallery_request.epoch=epoch;
@@ -388,9 +437,32 @@ static u32 gallery_request_media(u32 route,u32 id,u32 flags,u32 dates,u32 epoch)
     gallery_request.cancelled=0;
     __asm__ volatile("" ::: "memory");
     gallery_request.serial=serial;
-    start=gallery_tick();
-    while (gallery_response.serial!=serial && gallery_serving(epoch) && gallery_tick()-start<6000u) gallery_delay(5);
+    u32 start=gallery_tick(),timeout=route==GALLERY_REFERENCE_UPLOAD ? 20000u : 6000u;
+    while (gallery_response.serial!=serial && gallery_serving(epoch) && gallery_tick()-start<timeout) gallery_delay(5);
     return gallery_response.serial==serial ? gallery_response.status : 503u;
+}
+
+static void gallery_receive_reference(int fd,u32 slot,u32 body_start,u32 used,u32 epoch)
+{
+    u32 status=503;
+    /* The writer owns the previous transfer until the SD file is closed. */
+    if (gallery_wait_release(epoch)) {
+        unsigned char *data=(unsigned char *)gallery_upload;
+        u32 offset=used-body_start,start=gallery_tick();
+        for (u32 i=0;i<offset;++i) data[i]=(unsigned char)gallery_http_request[body_start+i];
+        while (offset<REFERENCE_BYTES && gallery_serving(epoch) && gallery_tick()-start<20000u) {
+            int received=CALL(0xb109366bu,int,int,void *,u32,u32)(fd,data+offset,REFERENCE_BYTES-offset,0);
+            if (received<=0 || (u32)received>REFERENCE_BYTES-offset) break;
+            offset+=(u32)received;
+        }
+        if (offset==REFERENCE_BYTES) {
+            if (reference_header_valid(gallery_upload)) {
+                status=gallery_request_media(GALLERY_REFERENCE_UPLOAD,slot,0,0,epoch);
+                gallery_request.cancelled=gallery_request.serial;
+            } else status=400;
+        }
+    }
+    gallery_reply(fd,status,0,0,0,epoch);
 }
 
 static u32 gallery_media_request(int fd,u32 route,u32 id,u32 flags,u32 dates,u32 epoch)
@@ -462,7 +534,8 @@ static void gallery_serve(int fd,u32 epoch)
     const u32 send[4]={20,0,0,0},receive[4]={3,0,0,0};
     if (gallery_socket_option(fd,0x1005u,send,sizeof(send)) ||
         gallery_socket_option(fd,0x1006u,receive,sizeof(receive))) return;
-    u32 status=(u32)gallery_read_header(fd,epoch),route=GALLERY_MISSING,count=0;
+    u32 body_start=0,used=0;
+    u32 status=(u32)gallery_read_header(fd,epoch,&body_start,&used),route=GALLERY_MISSING,count=0;
     u32 ids[GALLERY_THUMB_BATCH];
     ids[0]=0;
     ids[1]=0;
@@ -472,9 +545,13 @@ static void gallery_serve(int fd,u32 epoch)
     if (status==200u) status=gallery_parse_header(&route,ids,&count,&head);
     u32 flags=head ? GALLERY_META : 0;
     if (status!=200u) gallery_reply(fd,status,0,0,0,epoch);
-    else if (route==GALLERY_HOME) {
-        if (gallery_reply(fd,200,"text/html; charset=utf-8",sizeof(gallery_html),0,epoch) && !head)
-            gallery_write_all(fd,gallery_html,sizeof(gallery_html),epoch);
+    else if (route==GALLERY_HOME || route==GALLERY_REFERENCE) {
+        const unsigned char *page=route==GALLERY_HOME ? gallery_html : gallery_reference_html;
+        u32 size=route==GALLERY_HOME ? sizeof(gallery_html) : sizeof(gallery_reference_html);
+        if (gallery_reply(fd,200,"text/html; charset=utf-8",size,0,epoch) && !head)
+            gallery_write_all(fd,page,size,epoch);
+    } else if (route==GALLERY_REFERENCE_UPLOAD) {
+        gallery_receive_reference(fd,ids[0],body_start,used,epoch);
     } else if (route==GALLERY_THUMBS) gallery_thumbnail_batch(fd,ids,count,head,epoch);
     else if (route==GALLERY_ZIP) gallery_zip_download(fd,count,head,epoch);
     else if (route==GALLERY_DIRECT) {

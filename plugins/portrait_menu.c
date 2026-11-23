@@ -51,6 +51,11 @@ static z72_u32 portrait_draw(volatile z72_u32 *message,z72_u32 outputs,z72_u32 o
 static z72_u32 portrait_ready(void);
 static z72_u32 portrait_install_menu(void);
 static void portrait_install(void);
+#ifdef Z72_COMPOSITION_REFERENCE
+static void composition_dispatch(volatile z72_u32 *message);
+static void composition_update(void);
+static void composition_present(void);
+#endif
 #ifdef Z72_PHOTO_ZEBRA
 static void zebra_graphics_observe(void);
 #endif
@@ -1087,7 +1092,11 @@ static u32 portrait_draw(volatile u32 *message,u32 outputs,u32 orientation)
             payload[2]=(u32)dest.w;
             payload[3]=(u32)dest.h;
         }
+#ifdef Z72_COMPOSITION_REFERENCE
+        composition_dispatch(local);
+#else
         CALL(DRAW_DISPATCH,void,const u32 *)(local);
+#endif
     }
 #if Z72_PORTRAIT_TRACE
     if (page==LIVE) ++portrait_counts[layout+7];
@@ -1344,6 +1353,11 @@ static u32 live_update(u32 a,u32 b,u32 c,u32 d)
 #endif
 #ifdef Z72_CUSTOM_DISP
     disp_update();
+#endif
+#ifdef Z72_COMPOSITION_REFERENCE
+    composition_update();
+#endif
+#ifdef Z72_CUSTOM_DISP
     if (BYTE(APP_CURRENT)==15) {
         live_orientation=0;
         movie_meter_layout(0);
@@ -1380,12 +1394,15 @@ static u32 live_update(u32 a,u32 b,u32 c,u32 d)
 #ifdef Z72_WIDE_AF
     wide_af_prepare_live();
     u32 preset=wide_af_active(),output=WORD(DISPLAY_OUTPUTS)&7u;
-    u32 result=gui_update(a,b,c,d);
-    wide_hud_update(preset,output);
-    return result;
-#else
-    return gui_update(a,b,c,d);
 #endif
+    u32 result=gui_update(a,b,c,d);
+#ifdef Z72_WIDE_AF
+    wide_hud_update(preset,output);
+#endif
+#ifdef Z72_COMPOSITION_REFERENCE
+    composition_present();
+#endif
+    return result;
 }
 
 static u32 portrait_ready(void)
@@ -1493,6 +1510,12 @@ static u32 wifi_header_owned(u32 header);
 #ifdef Z72_FTP_FULL
 static u32 ftp_header_owned(u32 header);
 #endif
+#ifdef Z72_COMPOSITION_REFERENCE
+static u32 composition_header_owned(u32 header);
+#endif
+#ifdef Z72_WIFI_GALLERY
+static u32 gallery_menu_owned(u32 header);
+#endif
 #ifdef Z72_PHOTO_ZEBRA
 #ifdef Z72_AF_SHORTCUT
 static u32 af_menu_header_owned(u32 header);
@@ -1528,6 +1551,10 @@ static u32 pre_capture_menu_source(u32 header);
 #include "wifi_gallery_menu.h"
 #endif
 static u32 ftp_menu_available;
+#endif
+#ifdef Z72_COMPOSITION_REFERENCE
+#include "composition_reference.h"
+#include "composition_reference_menu.h"
 #endif
 
 static u32 portrait_install_menu(void)
@@ -1620,11 +1647,17 @@ static u32 portrait_install_menu(void)
 #ifdef Z72_WIFI_GALLERY
         {0},
 #endif
+#ifdef Z72_COMPOSITION_REFERENCE
+        {0},
+#endif
     };
 #ifdef Z72_FIRMWARE_INFO
     _Static_assert(sizeof(rows)/sizeof(rows[0])+1<=Z72_MENU_EXTRA_ROWS,"Setup menu row capacity");
 #endif
     u32 count=sizeof(rows)/sizeof(rows[0]);
+#ifdef Z72_COMPOSITION_REFERENCE
+    --count;
+#endif
 #ifdef Z72_WIFI_GALLERY
     --count;
 #endif
@@ -1683,6 +1716,10 @@ static u32 portrait_install_menu(void)
     if (gallery_menu_available)
         rows[count++]=(struct z72_menu_row){0,gallery_menu_open,0xd7};
 #endif
+#ifdef Z72_COMPOSITION_REFERENCE
+    const u32 reference_row=count;
+    rows[count++]=(struct z72_menu_row){0,open_composition_menu,0xd7};
+#endif
     if (z72_menu_prepare_rows(&menu,rows,count)) return 1;
     if (z72_menu_locale_install()) {
         menu.rows[0][0]=Z72_TEXT_AUTO_ROTATE;
@@ -1733,6 +1770,11 @@ static u32 portrait_install_menu(void)
             menu.rows[gallery_row][4]=0x1001;
         }
 #endif
+#ifdef Z72_COMPOSITION_REFERENCE
+        menu.rows[reference_row][0]=Z72_TEXT_REFERENCE_TITLE;
+        menu.rows[reference_row][4]=0x1001;
+        composition_menu_prepare();
+#endif
 #ifdef Z72_FIRMWARE_INFO
         u32 last=Z72_MENU_ROWS+count;
         firmware_info_prepare();
@@ -1743,6 +1785,9 @@ static u32 portrait_install_menu(void)
 #endif
     } else {
         u32 unlocalized_count=count;
+#ifdef Z72_COMPOSITION_REFERENCE
+        --unlocalized_count;
+#endif
 #ifdef Z72_WIFI_GALLERY
         unlocalized_count-=gallery_menu_available;
         gallery_menu_available=0;

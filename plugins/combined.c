@@ -4,7 +4,7 @@
 #define Z72_PORTRAIT_TRACE 0
 #define Z72_GRID_WITH_PORTRAIT 1
 #define Z72_PHOTO_ZEBRA 1
-#define Z72_MENU_EXTRA_ROWS 12u
+#define Z72_MENU_EXTRA_ROWS 13u
 #define Z72_FIRMWARE_INFO 1
 #define Z72_WIDE_AF 1
 #define Z72_SUBJECT_TRACKING 1
@@ -15,6 +15,7 @@
 #define Z72_WIFI_5GHZ 1
 #define Z72_FTP_FULL 1
 #define Z72_WIFI_GALLERY 1
+#define Z72_COMPOSITION_REFERENCE 1
 #define Z72_JPEG_PRE_CAPTURE 1
 #define Z72_SHUTTER_SOUND 1
 #define Z72_MENU_SOUND_FONT 1
@@ -64,6 +65,7 @@ z72_u32 z72_main(const struct z72_api *api)
     af_shortcut_install();
     wifi_install();
     if (ftp_menu_available) ftp_restore_large_option();
+    if (gallery_menu_available && z72_config_current.gallery_enabled) gallery_menu_apply(1);
     movie_limit_install();
     movie_rot_install();
     if (pre_capture_menu_available) pre_capture_install();

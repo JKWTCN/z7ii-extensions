@@ -146,7 +146,11 @@ static void observe_draw(volatile u32 *message)
             rotate_menu_image(message,orientation)) return;
 #endif
     }
+#ifdef Z72_COMPOSITION_REFERENCE
+    composition_dispatch(message);
+#else
     CALL(DRAW_DISPATCH,void,const volatile u32 *)(message);
+#endif
 }
 
 #if Z72_PORTRAIT_TRACE

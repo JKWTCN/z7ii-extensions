@@ -84,6 +84,9 @@ static u32 wifi_show(u32 view)
 #ifdef Z72_FILTERED_PLAYBACK
     known=known || filter_header_owned(header);
 #endif
+#ifdef Z72_COMPOSITION_REFERENCE
+    known=known || composition_header_owned(header);
+#endif
     if (view>2 || WORD(ROTATION_PAGE)!=2 || !known ||
         (WORD(ROTATION_PAGE+0x24) && !owned)) return 1;
     wifi_settings_values();

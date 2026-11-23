@@ -4,7 +4,7 @@
 
 | 设置 | 操作 |
 | --- | --- |
-| 浏览器相册 | 进入「关闭／开启」。每次开机默认关闭 |
+| 浏览器相册 | 首次使用默认为关闭。关闭或开启会保存到 SD 模块设置，重启后恢复 |
 | 刷新当前状态 | 更新菜单下方的服务状态和最近一次原图下载的 TCP 发送缓冲 |
 
 向下滑动时，相册会继续加载 SD 卡上的照片，每批最多 24 张。点开照片后会先显示已加载的缩略图，再读取内嵌预览。JPG 可点「查看全尺寸 JPG」。同组 RAW+JPEG 共用一个相册条目，可分别下载 JPG 或 NEF 原文件。
@@ -25,9 +25,28 @@
 
 下载至少 4 MiB 的原文件或 ZIP 时，相册会尝试使用 4 MiB TCP 发送缓冲。内存不足时使用原厂缓冲。相册开启期间会延后 Wi‑Fi 空闲关闭。关闭相册后恢复原厂计时，也可机内手动关闭热点。
 
+## 上传构图参考图
+
+点相册首页的「构图参考图」选择手机或电脑上的 JPG 或 PNG，也可以在相机照片详情选择「用作构图参考」。在预览框拖动图片或双指缩放，用滑块调整缩放和角度。选 1 至 6 号槽位并保存，已有图片会被替换。上传后可在相机的「设定菜单 → 构图辅助 → 参考图片」查看缩略图。 [构图辅助用法](composition-reference.md)
+
 独立 SD 模块已在实机验证滚动浏览、预览、多选逐个下载，以及星级、保护状态和拍摄日期的组合筛选。新版组合包已完成本地构建，待实机复测。
 
 ## 版本更新与实机截图
+
+### v0.1.0-preview.33 版本更新
+
+- 相册首页新增「构图参考图」入口，照片详情新增「用作构图参考」。支持拖动、缩放和旋转，并上传到 1 至 6 号槽位。
+- 浏览器相册开关随 SD 设置保存，重启后恢复。从相册返回设定菜单后可直接进入构图辅助。
+
+**手机端相册入口**
+
+![手机浏览器相册顶部显示「构图参考图」按钮 / Mobile browser gallery with the composition reference button at the top](images/z7ii-browser-gallery-reference-entry.jpg)
+
+**手机端编辑和上传**
+
+![手机浏览器显示取景预览、缩放旋转控件和六个上传槽位 / Mobile browser editor showing framing preview, zoom and rotation, and six upload slots](images/z7ii-browser-gallery-reference-editor.jpg)
+
+手机端编辑上传已在开发试用版上通过实机验证。机内选图和取景叠加见[构图辅助实机截图](composition-reference.md#版本更新与实机截图)。
 
 ### v0.1.0-preview.32 版本更新
 
@@ -63,11 +82,11 @@
 
 ## English
 
-See the [release notes and hardware screenshots](#版本更新与实机截图) for gallery filters, thumbnail browsing, photo preview, and batch downloads on desktop and iPhone.
+See the [release notes and hardware screenshots](#版本更新与实机截图) for composition reference uploads, gallery filters, thumbnail browsing, photo preview, and batch downloads.
 
 Open **Setup Menu → Browser gallery** on the Nikon Z 7II running C 1.70. Set **Browser gallery** to **On**, connect your phone or computer to the camera hotspot, then open the camera IP address in a browser. The default AP address is [http://192.168.1.1/](http://192.168.1.1/).
 
-**Refresh status** updates the service status and the TCP send buffer used by the most recent original download. The gallery defaults to **Off** at power-up.
+**Refresh status** updates the service status and the TCP send buffer used by the most recent original download. The gallery starts **Off** on first use, then restores the saved setting from the SD card. Use the camera's Wi-Fi menu to start the hotspot.
 
 Scroll to load more photos from the SD card, up to 24 per batch. A RAW+JPEG pair appears as one entry with separate JPG and NEF download buttons. **View full-size JPG** loads the complete JPEG in the browser.
 
@@ -76,5 +95,7 @@ Filter by exact star rating (unrated or 1–5 stars), protection (protected only
 In multi-select mode, selected photos stay selected as you scroll. Choose **JPG + RAW** (default), **JPG only**, or **RAW only**. Download selected originals as separate files in sequence or as one ZIP archive. Your browser may ask to allow multiple downloads. You can stop the remaining files from the page and cancel the current download in your browser. Each batch supports up to 128 originals, with a ZIP size limit below 4 GiB.
 
 Original and ZIP downloads of at least 4 MiB can use a 4 MiB TCP send buffer when memory is available. The gallery defers the Wi-Fi idle timer while it is on. Choosing **Off** restores the camera's usual timer. You can also turn off the hotspot manually.
+
+Choose **构图参考图** on the gallery home page to edit and upload a JPG or PNG, or choose **用作构图参考** on a photo's detail page to use the camera preview. Drag or pinch in the preview, or use the zoom and rotation controls. Save to a slot from 1 to 6 and select its thumbnail on the camera. [Composition reference instructions](composition-reference.md#english)
 
 Scrolling, previews, sequential batch downloads, and the combined rating, protection, and capture-date filters were tested on camera with the standalone SD module. The updated combined build awaits a hardware retest.

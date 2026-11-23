@@ -3,6 +3,7 @@
 #define Z72_WIFI_GALLERY_SERVICE_H
 
 #include "wifi_gallery.h"
+#include "composition_reference_format.h"
 #include "dcim_index.h"
 #include "playback_filter_config.h"
 #include "tcp_send_storage.h"
@@ -13,6 +14,7 @@
 #define GALLERY_RESPONSE ((struct gallery_response *)(wifi_aux+GALLERY_RESPONSE_OFFSET))
 #define GALLERY_STATE ((const struct gallery_state *)(wifi_aux+GALLERY_STATE_OFFSET))
 #define GALLERY_DATA ((unsigned char (*)[GALLERY_SLOT_BYTES])(wifi_aux+GALLERY_DATA_OFFSET))
+#define GALLERY_UPLOAD ((unsigned char *)(wifi_aux+GALLERY_UPLOAD_OFFSET))
 
 enum { GALLERY_PAGE = 24, GALLERY_MAX_FILE = 256u*1024u*1024u };
 _Static_assert(GALLERY_PAGE*(GALLERY_NAME_BYTES+64u)+64u<GALLERY_CHUNK,"Gallery page fits one slot");
@@ -21,6 +23,9 @@ static _Alignas(4) unsigned char gallery_descriptor[28];
 static int gallery_worker_started;
 static void *gallery_send_owner;
 static z72_u32 gallery_send_address, gallery_send_serial;
+#ifdef Z72_COMPOSITION_REFERENCE
+static z72_u32 gallery_reference_uploads[Z72_REFERENCE_SLOTS];
+#endif
 
 static void gallery_delay(z72_u32 ms)
 {
@@ -32,6 +37,62 @@ static int request_active(z72_u32 serial,z72_u32 epoch)
     invalidate(GALLERY_REQUEST,64);
     return GALLERY_REQUEST->serial==serial && GALLERY_REQUEST->cancelled!=serial &&
         GALLERY_CONTROL->epoch==epoch;
+}
+
+static z72_u32 gallery_save_reference(z72_u32 slot,z72_u32 serial,z72_u32 epoch)
+{
+    if (!slot || slot>Z72_REFERENCE_SLOTS) return 400;
+    invalidate(GALLERY_UPLOAD,REFERENCE_BYTES);
+    if (!reference_header_valid((const z72_u32 *)GALLERY_UPLOAD)) return 400;
+
+    char path[]="B:\\Z72REF1.RFG",temp[]="B:\\Z72REF1.TMP",backup[]="B:\\Z72REF1.BAK";
+    path[9]=temp[9]=backup[9]=(char)('0'+slot);
+    int handle=Z72_CARD_CALL(0x105beb2bu,int,const char *,z72_u32)(temp,0);
+    if (handle<0) return 500;
+    z72_u32 offset=0;
+    while (offset<REFERENCE_BYTES && request_active(serial,epoch)) {
+        z72_u32 size=REFERENCE_BYTES-offset,actual=0;
+        if (size>GALLERY_CHUNK) size=GALLERY_CHUNK;
+        struct { z72_u32 kind; void *buffer; z72_u32 capacity; } request={1,GALLERY_UPLOAD+offset,size};
+        if (Z72_CARD_CALL(0x105bea79u,z72_u32,int,void *,z72_u32,z72_u32 *)(
+                handle,&request,size,&actual) || actual!=size) break;
+        offset+=size;
+    }
+    z72_u32 closed=Z72_CARD_CALL(0x105be9ddu,z72_u32,int)(handle);
+    int active=request_active(serial,epoch);
+    if (closed || offset!=REFERENCE_BYTES || !active) {
+        Z72_CARD_CALL(0x105beb81u,z72_u32,const char *)(temp);
+        return active ? 500 : 503;
+    }
+
+    z72_u32 file[10];
+    int saved=0,backed_up=0;
+    /* Publish by rename only after the complete upload is closed. During
+     * replacement the old image remains readable through its backup. */
+    if (card_open(file,path)) {
+        if (!card_close(file)) goto cleanup;
+        if (card_open(file,backup)) {
+            if (!card_close(file) || Z72_CARD_CALL(0x105beb81u,z72_u32,const char *)(backup))
+                goto cleanup;
+        }
+        if (Z72_CARD_CALL(0x105beb5bu,z72_u32,const char *,const char *)(path,backup)) goto cleanup;
+        backed_up=1;
+    }
+    saved=!Z72_CARD_CALL(0x105beb5bu,z72_u32,const char *,const char *)(temp,path);
+    if (saved) {
+#ifdef Z72_COMPOSITION_REFERENCE
+        __atomic_add_fetch(&gallery_reference_uploads[slot-1],1,__ATOMIC_RELEASE);
+#endif
+        if (backed_up || card_open(file,backup)) {
+            if (backed_up || card_close(file))
+                Z72_CARD_CALL(0x105beb81u,z72_u32,const char *)(backup);
+        }
+        return 200;
+    }
+    if (backed_up) Z72_CARD_CALL(0x105beb5bu,z72_u32,const char *,const char *)(backup,path);
+cleanup:
+    Z72_CARD_CALL(0x105beb81u,z72_u32,const char *)(temp);
+    return 500;
 }
 
 static void gallery_release_buffer(void)
@@ -223,7 +284,10 @@ static void gallery_worker(void *argument)
         }
         z72_u32 epoch=GALLERY_REQUEST->epoch,route=GALLERY_REQUEST->route,value=GALLERY_REQUEST->value;
         if (request_active(serial,epoch)) {
-            if (route==GALLERY_LIST && (!value || photo_id(value))) {
+            if (route==GALLERY_REFERENCE_UPLOAD) {
+                z72_u32 status=gallery_save_reference(value,serial,epoch);
+                gallery_reply(serial,status,0,0,"",0);
+            } else if (route==GALLERY_LIST && (!value || photo_id(value))) {
                 z72_u32 dates=GALLERY_REQUEST->dates;
                 if (z72_playback_filter_valid((dates&0xffffu)<<Z72_DATE_SHIFT) &&
                     z72_playback_filter_valid((dates>>16)<<Z72_DATE_SHIFT)) {

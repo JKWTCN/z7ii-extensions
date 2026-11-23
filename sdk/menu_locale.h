@@ -149,7 +149,7 @@ enum {
 #ifdef Z72_WIFI_GALLERY
     Z72_TEXT_GALLERY_TITLE,Z72_TEXT_GALLERY_REFRESH,Z72_TEXT_GALLERY_OFF,Z72_TEXT_GALLERY_ON,
     Z72_TEXT_GALLERY_HINT1,Z72_TEXT_GALLERY_HINT2,Z72_TEXT_GALLERY_WAIT,Z72_TEXT_GALLERY_READY,
-    Z72_TEXT_GALLERY_RETRY,Z72_TEXT_GALLERY_ERROR,Z72_TEXT_GALLERY_LARGE,Z72_TEXT_GALLERY_NATIVE,
+    Z72_TEXT_GALLERY_RETRY,Z72_TEXT_GALLERY_ERROR,Z72_TEXT_GALLERY_LARGE,Z72_TEXT_GALLERY_NATIVE,Z72_TEXT_GALLERY_SAVE_ERROR,
 #endif
 #ifdef Z72_FIRMWARE_INFO
     Z72_TEXT_FIRMWARE_INFO,
@@ -157,6 +157,18 @@ enum {
     Z72_TEXT_FIRMWARE_INFO_PROJECT,
     Z72_TEXT_FIRMWARE_INFO_URL,
     Z72_TEXT_FIRMWARE_INFO_TARGET,
+#endif
+#ifdef Z72_COMPOSITION_REFERENCE
+    Z72_TEXT_REFERENCE_TITLE,
+    Z72_TEXT_REFERENCE_IMAGE,
+    Z72_TEXT_REFERENCE_OPACITY,
+    Z72_TEXT_REFERENCE_TOGGLE,
+    Z72_TEXT_REFERENCE_HOLD,
+    Z72_TEXT_REFERENCE_UNAVAILABLE,
+    Z72_TEXT_REFERENCE_SLOT,
+    Z72_TEXT_REFERENCE_PERCENT=Z72_TEXT_REFERENCE_SLOT+Z72_REFERENCE_SLOTS,
+    Z72_TEXT_REFERENCE_END=Z72_TEXT_REFERENCE_PERCENT+Z72_REFERENCE_OPACITIES-1,
+    Z72_TEXT_REFERENCE_PICK,
 #endif
 #ifdef Z72_FTP_FULL
     Z72_TEXT_FTP_ROW,
@@ -199,6 +211,11 @@ static inline int z72_menu_locale_install(void)
         !z72_golden_font_ready()) return 0;
 
     /* The firmware stores consecutive UTF-16LE strings with byte offsets. */
+#ifdef Z72_COMPOSITION_REFERENCE
+#define Z72_REFERENCE_VALUE_TEXT \
+    u"1",u"2",u"3",u"4",u"5",u"6", \
+    u"10%",u"25%",u"50%",u"75%",u"100%"
+#endif
     static const unsigned short translations[][Z72_MENU_STATIC_TEXT_END-Z72_MENU_STOCK_TEXTS][Z72_MENU_TEXT_UNITS]={
         {u"Golden ratio",u"Auto rotate info",u"Photo shooting highlights",u"Highlight threshold",u"Display pattern",
          u"Custom DISP pages",u"Custom pages",u"Standard",u"Minimal",u"Composition",u"Exposure",
@@ -242,10 +259,15 @@ static inline int z72_menu_locale_install(void)
          u"Browser gallery",u"Refresh status",u"Off",u"On",
          u"Open the camera IP address.",u"AP default: http://192.168.1.1/",
          u"Waiting for camera hotspot",u"Gallery ready",u"Network retry in progress",
-         u"Gallery could not start",u"TCP send buffer: 4 MiB",u"TCP send buffer: native",
+         u"Gallery could not start",u"TCP send buffer: 4 MiB",u"TCP send buffer: native",u"Settings could not be saved",
 #endif
 #ifdef Z72_FIRMWARE_INFO
          u"Custom firmware version",Z72_FIRMWARE_INFO_TEXT,
+#endif
+#ifdef Z72_COMPOSITION_REFERENCE
+         u"Composition reference",u"Reference image",u"Opacity",
+         u"Press to toggle",u"Show while held",u"Reference image unavailable",
+         Z72_REFERENCE_VALUE_TEXT,u"OK Select",
 #endif
         },
         {u"黄金分割",u"自动旋转信息显示",u"照片拍摄加亮显示",u"加亮阈值",u"显示图案",
@@ -288,10 +310,15 @@ static inline int z72_menu_locale_install(void)
          u"浏览器相册",u"刷新当前状态",u"关闭",u"开启",
          u"请访问相机 IP，如果是 AP 模式的话",u"默认为 http://192.168.1.1/",
          u"等待相机热点",u"相册已就绪",u"正在重试网络",
-         u"相册启动失败",u"TCP 发送缓冲：4 MiB",u"TCP 发送缓冲：原厂",
+         u"相册启动失败",u"TCP 发送缓冲：4 MiB",u"TCP 发送缓冲：原厂",u"设置保存失败",
 #endif
 #ifdef Z72_FIRMWARE_INFO
          u"自定义固件版本",Z72_FIRMWARE_INFO_TEXT,
+#endif
+#ifdef Z72_COMPOSITION_REFERENCE
+         u"构图辅助",u"参考图片",u"不透明度",
+         u"按一下切换",u"按住显示",u"参考图片不可用",
+         Z72_REFERENCE_VALUE_TEXT,u"OK 选定",
 #endif
         },
         {u"黃金分割",u"自動旋轉資訊顯示",u"照片拍攝加亮顯示",u"加亮閾值",u"顯示圖案",
@@ -333,13 +360,21 @@ static inline int z72_menu_locale_install(void)
          u"瀏覽器相簿",u"重新整理目前狀態",u"關閉",u"開啟",
          u"請存取相機 IP，如果是 AP 模式",u"預設為 http://192.168.1.1/",
          u"等待相機熱點",u"相簿已就緒",u"正在重試網路",
-         u"相簿啟動失敗",u"TCP 傳送緩衝：4 MiB",u"TCP 傳送緩衝：原廠",
+         u"相簿啟動失敗",u"TCP 傳送緩衝：4 MiB",u"TCP 傳送緩衝：原廠",u"設定儲存失敗",
 #endif
 #ifdef Z72_FIRMWARE_INFO
          u"自訂韌體版本",Z72_FIRMWARE_INFO_TEXT,
 #endif
+#ifdef Z72_COMPOSITION_REFERENCE
+         u"構圖輔助",u"參考圖片",u"不透明度",
+         u"按一下切換",u"按住顯示",u"參考圖片無法使用",
+         Z72_REFERENCE_VALUE_TEXT,u"OK 選定",
+#endif
         }
     };
+#ifdef Z72_COMPOSITION_REFERENCE
+#undef Z72_REFERENCE_VALUE_TEXT
+#endif
     z72_u32 bytes=sizeof(struct z72_menu_locale)+Z72_MENU_LANGUAGES*sizeof(translations[0]);
 #ifdef Z72_FTP_FULL
     _Static_assert(Z72_FTP_FILE_ROWS*Z72_FTP_FILE_LABEL_UNITS>=Z72_FTP_MENU_ROWS*Z72_FTP_LABEL_UNITS,

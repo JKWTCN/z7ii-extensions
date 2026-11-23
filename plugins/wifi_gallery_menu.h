@@ -8,7 +8,7 @@ static struct {
     u32 events[2][ROTATION_EVENTS][4],callbacks[5];
 } gallery_menu_views[2];
 static u32 gallery_menu_layout[4],gallery_menu_view,gallery_menu_focus;
-static u32 gallery_menu_available,gallery_menu_start_failed;
+static u32 gallery_menu_available,gallery_menu_start_failed,gallery_menu_save_failed;
 
 static u32 gallery_menu_owned(u32 header)
 {
@@ -18,6 +18,7 @@ static u32 gallery_menu_owned(u32 header)
 static u32 gallery_menu_status_text(void)
 {
     if (gallery_menu_start_failed) return Z72_TEXT_GALLERY_ERROR;
+    if (gallery_menu_save_failed) return Z72_TEXT_GALLERY_SAVE_ERROR;
     if (!gallery_holds_wifi()) return Z72_TEXT_GALLERY_OFF;
     invalidate(GALLERY_STATE,64);
     switch (GALLERY_STATE->stage) {
@@ -71,11 +72,21 @@ static u32 gallery_menu_back(u32 a,u32 b,u32 c,u32 d)
     return gallery_menu_show(0);
 }
 
+static void gallery_menu_apply(u32 enabled)
+{
+    if (enabled) ftp_install_wifi_hold();
+    gallery_menu_start_failed=!gallery_set_enabled((int)enabled);
+}
+
 static u32 gallery_menu_pick(u32 row)
 {
     if (gallery_menu_view) {
-        if (row) ftp_install_wifi_hold();
-        gallery_menu_start_failed=!gallery_set_enabled((int)row);
+        gallery_menu_apply(row);
+        if (!gallery_menu_start_failed) {
+            struct z72_config config=z72_config_current;
+            config.gallery_enabled=row;
+            gallery_menu_save_failed=z72_config_save(config)!=Z72_CFG_OK;
+        }
         return gallery_menu_show(0);
     }
     gallery_menu_focus=row;

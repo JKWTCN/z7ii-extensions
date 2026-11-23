@@ -40,6 +40,7 @@ button:disabled,select:disabled,input:disabled,a[aria-disabled=true]{opacity:.4}
 [hidden]{display:none!important}
 </style>
 <section id="album"><div class="album-head"><header><h1>相机相册</h1><div class="tools">
+<a class="download" href="/reference">构图参考图</a>
 <button id="select">多选</button><button id="refresh">刷新</button></div></header>
 <div class="filters">
 <label>星级 <select id="rating"><option value="0">不限</option><option value="1">无评级</option>
@@ -280,6 +281,10 @@ function detail(photo,thumbnail){
     preview.append(image);
   }
   showPreview(photo,'preview');
+  const reference=document.createElement('a');
+  reference.className='download';reference.href='/reference#'+photo.id;
+  reference.textContent='用作构图参考';
+  actions.append(reference);
   if(photo.jpg){
     const full=document.createElement('button');
     full.textContent='查看全尺寸 JPG';

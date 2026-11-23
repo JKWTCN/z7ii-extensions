@@ -18,6 +18,11 @@ static z72_u32 wide_af_choose(z72_u32 selection);
 static const z72_u32 af_shortcut_properties[Z72_AF_SHORTCUT_BUTTONS]={
     0x1145,0x114a,0x114f,0x1153,0x1156
 };
+static const z72_u32 af_shortcut_held_offsets[Z72_AF_SHORTCUT_BUTTONS]={0x04,0x2c,0x04,0x2c,0x18};
+static const z72_u32 af_shortcut_masks[Z72_AF_SHORTCUT_BUTTONS]={0x4000,0x4000,0x200000,0x8000,0x2000};
+#ifdef Z72_COMPOSITION_REFERENCE
+static void composition_input(z72_u32 packet,z72_u32 photo_context);
+#endif
 static volatile z72_u32 af_shortcut_pending;
 
 static z72_u32 af_shortcut_context(void)
@@ -37,15 +42,17 @@ static z72_u32 af_shortcut_input(z72_u32 packet,z72_u32 a,z72_u32 b,z72_u32 c)
     /* The input callback precedes the GUI task. Capture only; never change
      * properties or write the CFG here. Native assignment None still reaches
      * this callback. +10/+38/+24 are press edges, not the held-state words. */
-    if (!af_shortcut_context())
+    z72_u32 context=af_shortcut_context();
+#ifdef Z72_COMPOSITION_REFERENCE
+    composition_input(packet,context);
+#endif
+    if (!context)
         __atomic_store_n(&af_shortcut_pending,0,__ATOMIC_RELEASE);
     else if (packet) {
-        static const z72_u32 offsets[Z72_AF_SHORTCUT_BUTTONS]={0x10,0x38,0x10,0x38,0x24};
-        static const z72_u32 masks[Z72_AF_SHORTCUT_BUTTONS]={0x4000,0x4000,0x200000,0x8000,0x2000};
         z72_u32 pressed=0;
         for (z72_u32 i=0;i<Z72_AF_SHORTCUT_BUTTONS;++i)
             if (z72_config_current.af_shortcuts[i] &&
-                (Z72_AF_WORD(packet+offsets[i])&masks[i])) pressed|=1u<<i;
+                (Z72_AF_WORD(packet+af_shortcut_held_offsets[i]+0x0c)&af_shortcut_masks[i])) pressed|=1u<<i;
         if (pressed) __atomic_fetch_or(&af_shortcut_pending,pressed,__ATOMIC_RELEASE);
     }
     return Z72_AF_CALL(Z72_AF_INPUT_NATIVE,z72_u32,z72_u32,z72_u32,z72_u32,z72_u32)(packet,a,b,c);

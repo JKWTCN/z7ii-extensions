@@ -45,7 +45,7 @@ static int name_char(unsigned char c)
         c=='_' || c=='-';
 }
 
-static int valid_path(const char *p,int local)
+static inline int valid_path(const char *p,int local)
 {
     if (!name_char((unsigned char)*p)) return 0;
     for (++p;*p;++p) {

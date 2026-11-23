@@ -21,6 +21,12 @@ static u32 zebra_header_owned(u32 header)
 #ifdef Z72_AF_SHORTCUT
     if (af_menu_header_owned(header)) return 1;
 #endif
+#ifdef Z72_COMPOSITION_REFERENCE
+    if (composition_header_owned(header)) return 1;
+#endif
+#ifdef Z72_WIFI_GALLERY
+    if (gallery_menu_owned(header)) return 1;
+#endif
 #ifdef Z72_CUSTOM_DISP
     return disp_header_owned(header);
 #else
