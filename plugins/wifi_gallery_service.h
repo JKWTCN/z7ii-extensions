@@ -136,13 +136,6 @@ static int photo_format(int format)
     return format==FTP_MEDIA_JPEG || format==FTP_MEDIA_NEF;
 }
 
-static z72_u32 photo_folder(z72_u32 id) { return (id>>19)&0x3ffu; }
-
-static int photo_id(z72_u32 id)
-{
-    return id>>29==1u && photo_folder(id)>=100u && photo_folder(id)<=999u;
-}
-
 static void set_extension(char *path,int raw)
 {
     char *end=path;
@@ -161,9 +154,12 @@ static int open_photo(z72_u32 *file,const char *path)
 static z72_u32 gallery_list(z72_u32 cursor,z72_u32 serial,z72_u32 epoch,z72_u32 flags,z72_u32 dates)
 {
     z72_u32 rating=(flags>>GALLERY_RATING_SHIFT)&7u,protection=(flags>>GALLERY_PROTECTION_SHIFT)&3u;
+    z72_u32 card=(flags>>GALLERY_CARD_SHIFT)&3u;
     /* Native rating bits 1–6 represent no rating and one through five stars. */
     const unsigned short predicate[]={(unsigned short)(1u<<rating),0xfff};
-    unsigned short folder=cursor ? (unsigned short)photo_folder(cursor) : 1000u;
+    struct dcim_folder folder=cursor ?
+        (struct dcim_folder){dcim_id_card(cursor),(unsigned short)dcim_id_folder(cursor)} :
+        (struct dcim_folder){card ? card-1u : DCIM_SD,DCIM_FOLDER_START};
     z72_u32 id=cursor,last=cursor,previous=cursor ? ftp_media_key(cursor) : 0;
     /* A scan can stop on a rejected NEF immediately before its matching JPG. */
     if ((protection || dates) && (cursor&15u)==1u) {
@@ -173,8 +169,9 @@ static z72_u32 gallery_list(z72_u32 cursor,z72_u32 serial,z72_u32 epoch,z72_u32 
     unsigned count=0,scanned=0;
     char *start=(char *)GALLERY_DATA[0],*out=copy_text(start,"{\"items\":[");
     while (scanned<256u && request_active(serial,epoch)) {
-        if (!id && !ftp_previous_folder(&folder)) { last=0; break; }
-        id=dcim_find_photo(folder,id,1,rating ? predicate : 0);
+        if (!id && !(card ? dcim_previous_folder(folder.card,&folder.number) :
+                     dcim_previous_card_folder(&folder))) { last=0; break; }
+        id=dcim_find_photo(folder.card,folder.number,id,1,rating ? predicate : 0);
         if (!id) continue;
         ++scanned;
         z72_u32 key=ftp_media_key(id);
@@ -193,7 +190,9 @@ static z72_u32 gallery_list(z72_u32 cursor,z72_u32 serial,z72_u32 epoch,z72_u32 
         z72_u32 alternate[10];
         int pair=open_photo(alternate,path);
         if (pair) card_close(alternate);
-        out=copy_text(out,"\",\"jpg\":");
+        out=copy_text(out,"\",\"card\":");
+        *out++=(char)('0'+folder.card);
+        out=copy_text(out,",\"jpg\":");
         *out++=(char)('0'+(pair || format==FTP_MEDIA_JPEG));
         out=copy_text(out,",\"nef\":");
         *out++=(char)('0'+(pair || format==FTP_MEDIA_NEF));
@@ -221,7 +220,7 @@ static int open_preview(z72_u32 *file,char path[FTP_PATH_BYTES],int raw,int larg
 static int gallery_open(z72_u32 route,z72_u32 id,z72_u32 *file,char path[FTP_PATH_BYTES],
                         struct gallery_image *image)
 {
-    if (!photo_id(id) || !photo_format(ftp_media_path(id,path))) return 0;
+    if (!photo_format(ftp_media_path(id,path))) return 0;
     if (route==GALLERY_JPG || route==GALLERY_NEF || route==GALLERY_VIEW_JPG) {
         set_extension(path,route==GALLERY_NEF);
         if (!open_photo(file,path)) return 0;
@@ -287,11 +286,13 @@ static void gallery_worker(void *argument)
             if (route==GALLERY_REFERENCE_UPLOAD) {
                 z72_u32 status=gallery_save_reference(value,serial,epoch);
                 gallery_reply(serial,status,0,0,"",0);
-            } else if (route==GALLERY_LIST && (!value || photo_id(value))) {
-                z72_u32 dates=GALLERY_REQUEST->dates;
-                if (z72_playback_filter_valid((dates&0xffffu)<<Z72_DATE_SHIFT) &&
+            } else if (route==GALLERY_LIST && (!value || dcim_card_id(value))) {
+                z72_u32 dates=GALLERY_REQUEST->dates,flags=GALLERY_REQUEST->flags;
+                z72_u32 card=(flags>>GALLERY_CARD_SHIFT)&3u;
+                if ((!card || (card<=DCIM_CARD_COUNT && (!value || card==dcim_id_card(value)+1u))) &&
+                    z72_playback_filter_valid((dates&0xffffu)<<Z72_DATE_SHIFT) &&
                     z72_playback_filter_valid((dates>>16)<<Z72_DATE_SHIFT)) {
-                    z72_u32 length=gallery_list(value,serial,epoch,GALLERY_REQUEST->flags,dates);
+                    z72_u32 length=gallery_list(value,serial,epoch,flags,dates);
                     gallery_reply(serial,200,length,1,"",0);
                 } else gallery_reply(serial,400,0,0,"",0);
             } else if (route>=GALLERY_THUMB && route<=GALLERY_VIEW_JPG) {
@@ -310,7 +311,14 @@ static void gallery_worker(void *argument)
                             send_address=gallery_send_address;
                             if (send_address) gallery_send_serial=serial;
                         }
-                        const char *name=(flags&GALLERY_ARCHIVE) ? path+8 : basename(path);
+                        char archive[FTP_PATH_BYTES];
+                        const char *name=basename(path);
+                        if (flags&GALLERY_ARCHIVE) {
+                            archive[0]=path[0];
+                            archive[1]='/';
+                            *copy_text(archive+2,path+8)=0;
+                            name=archive;
+                        }
                         gallery_reply(serial,200,image.length,0,name,send_address);
                         if (!(flags&GALLERY_META)) gallery_stream(serial,epoch,file,image);
                     }

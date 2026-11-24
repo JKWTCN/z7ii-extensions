@@ -43,6 +43,8 @@ button:disabled,select:disabled,input:disabled,a[aria-disabled=true]{opacity:.4}
 <a class="download" href="/reference">构图参考图</a>
 <button id="select">多选</button><button id="refresh">刷新</button></div></header>
 <div class="filters">
+<label>存储卡 <select id="card"><option value="0">全部</option>
+<option value="1">CFexpress / XQD</option><option value="2">SD</option></select></label>
 <label>星级 <select id="rating"><option value="0">不限</option><option value="1">无评级</option>
 <option value="2">1 星</option><option value="3">2 星</option><option value="4">3 星</option>
 <option value="5">4 星</option><option value="6">5 星</option></select></label>
@@ -68,6 +70,10 @@ button:disabled,select:disabled,input:disabled,a[aria-disabled=true]{opacity:.4}
 <div id="preview"></div><p id="detailMessage" role="status"></p><div id="downloads"></div></section>
 <script>
 const el=id=>document.getElementById(id);
+function photoLabel(photo){
+  const name=photo.jpg&&photo.nef ? photo.name.slice(0,-4)+' · JPG + NEF' : photo.name;
+  return name+' · '+(photo.card===0?'CFexpress / XQD':'SD');
+}
 const selected=new Map(),fileLimit=128;
 let next='',more=true,failedPage=false,selecting=false,scrollPosition=0;
 let listController=null;
@@ -94,7 +100,7 @@ function updateSelection(){
   el('direct').disabled=!directRunning&&!canDownload;
   el('direct').textContent=directRunning?'停止后续':'下载所选';
   el('select').disabled=directRunning;
-  el('rating').disabled=el('protection').disabled=directRunning;
+  el('card').disabled=el('rating').disabled=el('protection').disabled=directRunning;
   el('dateFrom').disabled=el('dateTo').disabled=el('clearDates').disabled=directRunning;
   el('refresh').disabled=!!listController||directRunning;
   const canZip=canDownload&&!directRunning;
@@ -268,7 +274,7 @@ function showPreview(photo,route){
 }
 function detail(photo,thumbnail){
   scrollPosition=window.scrollY;
-  el('detailName').textContent=photo.name;
+  el('detailName').textContent=photoLabel(photo);
   el('album').hidden=true;el('detail').hidden=false;
   pauseThumbs();
   const preview=el('preview'),actions=el('downloads');
@@ -337,9 +343,11 @@ async function load(reset=false){
   listController=controller;
   el('refresh').disabled=true;
   const filters=el('rating').value+el('protection').value;
-  const filtered=filters!=='00'||hasDates;
+  const card=el('card').value;
+  const filtered=filters!=='00'||card!=='0'||hasDates;
+  const cardFilter=card==='0'?'':'/card/'+card;
   const dates=hasDates?'/dates/'+(start||'0')+'/'+(end||'0'):'';
-  const path='/photos'+(filtered?'/filter/'+filters+dates:'')+(cursor?'/'+cursor:'');
+  const path='/photos'+(filtered?'/filter/'+filters+cardFilter+dates:'')+(cursor?'/'+cursor:'');
   const timer=setTimeout(()=>controller.abort(),8000);
   el('message').textContent='正在读取照片…';
   try{
@@ -359,7 +367,7 @@ async function load(reset=false){
       if(selecting)button.setAttribute('aria-pressed','false');
       button.onclick=()=>selecting?selectPhoto(photo,button):detail(photo,image);
       const caption=document.createElement('span');
-      caption.textContent=photo.name;
+      caption.textContent=photoLabel(photo);
       thumb.append(image);button.append(thumb,caption);tiles.append(button);
       thumbs.push({photo,image,thumb});
     }
@@ -386,7 +394,7 @@ function filtersChanged(){
   clearGallery();
   load(true);
 }
-el('rating').onchange=el('protection').onchange=el('dateFrom').onchange=el('dateTo').onchange=filtersChanged;
+el('card').onchange=el('rating').onchange=el('protection').onchange=el('dateFrom').onchange=el('dateTo').onchange=filtersChanged;
 el('clearDates').onclick=()=>{
   el('dateFrom').value=el('dateTo').value='';
   filtersChanged();

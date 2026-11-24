@@ -251,6 +251,13 @@ static u32 gallery_route_for(const char *path,u32 ids[GALLERY_THUMB_BATCH],u32 *
         u32 protection=(u32)(*filter++-'0');
         if (protection>2u) return GALLERY_MISSING;
         ids[1]=(rating<<GALLERY_RATING_SHIFT)|(protection<<GALLERY_PROTECTION_SHIFT);
+        const char *card=gallery_prefix(filter,"/card/");
+        if (card) {
+            u32 value=(u32)(*card++-'1');
+            if (value>1u) return GALLERY_MISSING;
+            ids[1]|=(value+1u)<<GALLERY_CARD_SHIFT;
+            filter=card;
+        }
         const char *dates=gallery_prefix(filter,"/dates/");
         if (dates) {
             u32 start,end;

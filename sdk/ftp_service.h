@@ -21,7 +21,7 @@ enum ftp_edit_state { FTP_EDIT_READY, FTP_EDIT_NEW, FTP_EDIT_BAD_ADDRESS, FTP_ED
 enum { FTP_FOLDERS=6, FTP_CONFIGS=3, FTP_BATCH=1000, FTP_AUTO_CAPACITY=128 };
 _Static_assert(Z72_FTP_FILE_LABEL_UNITS>=FTP_PATH_BYTES-8u+2u,"FTP photo label with selection mark");
 enum { FTP_IMAGE_SLOT=0xb1888a9cu, FTP_IMAGE_CALLBACK=0x106d2f6du, FTP_IMAGE_CLOSED=0x041f0002u };
-struct ftp_cursor { unsigned short folder; z72_u32 id; };
+struct ftp_cursor { struct dcim_folder folder; z72_u32 id; };
 struct ftp_photo { z72_u32 id; char path[FTP_PATH_BYTES]; };
 static const char *const ftp_profiles[FTP_CONFIGS]={
     "B:\\Z72FTP.CFG","B:\\Z72FTP2.CFG","B:\\Z72FTP3.CFG"
@@ -39,8 +39,8 @@ static struct ftp_cursor ftp_cursor;
 static z72_u32 ftp_photo_count, ftp_more, ftp_profile, ftp_task_control[8];
 static z72_u32 ftp_job, ftp_cancel, ftp_local, ftp_generation, ftp_total;
 static z72_u32 ftp_first,ftp_last,ftp_completed,ftp_jpeg_only,ftp_overwrite,ftp_queue_full,ftp_discard;
-static z72_u32 ftp_folder_count,ftp_folder_more,ftp_folder_next,ftp_folder_send;
-static unsigned short ftp_folders[FTP_FOLDERS];
+static z72_u32 ftp_folder_count,ftp_folder_more;
+static struct dcim_folder ftp_folder_next,ftp_folder_send,ftp_folders[FTP_FOLDERS];
 static struct { z72_u32 id,profile; } ftp_auto[FTP_AUTO_CAPACITY];
 static z72_u32 ftp_auto_read,ftp_auto_write,ftp_auto_epoch,ftp_auto_dropped,ftp_auto_guard,ftp_auto_retry;
 static z72_u32 ftp_auto_error,ftp_auto_profile,ftp_auto_lookup_tries;
@@ -64,7 +64,7 @@ static void ftp_image_closed(z72_u32 event,z72_u32 argument)
         argument>=0xb1800000u && argument<=0xb5f00000u-20u)
         id=*(const z72_u32 *)argument;
     FTP_CALL(FTP_IMAGE_CALLBACK,void,z72_u32,z72_u32)(event,argument);
-    if (id>>29!=1u || (id&15u)>1u || epoch!=ftp_load(&ftp_auto_epoch)) return;
+    if (!dcim_card_id(id) || (id&15u)>1u || epoch!=ftp_load(&ftp_auto_epoch)) return;
     z72_u32 free=0;
     if (!__atomic_compare_exchange_n(&ftp_auto_guard,&free,1,0,__ATOMIC_ACQUIRE,__ATOMIC_RELAXED)) {
         __atomic_add_fetch(&ftp_auto_dropped,1,__ATOMIC_RELAXED);
@@ -197,11 +197,8 @@ static void ftp_scan(z72_u32 limit)
     z72_u32 count=0;
     for (z72_u32 tries=0;tries<3u*Z72_FTP_PHOTOS_PER_LIST;++tries) {
         struct ftp_cursor previous=ftp_cursor;
-        if (!ftp_cursor.id && !ftp_previous_folder(&ftp_cursor.folder)) {
-            ftp_cursor.folder=0;
-            break;
-        }
-        ftp_cursor.id=ftp_find_photo(ftp_cursor.folder,ftp_cursor.id,1);
+        if (!ftp_cursor.id && !dcim_previous_card_folder(&ftp_cursor.folder)) break;
+        ftp_cursor.id=ftp_find_photo(ftp_cursor.folder.card,ftp_cursor.folder.number,ftp_cursor.id,1);
         struct ftp_photo photo;
         if (!ftp_cursor.id || !ftp_media_path(ftp_cursor.id,photo.path)) continue;
         if (count==limit) {
@@ -213,14 +210,14 @@ static void ftp_scan(z72_u32 limit)
         ftp_photos[count++]=photo;
     }
     ftp_photo_count=count;
-    ftp_more=ftp_cursor.folder>=100;
+    ftp_more=ftp_cursor.folder.number>=100;
 }
 
 static void ftp_scan_folders(void)
 {
-    unsigned short folder=(unsigned short)ftp_folder_next;
+    struct dcim_folder folder=ftp_folder_next;
     z72_u32 count=0;
-    while (count<FTP_FOLDERS && ftp_previous_folder(&folder)) ftp_folders[count++]=folder;
+    while (count<FTP_FOLDERS && dcim_previous_card_folder(&folder)) ftp_folders[count++]=folder;
     ftp_folder_count=count;
     ftp_folder_more=count==FTP_FOLDERS;
     if (count) ftp_folder_next=ftp_folders[count-1];
@@ -442,7 +439,7 @@ static void ftp_send_folder(void)
     ftp_compact_batch();
     ftp_store(&ftp_queue_full,0);
     for (z72_u32 visited=0;visited<20000u && !ftp_load(&ftp_cancel);++visited) {
-        photo.id=ftp_find_photo((unsigned short)ftp_folder_send,photo.id,0);
+        photo.id=ftp_find_photo(ftp_folder_send.card,ftp_folder_send.number,photo.id,0);
         if (!photo.id) break;
         if (ftp_media_path(photo.id,photo.path) && !ftp_mark(&photo)) break;
     }

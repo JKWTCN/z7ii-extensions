@@ -5,7 +5,7 @@
 #include "ftp_photo_grid_layout.h"
 
 enum { FTP_GRID_THUMBNAILS, FTP_GRID_PREVIEW, FTP_GRID_VIEWS };
-enum { FTP_GRID_CARD=0x3b14, FTP_GRID_IMAGE=0x3b10, FTP_GRID_ROW=0x2d70 };
+enum { FTP_GRID_INDEX=0x3b14, FTP_GRID_IMAGE=0x3b10, FTP_GRID_ROW=0x2d70 };
 enum { FTP_GRID_TILES=FTP_PHOTO_GRID_TILES, FTP_GRID_RENDER_TABLE=0xb208f558u, FTP_GRID_STOCK_RENDER=0x109724a4u };
 enum { FTP_GRID_DOUBLE_TAP_MS=450 };
 enum { FTP_GRID_INPUT_SLOT=0xb1824f14u, FTP_GRID_STOCK_INPUT=0x1044f6e1u };
@@ -16,7 +16,7 @@ static struct {
     u32 header[FTP_GRID_VIEWS][6], callbacks[5], maps[FTP_GRID_VIEWS];
     u32 thumbnails[116][8], preview[8][8], row[7], render[9];
     u32 ready,active,view,transition,returning,scene_open,grid_planes;
-    u32 saved_card,saved_image,saved_display;
+    u32 saved_index,saved_image,saved_display;
     struct { u32 id,selected; } marks[FTP_BATCH]; /* Edits awaiting OK. */
     u32 mark_count,resume_image;
     u32 block_touch_ok,pressed_image,pressed_tick,tapped_image,tapped_tick;
@@ -61,7 +61,7 @@ static void ftp_grid_draw_mark(u32 index)
 {
     if (!ftp_grid.scene_open || ftp_grid.view!=FTP_GRID_THUMBNAILS || index>=FTP_GRID_TILES) return;
     u32 id=ftp_grid_tile_image(index), marked=0;
-    if (id>>29==1u) {
+    if (dcim_card_id(id)) {
         u32 count=ftp_load(&ftp_grid.mark_count), mark=ftp_grid_find_mark(id,count);
         marked=mark<count ? ftp_load(&ftp_grid.marks[mark].selected) : ftp_marked(id);
     }
@@ -104,12 +104,12 @@ static void ftp_leave_photo_grid(void)
     if (ftp_grid.scene_open && ftp_grid.view==FTP_GRID_THUMBNAILS &&
         (ftp_load(&ftp_grid.mark_count) || ftp_pending())) {
         u32 id=ftp_grid_tile_image(CALL(0x1070f1b5u,u32,void)());
-        if (id>>29==1u) ftp_grid.resume_image=id;
+        if (dcim_card_id(id)) ftp_grid.resume_image=id;
     }
     ftp_grid_close_scene(1);
     if (ftp_grid.grid_planes) ftp_grid_set_planes(0);
     ftp_grid.active=0;
-    CALL(0x1063c7e1u,void,u32,u32)(FTP_GRID_CARD,ftp_grid.saved_card);
+    CALL(0x1063c7e1u,void,u32,u32)(FTP_GRID_INDEX,ftp_grid.saved_index);
     CALL(0x1063c7e1u,void,u32,u32)(FTP_GRID_IMAGE,ftp_grid.saved_image);
     CALL(0x106167e1u,void,u32)(ftp_grid.saved_display);
     CALL(0x1062deedu,u32,u32,u32)(5,0);
@@ -171,7 +171,7 @@ static u32 ftp_grid_back(u32 a,u32 b,u32 c,u32 d)
 static void ftp_grid_toggle_tile(u32 index)
 {
     u32 id=ftp_grid_tile_image(index);
-    if (id>>29!=1u) return;
+    if (!dcim_card_id(id)) return;
     u32 count=ftp_load(&ftp_grid.mark_count), mark=ftp_grid_find_mark(id,count);
     if (mark<count) {
         ftp_store(&ftp_grid.marks[mark].id,ftp_load(&ftp_grid.marks[count-1].id));
@@ -205,7 +205,7 @@ static void ftp_grid_touch(u32 touch)
     }
     u32 index=CALL(0x1072db59u,u32,u32)(touch);
     u32 id=ftp_grid_tile_image(index);
-    if (id>>29!=1u) {
+    if (!dcim_card_id(id)) {
         ftp_grid.pressed_image=ftp_grid.tapped_image=0;
         return;
     }
@@ -297,7 +297,7 @@ static u32 ftp_grid_zoom(u32 a,u32 b,u32 c,u32 d)
     (void)a; (void)b; (void)c; (void)d;
     if (!ftp_grid_is_visible(FTP_GRID_THUMBNAILS)) return 1;
     u32 id=CALL(0x1063c7d5u,u32,u32)(FTP_GRID_IMAGE);
-    if (id>>29!=1u) return 1;
+    if (!dcim_card_id(id)) return 1;
     int index=CALL(0x1070dbffu,int,u32)(id);
     if (index<0) return 1;
     u32 image=CALL(0x1070b7b1u,u32,int)(index);
@@ -316,14 +316,14 @@ static int ftp_open_photo_grid(void)
         CALL(0x1062e919u,u32,void)() || CALL(0x1071ac9bu,u32,void)()) return 0;
 
     if (!CALL(0x1062dea5u,u32,u32,u32)(5,0)) return 0;
-    ftp_grid.saved_card=CALL(0x1063c7d5u,u32,u32)(FTP_GRID_CARD);
+    ftp_grid.saved_index=CALL(0x1063c7d5u,u32,u32)(FTP_GRID_INDEX);
     ftp_grid.saved_image=CALL(0x1063c7d5u,u32,u32)(FTP_GRID_IMAGE);
     ftp_grid.saved_display=CALL(0x10616d5fu,u32,void)();
     ftp_grid.active=1;
-    CALL(0x1063c7e1u,void,u32,u32)(FTP_GRID_CARD,1);
-    if (ftp_grid.resume_image>>29==1u)
+    CALL(0x1063c7e1u,void,u32,u32)(FTP_GRID_INDEX,1);
+    if (dcim_card_id(ftp_grid.resume_image))
         CALL(0x1063c7e1u,void,u32,u32)(FTP_GRID_IMAGE,ftp_grid.resume_image);
-    else if (ftp_grid.saved_image>>29!=1u)
+    else if (!dcim_card_id(ftp_grid.saved_image))
         CALL(0x1063c7e1u,void,u32,u32)(FTP_GRID_IMAGE,0);
     CALL(0x106167e1u,void,u32)(1);
     ftp_grid_set_planes(1);

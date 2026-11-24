@@ -19,7 +19,7 @@ enum gallery_status { GALLERY_OFF, GALLERY_WAIT_AP, GALLERY_LISTEN, GALLERY_SERV
                       GALLERY_SOCKET_ERROR, GALLERY_TASK_ERROR };
 enum gallery_buffer { GALLERY_BUFFER_UNUSED, GALLERY_BUFFER_NATIVE, GALLERY_BUFFER_LARGE };
 enum gallery_flags { GALLERY_META=1u, GALLERY_ARCHIVE=2u, GALLERY_LARGE=4u };
-enum { GALLERY_RATING_SHIFT=3, GALLERY_PROTECTION_SHIFT=6 };
+enum { GALLERY_RATING_SHIFT=3, GALLERY_PROTECTION_SHIFT=6, GALLERY_CARD_SHIFT=8 };
 
 /* The main CPU invalidates request/state lines written by the uncached ARM926.
  * Each side publishes only its own cache lines. A request's slot space stays

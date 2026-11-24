@@ -2,7 +2,7 @@
 
 简体中文 | [English](#english)
 
-Nikon Z 7II C 1.70 安装 SD 加载宿主后，可通过设定菜单的「FTP 上传」将 SD 卡上的 JPEG、NEF、MOV 和 MP4 传到 FTP 服务器。更换组合模块时，SD 卡根目录已有的 `Z72APP.CFG` 和 FTP 配置可以保留。
+Nikon Z 7II C 1.70 安装 SD 加载宿主后，可通过设定菜单的「FTP 上传」将 CFexpress／XQD 或 SD 卡上的 JPEG、NEF、MOV 和 MP4 传到 FTP 服务器。更换组合模块时，SD 卡根目录已有的 `Z72APP.CFG` 和 FTP 配置可以保留。
 
 FTP 上传、触屏双击选图和 4 MiB TCP 发送缓冲均已在 Z 7II C 1.70 上实机验证。
 
@@ -46,7 +46,7 @@ New-NetFirewallRule -DisplayName 'Nikon Z 7II FileZilla FTP' -Direction Inbound 
 
 1. 打开「设定菜单（扳手）→ FTP 上传 → 网络设定」，选配置 1、2 或 3。再次进入「网络设定 → 编辑当前配置」。
 2. 在「地址」填写 `IPv4:端口`，例如 `192.168.1.3:21`，再填用户名和密码。目标文件夹留空时使用登录目录。需要子目录时，填写服务器的虚拟路径，例如 `/photos`，并先在服务器上建好目录。选「保存配置」。
-3. 进入「选择影像」。**双击屏幕上的缩略图可快速勾选，再双击同一张可取消。** 也可用 W（Q）键勾选，用 X（＋）键放大预览。返回上一级再进入时，已勾选的影像会保留。按 OK 将勾选的影像加入待传队列。
+3. 进入「选择影像」，在同一个六宫格中勾选两张卡的影像。**双击屏幕上的缩略图可快速勾选，再双击同一张可取消。** 也可用 W（Q）键勾选，用 X（＋）键放大预览。返回上一级再进入时，已勾选的影像会保留。按 OK 将勾选的影像加入待传队列。
 4. 也可以在回放 i 菜单选择「选择以 FTP 发送／取消」标记当前影像。回到「FTP 上传」选择「开始上传」。通过「传输状态」查看进度、更新状态、取消当前传输或发送剩余影像。
 
 ![FTP 选图界面显示六张缩略图以及选择、缩放和确认操作](images/z7ii-ftp-thumbnail-selection.jpg)
@@ -55,13 +55,13 @@ New-NetFirewallRule -DisplayName 'Nikon Z 7II FileZilla FTP' -Direction Inbound 
 
 | 选项 | 行为 |
 | --- | --- |
-| 自动发送 | 将开启后写入 SD 卡的新照片加入待传队列，使用开启时选定的配置。关闭后停止加入新照片，已经入队的照片仍会发送。 |
-| 传送文件为 | 「NEF + JPEG」会同时发送同一文件夹内同名的一对照片。「仅 JPEG」在存在配对 JPEG 时省略对应 NEF，单独拍摄的 NEF 仍可上传。 |
-| 发送文件夹 | 选择 SD 卡中的拍摄文件夹，将支持的影像加入队列并开始上传。 |
+| 自动发送 | 将开启后写入任一卡槽的新照片加入待传队列，使用开启时选定的配置。关闭后停止加入新照片，已经入队的照片仍会发送。 |
+| 传送文件为 | 「NEF + JPEG」会同时发送同一卡同一文件夹内同名的一对照片。「仅 JPEG」在存在配对 JPEG 时省略对应 NEF，单独拍摄的 NEF 仍可上传。 |
+| 发送文件夹 | 选择任一卡槽中的拍摄文件夹，将支持的影像加入队列并开始上传。 |
 | 取消全部选择？ | 确认后清空尚待发送的影像，并取消正在进行的上传。 |
 | 同名时重写 | 开启后允许覆盖服务器上的同名文件。关闭时，服务器有同名文件便尝试使用编号后缀。 |
 
-FTP 上传使用 SD 卡中的 `DCIM` 拍摄目录，单个文件须小于 4 GiB。
+FTP 上传使用存储卡中的 `DCIM` 拍摄目录，单个文件须小于 4 GiB。
 
 ## 4 MiB TCP 发送缓冲
 
@@ -81,9 +81,17 @@ FileZilla Server 收到 `STOR` 并回复 `226` 表示上传完成。若先看到
 
 实机连续上传 NEF 到 FileZilla Server 的记录。
 
+## 版本更新与实机截图
+
+### v0.1.0-preview.34 版本更新
+
+「选择影像」在同一个六宫格内支持勾选 CFexpress／XQD 和 SD 的影像，并加入同一个发送队列。回放标记、自动发送和文件夹发送也支持两个卡槽。用户已确认双卡组合测试版通过实机验证。
+
+![实机 FTP 六宫格，顶部显示 SD 文件夹，底部是选择、缩放和确认操作 / FTP thumbnail picker on the camera, showing an SD folder and the Select, Zoom, and OK controls](images/z7ii-ftp-dual-card-picker.jpg)
+
 ## English
 
-The SD extension adds **Setup menu → FTP upload** on the Nikon Z 7II C 1.70 with the SD loader installed. It uploads JPEG, NEF, MOV, and MP4 files from the SD card's `DCIM` folders. Each file must be smaller than 4 GiB.
+The SD extension adds **Setup menu → FTP upload** on the Nikon Z 7II C 1.70 with the SD loader installed. It uploads JPEG, NEF, MOV, and MP4 files from the `DCIM` folders on CFexpress/XQD and SD cards. Each file must be smaller than 4 GiB.
 
 FTP upload, touchscreen double-tap selection, and the 4 MiB TCP send buffer were verified on a Z 7II running C 1.70.
 
@@ -91,8 +99,8 @@ FTP upload, touchscreen double-tap selection, and the 4 MiB TCP send buffer were
 2. In FileZilla Server, allow plain FTP in **Server → Configure → Server listeners** on TCP port `21` or the port you choose. Under **Protocol settings → FTP and FTP over TLS (FTPS) → Passive mode**, set a custom range such as `49160–49169`. Enable a password-protected user and map the virtual path `/` to a local upload folder with **Read + Write** access. Use IPv4 on a trusted LAN because plain FTP sends credentials and files without encryption. [FileZilla listeners](https://filezillapro.com/docs/server/advanced-options/setting-up-ftp-listeners-and-connection-security/) · [Passive mode](https://filezillapro.com/docs/server/advanced-options/filezilla-server-passive-mode/) · [Mount points](https://filezillapro.com/docs/server/advanced-options/how-to-edit-mount-points-virtual-native-paths/)
 3. In Windows **Settings → Network & internet → Wi‑Fi** (or **Ethernet**), set the connected network profile to **Private**. Run the [PowerShell example](#将-windows-网络设为专用并放行端口) as administrator. Set the adapter, local PC address, remote camera address, program path, control port and passive TCP range to match your setup. [Firewall rule reference](https://learn.microsoft.com/en-us/powershell/module/netsecurity/new-netfirewallrule?view=windowsserver2025-ps)
 4. On the camera, choose one of the three profiles under **FTP upload → Network settings**, then **Edit active profile**. Enter the server as `IPv4:port`, the user name, password and optional virtual destination folder, then save. Profiles are stored on the SD card, including their passwords.
-5. In **Select photos**, **double-tap a thumbnail to quickly select or deselect it**. Use W (Q) to mark a file with the buttons and X (+) to zoom in. Marks are retained when you leave and reopen the picker. Press OK to add the selection to the upload queue. The playback i menu also offers **Mark/unmark for FTP**.
-6. Choose **Start upload**. **Transfer status** shows progress and lets you cancel or send queued files. **Options** lets you send an entire SD folder, clear pending selections, choose whether to replace files with the same name, and send newly saved photos automatically. **JPEG only** omits the NEF from a RAW+JPEG pair and still allows standalone NEFs.
+5. In **Select photos**, you can select images from both card slots in the same grid. **Double-tap a thumbnail to quickly select or deselect it**. Use W (Q) to mark a file with the buttons and X (+) to zoom in. Marks are retained when you leave and reopen the picker. Press OK to add the selection to the upload queue. The playback i menu also offers **Mark/unmark for FTP**.
+6. Choose **Start upload**. **Transfer status** shows progress and lets you cancel or send queued files. **Options** lets you send an entire folder from either card, clear pending selections, choose whether to replace files with the same name, and send newly saved photos automatically. **JPEG only** omits the NEF from a RAW+JPEG pair and still allows standalone NEFs.
 
 To use the larger TCP send buffer, open **FTP upload → Options → Use 4 MiB buffer**. The option defaults to off and is saved in `Z72APP.CFG`. The module reuses the allocation across uploads while Wi-Fi is active and falls back to the ordinary buffer when memory is unavailable. Check **TCP send capacity** in **Transfer status** for the capacity in use.
 

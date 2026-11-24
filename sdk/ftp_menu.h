@@ -203,7 +203,8 @@ static void ftp_labels(void)
         else FTP_LABEL(1,"No folders found","未找到文件夹","未找到檔案夾");
         count=FTP_FIRST_FOLDER;
         for (u32 i=0;i<ftp_folder_count;++i) {
-            ftp_number(ftp_wide(text,FTP_TEXT("Folder ","文件夹 ","檔案夾 ")),ftp_folders[i]);
+            unsigned short *end=ftp_ascii(text,ftp_folders[i].card==DCIM_SD ? "SD / " : "CFexpress / ");
+            ftp_number(ftp_wide(end,FTP_TEXT("Folder ","文件夹 ","檔案夾 ")),ftp_folders[i].number);
             ftp_label(&output,count++,text);
         }
     } else if (ftp_view==FTP_MENU_CLEAR) {
@@ -389,7 +390,7 @@ static u32 ftp_show(u32 view,u32 row)
 static int ftp_read_photos(u32 reset)
 {
     if (!ftp_claim_job()) return 0;
-    if (reset) { ftp_cursor.folder=1000; ftp_cursor.id=0; }
+    if (reset) ftp_cursor=(struct ftp_cursor){{DCIM_SD,DCIM_FOLDER_START},0};
     ftp_scan(z72_ftp_locale ? Z72_FTP_PHOTOS_PER_LIST : FTP_MENU_ROWS-2u);
     ftp_files_older=!reset;
     ftp_has_scan=1;
@@ -411,7 +412,7 @@ static u32 ftp_open_files(u32 job)
 static int ftp_read_folders(u32 reset)
 {
     if (!ftp_claim_job()) return 0;
-    if (reset) ftp_folder_next=1000;
+    if (reset) ftp_folder_next=(struct dcim_folder){DCIM_SD,DCIM_FOLDER_START};
     ftp_scan_folders();
     ftp_store(&ftp_job,FTP_JOB_NONE);
     return 1;
@@ -587,7 +588,7 @@ static int ftp_mark_playback(void)
     struct ftp_photo photo;
     /* The stock WT playback action also resolves the current image via 3B10. */
     photo.id=CALL(0x1063c7d5u,u32,u32)(0x3b10);
-    return photo.id>>29==1u && ftp_media_path(photo.id,photo.path) && ftp_toggle_mark(&photo);
+    return ftp_media_path(photo.id,photo.path) && ftp_toggle_mark(&photo);
 }
 
 static void ftp_menu_prepare(void)
