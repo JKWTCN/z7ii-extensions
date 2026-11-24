@@ -34,7 +34,6 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 ## Known issues
 
 - Automatic video orientation is currently unavailable in the native playback menu. Players that support orientation metadata display the recording in its recorded orientation. [Automatic video orientation](docs/video-rotation.md#english)
-- The framing grid may display incorrectly or disappear, or extension features may fail to appear. If this happens, turn off the camera and remove and reinsert the battery. Once the card access lamp next to the **i** button goes out, wait one more second before turning the camera back on.
 - The Z 7II's CMOS sensor lacks dual data paths, so JPEG pre-capture relies on H+ burst mode. This can make live view stutter when pre-capture starts.
 - During playback, some JPEG pre-capture photos may temporarily show “Cannot display this file.” The camera registers these photos before writing them to the card. The photos become viewable once writing finishes.
 - Pixel shift uses half-pixel offsets of X=11 and Y=9, calibrated on my camera. If Nikon calibrates sensor movement at the factory, other bodies should give similar results. Large alignment errors in a merge may indicate that the calibration differs or is absent. If you see this, please open an issue. I’ll add a way to calibrate your own camera and provide instructions. [Issues](https://github.com/JKWTCN/z7ii-extensions/issues)
@@ -52,7 +51,7 @@ Extended recording can still stop or cause the camera to shut down because of ov
 
 Install this repository's SD loader host before using extensions. Subsequent extension updates only require replacing `Z72APP.BIN` on the SD card.
 
-The Windows GUI host firmware builder is available from [Releases](https://github.com/JKWTCN/z7ii-extensions/releases/tag/build-master).
+The updated host fixes missing extension menus and incorrect framing grids on the first startup after reinserting the battery. The fix was verified on-camera. Extensions still load in the background after power-on. To install the fix, generate a new update package with the updated builder and install it on the camera. [Download the Windows host firmware builder](releases/build-master.exe)
 
 For instructions on building the firmware update package yourself, see [Building](#building).
 

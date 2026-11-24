@@ -164,7 +164,8 @@ static void worker(void *task)
             u32 ready=0,answered=0;
             if(slot && FN(0x10495c1d,u32,void *,u32,u32 *,u32 *)(slot,0,&ready,&answered)==FS_OK && ready) {
                 status=load(&image,&result);
-                if(status!=NO_FILE) break;
+                /* READ_FAILED is retryable only after the file closed successfully. */
+                if(status!=NO_FILE && status!=READ_FAILED) break;
             }
         }
         delay(100);

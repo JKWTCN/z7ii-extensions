@@ -18,11 +18,11 @@ HOOKS = ((0x1044E010, 10, 'extension_init_hook'),
          (0x105B010E, 10, 'extension_grid_enable'))
 STOCK_SHA = '478caf02dba41fa9144c0c4b6e1a051dc556d40e51a79a308bdd1169efb9dbbe'
 STOCK_PACKAGE_SHA = 'fc0e94f57500a1f0e287c6b9a036c81a5ffceccb8432a377d645b3fa35a19b6a'
-VERIFIED_MASTER_SHA = 'f0d9f06ddc9e1e13ea373c2f1a2cbbb748f3c76ca5dd748c66addb06835f663b'
-VERIFIED_PACKAGE_SHA = '1880ec0faf9b44b6a73265b8d9d69d457cbb01d9d3d955ad90f47c7f56acdccd'
+VERIFIED_MASTER_SHA = '09ada22c0bd15c1deb8b182980aa1d81dd1b91115717c95b051e7bc173acb26f'
+VERIFIED_PACKAGE_SHA = '91a205c8d58ae1cd663976c00a679de8f315db8317597fcfdde66bc18e28726a'
 # Public header digest from the verified update, not private signing material.
 # Valid only for the exact package bound by VERIFIED_PACKAGE_SHA.
-VERIFIED_HEADER = bytes.fromhex('a42ea6e58e979bfeaa9fe3d62d8859f1bf1a08a6')
+VERIFIED_HEADER = bytes.fromhex('5d81f6db10e74baf36f743b6ca2f1ad130be2c98')
 
 # Static container encoding tables for C 1.70; not private signing material.
 ENCODING_TABLES = bytes.fromhex(
@@ -93,7 +93,13 @@ def build_host(stock):
         offset=site-BASE
         patched[offset:offset+size]=thumb_jump(site,size,symbols[name])
         edits.append(dict(address=hex(site), size=size, original_sha256=sha(stock[offset:offset+size])))
-    # Own the eight alignment bytes between the initialized data and BSS.
+    # The master reset path copies initialized data directly and skips scatter-loading.
+    source, destination, size = struct.unpack_from('<III', stock, 0xC018)
+    padding = source - BASE + size
+    if destination + size != 0xB18AEDB8 or stock[padding:padding+8] != bytes(8):
+        raise ValueError('Original startup copy boundary mismatch')
+    struct.pack_into('<I', patched, 0xC020, size+8)
+    # Cover the same eight alignment bytes when the scatter table is used.
     if struct.unpack_from('<II', stock, 0x140C4) != (0xB18AEDC0, 0x12AF750):
         raise ValueError('Original BSS boundary mismatch')
     struct.pack_into('<II', patched, 0x140C4, 0xB18AEDB8, 0x12AF758)
