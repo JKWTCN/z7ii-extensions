@@ -6,30 +6,30 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 
 ## 当前功能
 
-| 功能                                                   | 说明                                                                            | 状态       |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------- | ---------- |
-| [取景网格](docs/framing-grid.md)                        | 关闭、2×2、3×3、4×4、黄金分割，支持保存设置                                  | 已实机验证 |
-| [直方图与水平仪同显](docs/histogram-horizon.md)         | 照片模式下，后屏和电子取景器均可同时显示实时直方图与水平仪                      | 已实机验证 |
-| [后屏竖拍界面](docs/portrait-ui.md)                     | 照片／视频拍摄信息、音频电平、i 菜单和直方图随相机方向转正                      | 已实机验证 |
-| [照片拍摄加亮显示](docs/photo-highlights.md)            | LCD 与取景器的独立照片斑马纹，支持两种图案和八档阈值                            | 已实机验证 |
-| [自定义 DISP 页面](docs/custom-disp.md)                 | 照片 LCD 页面开关、四套预设、八项拍摄信息、原厂滚动列表及参数信息页             | 已实机验证 |
-| [焦距显示](docs/focal-length.md)                        | 手动变焦镜头的实时焦距（需电子通信），支持独立 DISP 开关                        | 已实机验证 |
-| [电量百分比显示](docs/battery-percent.md)               | 照片及视频 LCD 电池框内透明底百分比，全局开关默认关闭                           | 已实机验证 |
-| [解除录像时长限制](docs/movie-recording-limit.md)       | 普通视频突破 29:59，已验证 1080/60p 连续录制 38:52                              | 已实机验证 |
-| [视频自动方向](docs/video-rotation.md)                  | 开档时锁定方向，写入 MOV／MP4 视频轨元数据                                      | 已实机验证 |
-| [JPEG 预拍摄](docs/jpeg-pre-capture.md)                 | 四档预拍摄时间，可由半按快门或 AF-ON 启动，全按接续 H+ 连拍                     | 已实机验证 |
-| [静音拍摄快门声音](docs/shutter-sound.md)               | 从 SD 卡读取自定义 WAV，支持试听、五档音量和连拍播放设置                        | 已实机验证 |
-| [筛选的播放](docs/filtered-playback.md)                 | 按保护状态、影像类型、评级和日期筛选全屏及缩略图播放                            | 已实机验证 |
-| [AF 区域快捷切换](docs/af-area-shortcut.md)             | 原厂自定义控制中为五个按键分配照片 AF 区域，按一次切换并保持                    | 已实机验证 |
-| [自定义宽区域 AF（C1/C2）](docs/custom-wide-area-af.md) | 独立调整两个照片 AF 区域的宽度、高度和主体识别，支持 i 菜单、波轮与按键快捷切换 | 已实机验证 |
-| [主体跟踪](docs/subject-tracking.md)                    | 照片 AF-C 下直接用半按快门或 AF-ON 开始跟踪，重启自动恢复瞄准框                 | 已实机验证 |
-| [对焦改进](docs/focus-improvements.md)                  | 主体短暂遮挡后辅助找回，设定菜单提供开关，默认关闭                              | 已实机验证 |
-| [像素变化拍摄](docs/pixel-shift.md)                     | 机身防抖移位拍摄 4／8／16／32 张 NEF，支持尼康工坊合并                          | 已实机验证 |
-| [WiFi 设置](docs/wifi-settings.md)                      | 统一子菜单，包含地区选择与80 MHz热点开关，支持5 GHz STA与Wi-Fi 5 AP             | 已实机验证 |
-| [FTP 上传](docs/ftp-upload.md)                          | 在同一六宫格勾选两张卡的照片和视频，批量上传，支持 4 MiB 发送缓冲               | 已实机验证 |
+| 功能                                                   | 说明                                                                                   | 状态       |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------- | ---------- |
+| [取景网格](docs/framing-grid.md)                        | 关闭、2×2、3×3、4×4、黄金分割，支持保存设置                                         | 已实机验证 |
+| [直方图与水平仪同显](docs/histogram-horizon.md)         | 照片模式下，后屏和电子取景器均可同时显示实时直方图与水平仪                             | 已实机验证 |
+| [后屏竖拍界面](docs/portrait-ui.md)                     | 照片／视频拍摄信息、音频电平、i 菜单和直方图随相机方向转正                             | 已实机验证 |
+| [照片拍摄加亮显示](docs/photo-highlights.md)            | LCD 与取景器的独立照片斑马纹，支持两种图案和八档阈值                                   | 已实机验证 |
+| [自定义 DISP 页面](docs/custom-disp.md)                 | 照片 LCD 页面开关、四套预设、八项拍摄信息、原厂滚动列表及参数信息页                    | 已实机验证 |
+| [焦距显示](docs/focal-length.md)                        | 手动变焦镜头的实时焦距（需电子通信），支持独立 DISP 开关                               | 已实机验证 |
+| [电量百分比显示](docs/battery-percent.md)               | 照片及视频 LCD 电池框内透明底百分比，全局开关默认关闭                                  | 已实机验证 |
+| [解除录像时长限制](docs/movie-recording-limit.md)       | 普通视频突破 29:59，已验证 1080/60p 连续录制 38:52                                     | 已实机验证 |
+| [视频自动方向](docs/video-rotation.md)                  | 开档时锁定方向，写入 MOV／MP4 视频轨元数据                                             | 已实机验证 |
+| [JPEG 预拍摄](docs/jpeg-pre-capture.md)                 | 四档预拍摄时间，可由半按快门或 AF-ON 启动，全按接续 H+ 连拍                            | 已实机验证 |
+| [静音拍摄快门声音](docs/shutter-sound.md)               | 从 SD 卡读取自定义 WAV，支持试听、五档音量和连拍播放设置                               | 已实机验证 |
+| [筛选的播放](docs/filtered-playback.md)                 | 按保护状态、影像类型、评级和日期筛选全屏及缩略图播放                                   | 已实机验证 |
+| [AF 区域快捷切换](docs/af-area-shortcut.md)             | 原厂自定义控制中为五个按键分配照片 AF 区域，按一次切换并保持                           | 已实机验证 |
+| [自定义宽区域 AF（C1/C2）](docs/custom-wide-area-af.md) | 独立调整两个照片 AF 区域的宽度、高度和主体识别，支持 i 菜单、波轮与按键快捷切换        | 已实机验证 |
+| [主体跟踪](docs/subject-tracking.md)                    | 照片 AF-C 下直接用半按快门或 AF-ON 开始跟踪，重启自动恢复瞄准框                        | 已实机验证 |
+| [对焦改进](docs/focus-improvements.md)                  | 主体短暂遮挡后辅助找回，设定菜单提供开关，默认关闭                                     | 已实机验证 |
+| [像素变化拍摄](docs/pixel-shift.md)                     | 机身防抖移位拍摄 4／8／16／32 张 NEF，支持尼康工坊合并                                 | 已实机验证 |
+| [WiFi 设置](docs/wifi-settings.md)                      | 统一子菜单，包含地区选择与80 MHz热点开关，支持5 GHz STA与Wi-Fi 5 AP                    | 已实机验证 |
+| [FTP 上传](docs/ftp-upload.md)                          | 在同一六宫格勾选两张卡的照片和视频，批量上传，支持 4 MiB 发送缓冲                      | 已实机验证 |
 | [浏览器相册](docs/browser-gallery.md)                   | 浏览 CFexpress／XQD 和 SD 照片，按卡槽、星级、保护状态和日期筛选，下载 JPG／NEF 原文件 | 已实机验证 |
-| [构图辅助](docs/composition-reference.md)              | 六格预览选图，支持从浏览器编辑上传，按键在照片取景中叠加参考图并可调整不透明度    | 已实机验证 |
-| [菜单本地化](docs/menu-localization.md)                 | 扩展设置支持简体中文、繁体中文和英文标签                                        | 已实机验证 |
+| [构图辅助](docs/composition-reference.md)               | 六格预览选图，支持从浏览器编辑上传，按键在照片取景中叠加参考图并可调整不透明度         | 已实机验证 |
+| [菜单本地化](docs/menu-localization.md)                 | 扩展设置支持简体中文、繁体中文和英文标签                                               | 已实机验证 |
 
 ## 已知问题
 
@@ -47,6 +47,16 @@ Wi-Fi 设置的[使用限制与风险声明](docs/wifi-settings.md#important-lim
 
 解除录像时长限制后，仍可能因过热停止录像或关机，详见[功能说明](docs/movie-recording-limit.md)。
 
+## 查看模块和宿主固件版本
+
+在 `v0.1.0-preview.26`版本之后可以在设定菜单的最后一个选项:"自定义固件版本"里中看到模块版本.
+
+在 `v0.1.0-preview.35`版本之后可以在设定菜单的最后一个选项:"自定义固件版本"里中看到宿主固件版本.
+
+如果你下载了 `v0.1.0-preview.35`之后显示的宿主固件版本是 `1.70-r2` 或者之前,建议使用最新的宿主构建器升级到 `1.70-r3`,`1.70-r3` 修复了一个在首次启动的时候,如果 i 灯读取完后一段时间开机有概率出现取景异常的问题.
+
+![宿主固件版本](docs/images/host-firmware-version.jpg)
+
 ## 使用
 
 使用扩展前须安装本仓库提供的 SD 加载宿主。之后只需要更改 SD 卡中的 Z72APP.BIN 文件即可,无需再次刷入固件。
@@ -56,10 +66,10 @@ Wi-Fi 设置的[使用限制与风险声明](docs/wifi-settings.md#important-lim
 如果要自己构建固件升级包的生成方法见[构建](#构建)。
 
 1. 等待存储卡访问结束，关机并取出存储卡。
-2. 将 [Z72APP.BIN](releases/v0.1.0-preview.34/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.35/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
 3. 装回卡和电池，等待到 i 按键旁边的读取灯灭了再开机。
 
-当前版本为 `v0.1.0-preview.34`，模块 274,792 字节。[SHA-256 校验](releases/v0.1.0-preview.34/SHA256SUMS)
+当前版本为 `v0.1.0-preview.35`，模块 275,368 字节。[SHA-256 校验](releases/v0.1.0-preview.35/SHA256SUMS)
 
 这是试用版本，休眠唤醒和长期稳定性尚未单独确认。替换或移除模块请完整断电。只加载可信模块。
 
@@ -109,4 +119,4 @@ python -B tools/build.py --stock-package "path/to/original/Z7_2_0170.bin" --outp
 
 ## 许可证
 
-采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」「筛选的播放」和「浏览器相册」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.34/menu-font-license.txt)。
+采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」「筛选的播放」和「浏览器相册」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.35/menu-font-license.txt)。

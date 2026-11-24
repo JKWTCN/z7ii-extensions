@@ -45,7 +45,7 @@ static void firmware_info_prepare(void)
     firmware_info_menu.header[4]=(u32)firmware_info_menu.map;
 
     /* Battery info uses fixed text widgets and a single invisible event row. */
-    const u32 lines[]={1,2,3,7};
+    const u32 lines[]={1,8,2,3,7};
     for (u32 col=0;col<8;++col) {
         firmware_info_menu.text[0][col]=text[0][col];
         firmware_info_menu.text[1+FIRMWARE_INFO_LINES][col]=rotation_menu.title[8+col];
@@ -57,6 +57,7 @@ static void firmware_info_prepare(void)
         for (u32 col=0;col<8;++col) label[col]=text[lines[line]][col];
         u32 top=0x76u+line*0x34u;
         label[0]=Z72_TEXT_FIRMWARE_INFO_VERSION+line;
+        label[2]=text[1][2];
         label[4]=(top<<16)|0x004eu;
         label[5]=((top+0x28u)<<16)|0x02b8u;
     }

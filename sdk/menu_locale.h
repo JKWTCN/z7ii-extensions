@@ -4,8 +4,9 @@
 #include "menu_golden_font.h"
 #ifdef Z72_FIRMWARE_INFO
 #include "version.h"
+#include "host_version.h"
 #define Z72_FIRMWARE_INFO_TEXT \
-    u"" Z72_MODULE_VERSION,u"Z7II Extensions",u"github.com/JKWTCN/z7ii-extensions",u"Nikon Z 7II C 1.70"
+    u"" Z72_MODULE_VERSION,u"",u"Z7II Extensions",u"github.com/JKWTCN/z7ii-extensions",u"Nikon Z 7II C 1.70"
 #define Z72_MENU_TEXT_UNITS 34u
 #define Z72_MENU_LATIN_STYLE 4u /* Stock Latin face for all language banks. */
 #else
@@ -154,6 +155,7 @@ enum {
 #ifdef Z72_FIRMWARE_INFO
     Z72_TEXT_FIRMWARE_INFO,
     Z72_TEXT_FIRMWARE_INFO_VERSION,
+    Z72_TEXT_FIRMWARE_INFO_HOST,
     Z72_TEXT_FIRMWARE_INFO_PROJECT,
     Z72_TEXT_FIRMWARE_INFO_URL,
     Z72_TEXT_FIRMWARE_INFO_TARGET,
@@ -405,6 +407,7 @@ static inline int z72_menu_locale_install(void)
         locale->styles[id]=id<=TEXT_CONDITIONS ? Z72_PLAYBACK_TITLE_STYLE : Z72_PLAYBACK_ROW_STYLE;
 #endif
 #ifdef Z72_FIRMWARE_INFO
+    const unsigned short *host_version=z72_host_version_label();
     for (z72_u32 id=Z72_TEXT_FIRMWARE_INFO_VERSION;id<=Z72_TEXT_FIRMWARE_INFO_TARGET;++id)
         locale->styles[id]=Z72_MENU_LATIN_STYLE;
 #endif
@@ -436,6 +439,7 @@ static inline int z72_menu_locale_install(void)
 #endif
             const unsigned short *label=translations[label_language][id-Z72_MENU_STOCK_TEXTS];
 #ifdef Z72_FIRMWARE_INFO
+            if (id==Z72_TEXT_FIRMWARE_INFO_HOST) label=host_version;
             if (lang==10 && id==Z72_TEXT_FIRMWARE_INFO) label=u"사용자 펌웨어 버전";
 #endif
             z72_u32 length=0;

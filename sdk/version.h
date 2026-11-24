@@ -2,6 +2,6 @@
 #ifndef Z72_VERSION_H
 #define Z72_VERSION_H
 
-#define Z72_MODULE_VERSION "v0.1.0-preview.34"
+#define Z72_MODULE_VERSION "v0.1.0-preview.35"
 
 #endif
