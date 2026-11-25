@@ -3,7 +3,7 @@
 ## 中文
 
 1. 打开「设定菜单 → 自定义宽区域 AF」，选择「宽区域 AF（C1）」或「宽区域 AF（C2）」。
-2. 进入「对焦区域大小」，用左右键调宽度、上下键调高度。预览框会即时更新，按 MENU 保存并返回。
+2. 进入「对焦区域大小」，用左右键调宽度、上下键调高度。宽度和高度可各自调到取景画面的全宽、全高。预览框会即时更新，按 MENU 保存并返回。
 3. 在「主体识别」中选择「人物」「动物」或「关闭」。C1 默认识别人，C2 默认识别动物。「关闭」停用主体识别，并保留宽区域自动对焦。
 
 可在照片拍摄菜单或照片 i 菜单的「AF 区域模式」中选择 C1/C2。高亮 i 菜单里的 AF 区域模式后，也可以用波轮切换。开启「自动旋转信息显示」时，i 菜单和取景状态栏中的 C1/C2 图标会随竖拍界面转正。
@@ -15,7 +15,7 @@
 ## English
 
 1. Open **Setup Menu → Custom wide-area AF** and select **Wide-area AF (C1)** or **Wide-area AF (C2)**.
-2. Open **Focus area size**. Use Left or Right to change the width and Up or Down to change the height. The preview updates as you adjust it. Press MENU to save and return.
+2. Open **Focus area size**. Use Left or Right to change the width and Up or Down to change the height. Each dimension can extend to the corresponding edges of the live-view image. The preview updates as you adjust it. Press MENU to save and return.
 3. Set **Subject detection** to **People**, **Animals**, or **Off**. C1 defaults to People and C2 to Animals. Off disables subject detection while keeping wide-area autofocus active.
 
 Select C1/C2 under **AF-area mode** in the Photo Shooting Menu or the photo i menu. You can also turn a command dial while the i-menu AF-area tile is highlighted. With **Auto rotate info** enabled, the i-menu and live-view C1/C2 icons follow the portrait layout.
@@ -23,6 +23,12 @@ Select C1/C2 under **AF-area mode** in the Photo Shooting Menu or the photo i me
 In **f2 → Custom controls**, assign C1/C2 to Fn1, Fn2, AF-ON, the sub-selector center, or the movie-record button in photo mode. Press once to select the preset. It stays selected after release. Selecting a native area with a shortcut restores that area's focus box and icon. [AF-area shortcuts](af-area-shortcut.md)
 
 Preset settings and the active selection share `Z72APP.CFG` with the other extensions. You can keep your existing file when you update.
+
+## v0.1.0-preview.38
+
+修复了 C1/C2 的宽度和高度上限被锁在原厂宽区域 AF（L）尺寸的问题。新版可分别调至全宽或全高，两个方向都调到最大时覆盖整个取景画面。这项修复已于 2026-11-25 通过 Z 7 II 实机验证。
+
+Fixed a bug that capped C1/C2 width and height at the stock Wide-area AF (L) size. Each dimension can now reach the corresponding edges of the live-view image. Set both to maximum to cover the full frame. The fix passed on-camera testing on a Nikon Z 7 II on November 25, 2026.
 
 ## 实机截图 / Camera screenshots
 

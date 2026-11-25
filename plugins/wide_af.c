@@ -165,7 +165,9 @@ static void wide_preview_draw(z72_u32 widget)
     CALL(0x1073b9f5u,void,z72_u32,z72_u32 *,z72_u32)(0,paint,1);
     CALL(0x1074c549u,void,const z72_u32 *,const z72_u32 *,z72_u32)(canvas,&origin,0);
 
-    z72_u32 size=wide_size_draft,w=15*(size&255u),h=10*(size>>8);
+    z72_u32 size=wide_size_draft;
+    z72_u32 w=wide_af_scaled_extent(120,size&255u,432);
+    z72_u32 h=wide_af_scaled_extent(80,size>>8,288);
     z72_u32 left=387-w/2,top=224-h/2,right=left+w,bottom=top+h;
     const z72_u32 edges[WIDE_PREVIEW_EDGES][2]={
         {left|(top<<16),right|((top+3)<<16)},
@@ -410,8 +412,8 @@ static void wide_menu_prepare(void)
             hint[7]=WIDE_PREVIEW_HINT_ID<<16;
             z72_u32 *preview=&wide_views[view].title[24];
             preview[1]=6;
-            preview[4]=226u|(114u<<16);
-            preview[5]=548u|(334u<<16);
+            preview[4]=161u|(70u<<16);
+            preview[5]=613u|(378u<<16);
             preview[6]=1;
             preview[7]=(WIDE_PREVIEW_WIDGET_ID<<16)|1;
         }

@@ -16,6 +16,19 @@ struct wide_display_rect {
 typedef z72_u32 (*wide_display_draw_fn)(z72_u32,const struct wide_display_rect *,
                                         unsigned char *,z72_u32,z72_u32);
 
+static void wide_display_resize_axis(short *origin,short *size,int steps,int low,int high)
+{
+    int span=high-low;
+    int expand=steps>(int)Z72_WIDE_AF_FIXED_GRID_MAX;
+    if (expand && span<*size) return;
+    int resized=expand ? wide_af_scaled_extent(*size,steps,span) :
+        (*size*steps+(int)Z72_WIDE_AF_STOCK/2)/(int)Z72_WIDE_AF_STOCK;
+    if (resized<4) resized=4; /* The native renderer draws two-pixel sides. */
+    int start=*origin+(*size-resized)/2;
+    *origin=expand ? wide_af_fit_start(start,low,high-resized) : start;
+    *size=resized;
+}
+
 static z72_u32 wide_display_draw(z72_u32 renderer,const struct wide_display_rect *rect,
                                  unsigned char *request,z72_u32 count,z72_u32 display)
 {
@@ -27,21 +40,16 @@ static z72_u32 wide_display_draw(z72_u32 renderer,const struct wide_display_rect
 
     z72_u32 scale=wide_af_live_scale();
     z72_u32 width_steps=scale&0xffu,height_steps=(scale>>8)&0xffu;
-    if (width_steps<5 || height_steps<5 || width_steps>20 || height_steps>20 ||
-        (width_steps==20 && height_steps==20) || rect[0].width<4 || rect[0].height<4)
+    if (!z72_wide_af_valid(scale) || scale==Z72_WIDE_AF_DEFAULT_SIZE ||
+        rect[0].width<4 || rect[0].height<4)
         return draw(renderer,rect,request,count,display);
 
-    int width=(rect[0].width*(int)width_steps+10)/20;
-    int height=(rect[0].height*(int)height_steps+10)/20;
-    /* The native renderer draws two-pixel sides. */
-    if (width<4) width=4;
-    if (height<4) height=4;
+    /* 0x106b8508 copies the same viewport edges used by the native position clamp. */
+    const short *viewport=(const short *)(request+0x0a);
     struct wide_display_rect resized[2];
-    resized[0].x=(short)(rect[0].x+(rect[0].width-width)/2);
-    resized[0].y=(short)(rect[0].y+(rect[0].height-height)/2);
-    resized[0].width=(short)width;
-    resized[0].height=(short)height;
-    resized[0].attributes=rect[0].attributes;
+    resized[0]=rect[0];
+    wide_display_resize_axis(&resized[0].x,&resized[0].width,width_steps,viewport[0],viewport[2]);
+    wide_display_resize_axis(&resized[0].y,&resized[0].height,height_steps,viewport[1],viewport[3]);
     /* The second rectangle is the native subject mark. The drawing routine
      * consumes both entries synchronously to build its own command records. */
     if (count==2) resized[1]=rect[1];
