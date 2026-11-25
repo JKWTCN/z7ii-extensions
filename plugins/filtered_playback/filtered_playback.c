@@ -204,7 +204,7 @@ static __attribute__((noinline)) z72_u32 prepare_native(void)
         branch(translate(ordinal_calls[i][0]),stub,1);
     }
 #ifdef Z72_PHOTO_PLAYBACK
-    photo_play_enable_table();
+    photo_play_prepare();
 #endif
     playback_shadow_sync();
     return 0;
@@ -233,6 +233,7 @@ static void filtered_playback_install(void)
 {
     __atomic_store_n(&filter_settings,z72_config_current.playback_filter,__ATOMIC_RELEASE);
     photo_play_set_enabled(z72_config_current.rotate_inverted);
+    photo_draw_install();
     install_menu();
     WORD(PLAYBACK_TASK_SLOT)=(z72_u32)playback_dispatch;
 #ifdef Z72_PHOTO_PLAYBACK

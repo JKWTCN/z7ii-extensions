@@ -1,6 +1,9 @@
 /* SPDX-License-Identifier: MIT */
 #include "z72.h"
 #include "menu.h"
+#ifdef Z72_PHOTO_PLAYBACK
+#include "photo_playback_draw.h"
+#endif
 
 #ifndef Z72_PORTRAIT_TRACE
 #define Z72_PORTRAIT_TRACE 1
@@ -123,6 +126,9 @@ static void observe_draw(volatile u32 *message)
 {
 #ifdef Z72_PHOTO_ZEBRA
     zebra_graphics_observe();
+#endif
+#ifdef Z72_PHOTO_PLAYBACK
+    if (photo_draw_playback(message)) return;
 #endif
     u32 command=message[4];
     if (command>=DRAW_FAMILY && command-DRAW_FAMILY<DRAW_CODES) {

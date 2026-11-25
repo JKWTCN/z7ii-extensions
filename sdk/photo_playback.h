@@ -22,8 +22,8 @@ struct photo_play_cache {
     z72_u32 id,turn;
 };
 
-/* The playback and preload tasks each own their cache. */
-static struct photo_play_cache photo_selected,photo_prefill;
+/* Owned by the ordinary playback task. */
+static struct photo_play_cache photo_selected;
 
 static z72_u32 photo_play_read(z72_u32 id,z72_u32 *turn)
 {
@@ -34,10 +34,7 @@ static z72_u32 photo_play_read(z72_u32 id,z72_u32 *turn)
     if (PHOTO_PLAY_CALL(0x10529ebbu,z72_u32,z72_u32,z72_u32 *)(handle,&size)) {
         const unsigned char *data=0;
         PHOTO_PLAY_CALL(0x10529f1bu,void,const unsigned char **,z72_u32 *)(&data,&size);
-        if (data && size && size<=0x40000u) {
-            *turn=photo_header_inverted(data,size) ? 2 : 0;
-            loaded=1;
-        }
+        if (data && size && size<=0x40000u) loaded=photo_header_turn(data,size,turn);
     }
     owner=PHOTO_PLAY_CALL(ops[1],z72_u32,void)();
     PHOTO_PLAY_CALL(ops[3],z72_u32,z72_u32,z72_u32,z72_u32)(id,owner,handle);
@@ -74,11 +71,21 @@ static inline z72_u32 photo_play_target(z72_u32 target)
     return target;
 }
 
-static inline void photo_play_enable_table(void)
+static z72_u32 photo_play_map_current(z72_u32 turn,z72_u32 skip)
+{
+    /* Play may have opened this file before the SD module took over the task. */
+    if (!turn && !skip && photo_play_enabled() &&
+        photo_play_orientation((const z72_u32 *)0xb29d1d58u)==2) turn=2;
+    return PHOTO_PLAY_CALL(translate(0x10669f51u),z72_u32,z72_u32,z72_u32)(turn,skip);
+}
+
+static inline void photo_play_prepare(void)
 {
     /* Inverted photos use index 2 regardless of the native Rotate tall setting. */
     unsigned char *rotations=(unsigned char *)translate(0x119e0f98u);
     rotations[2]=rotations[6]=2;
+    write_call(translate(0x10661070u),(z72_u32)native_code+sizeof(native_code)-8,
+               (z72_u32)photo_play_map_current);
 }
 
 /* Message 0x04130081 builds a preloaded image on a separate native task. */
@@ -105,17 +112,25 @@ static const struct { z72_u32 offset,target; } photo_prefill_calls[]={
 };
 static _Alignas(32) unsigned char photo_prefill_code[PHOTO_PREFILL_BYTES+
     sizeof(photo_prefill_calls)/sizeof(*photo_prefill_calls)*8];
+static z72_u32 photo_prefill_mapped;
 
 static z72_u32 photo_prefill_orientation(const z72_u32 *image)
 {
-    z72_u32 turn=photo_play_lookup(image,&photo_prefill);
+    struct photo_play_cache cache={0};
+    z72_u32 turn=photo_play_lookup(image,&cache);
     z72_u32 skip=PHOTO_PLAY_CALL(0x1063f1a1u,z72_u32,z72_u32)(image[0]);
-    return PHOTO_PLAY_CALL(translate(0x10669f51u),z72_u32,z72_u32,z72_u32)(turn,skip);
+    photo_prefill_mapped=PHOTO_PLAY_CALL(translate(0x10669f51u),z72_u32,z72_u32,z72_u32)(turn,skip);
+    return photo_prefill_mapped;
+}
+
+static z72_u32 photo_prefill_draw_orientation(void)
+{
+    /* Reuse the orientation already used to lay out this preload request. */
+    return photo_prefill_mapped;
 }
 
 static void photo_prefill_dispatch(const z72_u32 *message)
 {
-    photo_prefill.id=0;
     PHOTO_PLAY_CALL((z72_u32)photo_prefill_code+PHOTO_PREFILL_ENTRY-PHOTO_PREFILL_START,
                     void,const z72_u32 *)(message);
 }
@@ -128,7 +143,8 @@ static __attribute__((noinline)) void photo_prefill_install(void)
     z72_u32 start=(z72_u32)photo_prefill_code;
     for (z72_u32 i=0;i<sizeof(photo_prefill_calls)/sizeof(*photo_prefill_calls);++i) {
         z72_u32 target=photo_prefill_calls[i].target;
-        if (target==0x10669f37u) target=(z72_u32)photo_prefill_orientation;
+        if (photo_prefill_calls[i].offset==0x122u) target=(z72_u32)photo_prefill_orientation;
+        if (photo_prefill_calls[i].offset==0x14cu) target=(z72_u32)photo_prefill_draw_orientation;
         write_call(start+photo_prefill_calls[i].offset,start+PHOTO_PREFILL_BYTES+i*8,target);
     }
     clean_code(photo_prefill_code,sizeof(photo_prefill_code));

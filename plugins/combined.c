@@ -60,6 +60,7 @@ z72_u32 z72_main(const struct z72_api *api)
         return 1;
     z72_u32 result=portrait_init(api);
     if (result) return result;
+    if (rotation_menu.title[0]) filtered_playback_install();
     grid_install(rotation_menu.title[0] ? Z72_TEXT_GRID_GOLDEN : 0);
     zebra_producer_install();
     disp_install();
@@ -79,6 +80,5 @@ z72_u32 z72_main(const struct z72_api *api)
         pixel_load_settings();
     }
     if (sound_menu_available) sound_install();
-    if (rotation_menu.title[0]) filtered_playback_install();
     return 0;
 }

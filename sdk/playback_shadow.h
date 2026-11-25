@@ -6,7 +6,7 @@
 
 enum { PLAYBACK_TASK_SLOT=0xb29d2ec0u, PLAYBACK_TASK_STOCK=0x1063dc05u };
 
-static _Alignas(64) unsigned char native_code[FILTER_NATIVE_BYTES+sizeof(filter_branches)/sizeof(*filter_branches)*8+7*8];
+static _Alignas(64) unsigned char native_code[FILTER_NATIVE_BYTES+sizeof(filter_branches)/sizeof(*filter_branches)*8+8*8];
 static _Alignas(4) unsigned char native_tables[FILTER_TABLE_BYTES];
 
 static z72_u32 translate(z72_u32 address)

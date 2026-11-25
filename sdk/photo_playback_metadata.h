@@ -137,7 +137,8 @@ static z72_u32 photo_shot_inverted(const struct photo_tiff *tiff)
     return photo_roll_inverted(angles);
 }
 
-static z72_u32 photo_header_tiff(struct photo_tiff *tiff,const struct photo_source *source)
+static z72_u32 photo_header_tiff_prefix(struct photo_tiff *tiff,const struct photo_source *source,
+                                      z72_u32 *partial)
 {
     const unsigned char *start=photo_bytes(source,0,2);
     if (!start) return 0;
@@ -146,11 +147,24 @@ static z72_u32 photo_header_tiff(struct photo_tiff *tiff,const struct photo_sour
         const unsigned char *segment=photo_bytes(source,at,4);
         if (!segment || segment[0]!=0xff || segment[1]==0xda || segment[1]==0xd9) return 0;
         z72_u32 span=photo_uint(segment+2,2,1);
-        if (span<2 || span>source->size-at-2) return 0;
-        if (segment[1]==0xe1 && span>=8 && photo_equal(photo_bytes(source,at+4,6),"Exif\0",6))
+        z72_u32 available=source->size-at-2;
+        if (span<2) return 0;
+        if (segment[1]==0xe1 && span>=8 && photo_equal(photo_bytes(source,at+4,6),"Exif\0",6)) {
+            if (span>available) {
+                if (!partial) return 0;
+                *partial=1;
+                span=available;
+            }
             return photo_tiff_open(tiff,source,at+10,span-8);
+        }
+        if (span>available) return 0;
         at+=span+2;
     }
+}
+
+static inline z72_u32 photo_header_tiff(struct photo_tiff *tiff,const struct photo_source *source)
+{
+    return photo_header_tiff_prefix(tiff,source,0);
 }
 
 static z72_u32 photo_orientation_tag(const struct photo_tiff *tiff)
@@ -159,16 +173,20 @@ static z72_u32 photo_orientation_tag(const struct photo_tiff *tiff)
     return tag && count==1 ? tag : 0;
 }
 
-static z72_u32 photo_header_inverted(const unsigned char *data,z72_u32 size)
+static z72_u32 photo_header_turn(const unsigned char *data,z72_u32 size,z72_u32 *turn)
 {
     const struct photo_source source={data,size,0};
     struct photo_tiff tiff;
-    if (!photo_header_tiff(&tiff,&source)) return 0;
+    z72_u32 partial=0;
+    if (!photo_header_tiff_prefix(&tiff,&source,&partial)) return 0;
     z72_u32 tag=photo_orientation_tag(&tiff);
     const unsigned char *value=tag ? photo_tiff_bytes(&tiff,tag,2) : 0;
     if (!value) return 0;
     z72_u32 orientation=photo_uint(value,2,tiff.big);
-    return orientation==3 || (orientation==1 && photo_shot_inverted(&tiff));
+    z72_u32 inverted=orientation==3 || (orientation==1 && photo_shot_inverted(&tiff));
+    if (orientation==1 && !inverted && partial) return 0;
+    *turn=inverted ? 2 : 0;
+    return 1;
 }
 
 #endif
