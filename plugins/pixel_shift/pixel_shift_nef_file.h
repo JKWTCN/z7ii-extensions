@@ -5,6 +5,14 @@ enum { NX_OK = 0x043a0080, NX_SCAN_BYTES = 2048 };
 enum { NX_PATH = 1, NX_OPEN, NX_LAYOUT, NX_MEMORY, NX_APPEND, NX_REOPEN, NX_COMMIT };
 static _Alignas(64) unsigned char nx_scan[NX_SCAN_BYTES];
 
+static void *nx_alloc(z72_u32 bytes,void **owner)
+{
+    /* The native aligned allocator writes its header even on exhaustion. */
+    *owner=CALL(0x1034fe31u,void *,z72_u32,z72_u32)(bytes+63u,0);
+    if (!*owner) return 0;
+    return (void *)(((__UINTPTR_TYPE__)*owner+63u)&~(__UINTPTR_TYPE__)63u);
+}
+
 struct nx_reference {
     z72_u32 offset, size, original[2], replacement[2];
 };
@@ -51,14 +59,18 @@ static int nx_io(z72_u32 *file,z72_u32 entry,void *data,z72_u32 bytes)
         actual==bytes;
 }
 
-static int nx_read(z72_u32 *file,z72_u32 offset,void *data,z72_u32 bytes)
+static int nx_read_current(z72_u32 *file,void *data,z72_u32 bytes)
 {
     z72_u32 cache=(bytes+63u)&~63u;
-    if (!nx_seek(file,offset)) return 0;
     CALL(0x1034fa29u,void,void *,z72_u32)(data,cache);
     int ok=nx_io(file,0x104d3d83u,data,bytes);
     CALL(0x1034fa29u,void,void *,z72_u32)(data,cache);
     return ok;
+}
+
+static int nx_read(z72_u32 *file,z72_u32 offset,void *data,z72_u32 bytes)
+{
+    return nx_seek(file,offset) && nx_read_current(file,data,bytes);
 }
 
 static int nx_write(z72_u32 *file,z72_u32 offset,void *data,z72_u32 bytes)
@@ -70,8 +82,11 @@ static int nx_write(z72_u32 *file,z72_u32 offset,void *data,z72_u32 bytes)
 
 static int nx_directory(z72_u32 *file,z72_u32 offset)
 {
-    return offset<=file[6]-NX_SCAN_BYTES && nx_read(file,offset,nx_scan,NX_SCAN_BYTES) &&
-        nx_u16(nx_scan)<=(NX_SCAN_BYTES-6)/NX_ENTRY;
+    if (offset<8 || offset>file[6] || file[6]-offset<6) return 0;
+    z72_u32 bytes=file[6]-offset;
+    if (bytes>NX_SCAN_BYTES) bytes=NX_SCAN_BYTES;
+    /* The compatibility IFD can end exactly at EOF. */
+    return nx_read(file,offset,nx_scan,bytes) && nx_u16(nx_scan)<=(bytes-6)/NX_ENTRY;
 }
 
 static z72_u32 nx_tag_value(unsigned tag,unsigned kind)
@@ -113,7 +128,11 @@ static z72_u32 nx_find_note(z72_u32 *file,z72_u32 *where,z72_u32 *bytes,z72_u32 
     if (!desc || nx_u16(desc+2)!=7) return 0;
     *bytes=nx_u32(desc+4);
     *where=nx_u32(desc+8);
-    if (*bytes<24 || *bytes>NX_NOTE_LIMIT || *where<=exif || *where>file[6] || *bytes>file[6]-*where) return 0;
+    if (*bytes<24 || *bytes>NX_NOTE_LIMIT || *where<8 || *where>file[6] ||
+        *bytes>file[6]-*where) return 0;
+    /* When tagging 8/32-frame series, EXIF is appended after its MakerNote. */
+    z72_u32 exif_end=exif+6+NX_ENTRY*nx_u16(nx_scan);
+    if (*where<exif_end && exif<*where+*bytes) return 0;
     return exif+(z72_u32)(desc-nx_scan)+4;
 }
 
@@ -180,8 +199,8 @@ static unsigned nx_tag_file(z72_u32 id,z72_u32 group,unsigned frame,unsigned sho
     z72_u32 total=bytes+NX_EXTRA,offset=end+(end&1u);
     int compat=shots==8 || shots==32;
     struct nx_reference ref={patch,8,{bytes,where},{total,offset}};
-    unsigned char *note=patch ? CALL(0x1034fe43u,void *,z72_u32,z72_u32,z72_u32)(
-        total+64+(compat ? 2*NX_SCAN_BYTES : 0),0,64) : 0;
+    void *owner;
+    unsigned char *note=patch ? nx_alloc(total+64+(compat ? 2*NX_SCAN_BYTES : 0),&owner) : 0;
     unsigned result=patch ? NX_MEMORY : NX_LAYOUT;
     if (note) {
         result=NX_LAYOUT;
@@ -191,7 +210,7 @@ static unsigned nx_tag_file(z72_u32 id,z72_u32 group,unsigned frame,unsigned sho
             nx_scan[0]=0;
             if ((end==offset || nx_write(file,end,nx_scan,1)) && nx_write(file,offset,note,total)) result=0;
         }
-        CALL(0x1034febdu,void,void *)(note);
+        CALL(0x1034fe7fu,void,void *)(owner);
     }
     /* Close before changing the EXIF reference so an interrupted append
      * leaves the original MakerNote usable. Confirm the physical extent. */

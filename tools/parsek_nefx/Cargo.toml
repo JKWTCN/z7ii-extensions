@@ -1,0 +1,16 @@
+[package]
+name = "parsek-nefx"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+default-run = "parsek-nefx"
+
+[dependencies]
+anyhow = "1"
+rawler = "0.8"
+rayon = "1"
+tempfile = "3"
+
+[target.'cfg(windows)'.dependencies]
+native-windows-gui = { version = "1.0.13", default-features = false, features = ["file-dialog", "listbox", "notice", "progress-bar", "textbox"] }
+windows-sys = { version = "0.61", features = ["Win32_Globalization"] }

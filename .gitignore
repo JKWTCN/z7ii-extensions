@@ -3,3 +3,4 @@ __pycache__/
 /.vscode/
 /tools/build-master/target/
 /tools/ibis_nefx_repair/target/
+/tools/parsek_nefx/target/

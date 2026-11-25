@@ -534,6 +534,16 @@ static void pipeline_notify(z72_u32 event,z72_u32 argument)
 #include "pre_capture_jpeg_input.h"
 static void input_dispatch(z72_u32 flags)
 {
+#ifdef Z72_PIXEL_SHIFT
+    if (PIXEL_LOAD(pixel_merge_input_lock) && BYTE(0xb1824f0cu)-1u<3u) {
+        for (z72_u32 i=0;i<16;++i) if (flags&(1u<<i)) {
+            z72_u32 fn=WORD(INPUT_CALLBACKS+4*i);
+            if (fn==0x1022aa5du) PIXEL_STORE(pixel_full_owned,1);
+            else if (fn==0x1022aa25u) PIXEL_STORE(pixel_full_owned,0);
+        }
+        return;
+    }
+#endif
     for (z72_u32 i=0;i<16;++i) if (flags&(1u<<i)) {
         z72_u32 fn=WORD(INPUT_CALLBACKS+4*i);
 #ifdef Z72_PIXEL_SHIFT

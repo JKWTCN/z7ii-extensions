@@ -41,7 +41,8 @@ static void nx_insert(unsigned char *ifd,unsigned tag,z72_u32 size,z72_u32 offse
 
 /* Relocate TIFF data references. Nikon preview tag 0x11 and its JPEG offset
  * 0x201 are pointers even though they are represented as an inline LONG. */
-static int nx_relocate(unsigned char *ifd,z72_u32 first,z72_u32 size,unsigned pointer_tag)
+static int nx_relocate(unsigned char *ifd,z72_u32 first,z72_u32 size,unsigned pointer_tag,
+                       unsigned growth)
 {
     static const unsigned char widths[]={0,1,1,2,4,8,1,1,2,4,8,4,8};
     unsigned count=nx_u16(ifd),last=0;
@@ -54,7 +55,7 @@ static int nx_relocate(unsigned char *ifd,z72_u32 first,z72_u32 size,unsigned po
         z72_u32 bytes=n*widths[kind];
         if (bytes>4 || tag==pointer_tag) {
             if (value<first-10 || value>size-10 || bytes>size-10-value) return 0;
-            nx_put(entry+8,value+NX_GROWTH,4);
+            nx_put(entry+8,value+growth,4);
         }
     }
     return 1;
@@ -90,14 +91,15 @@ static int nx_expand_note(unsigned char *note,z72_u32 size,z72_u32 group,unsigne
     unsigned char *compression=nx_entry(ifd,0x93);
     if (!nx_match(position,7,20) || !nx_match(preview,4,1) || !nx_match(compression,3,1)) return 0;
     unsigned format=nx_u16(compression+8);
-    if (format!=NX_RAW_LOSSLESS && (format!=NX_RAW_PACKED_14 || !packed_raw)) return 0;
+    if (format!=NX_RAW_PACKED_14 || !packed_raw) return 0;
     z72_u32 pos=nx_u32(position+8),prev=nx_u32(preview+8);
     if (pos<end-10 || pos>size-30 || prev<end-10 || prev>size-16) return 0;
     if (!nx_equal(note+pos+10,version,4) || !nx_u32(note+pos+18) || !nx_u32(note+pos+26)) return 0;
     unsigned char *preview_ifd=note+prev+10;
     z72_u32 preview_bytes=6+nx_u16(preview_ifd)*NX_ENTRY;
     if (preview_bytes>size-10-prev || nx_u32(preview_ifd+preview_bytes-4) ||
-        !nx_relocate(preview_ifd,end,size,0x201) || !nx_relocate(ifd,end,size,0x11)) return 0;
+        !nx_relocate(preview_ifd,end,size,0x201,NX_GROWTH) ||
+        !nx_relocate(ifd,end,size,0x11,NX_GROWTH)) return 0;
     for (z72_u32 i=size;i>end;--i) note[i+NX_GROWTH-1]=note[i-1];
 
     z72_u32 data=size+NX_GROWTH;

@@ -25,7 +25,7 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 | [Custom wide-area AF (C1/C2)](docs/custom-wide-area-af.md)       | Set width, height, and subject detection for two photo AF presets. Select them with the i menu, command dials, or button shortcuts      | Hardware verified  |
 | [Subject tracking](docs/subject-tracking.md)                     | Start tracking with a half-press or AF-ON in photo AF-C. The targeting reticle returns after power-up                                   | Hardware verified  |
 | [Focus improvements](docs/focus-improvements.md)                 | Optional assistance for reacquiring a briefly occluded subject in photo AF-C                                                            | Hardware verified  |
-| [Pixel shift shooting](docs/pixel-shift.md)                      | Use in-body sensor shift to capture 4, 8, 16 or 32 NEFs for NX Studio merging                                                           | Hardware verified  |
+| [Pixel shift shooting](docs/pixel-shift.md)                      | Use in-body sensor shift to capture 4, 8, 16 or 32 NEFs for in-camera or NX Studio merging                                                           | Hardware verified  |
 | [Wi-Fi settings](docs/wifi-settings.md)                          | One submenu for region selection and an optional 80 MHz AP switch; 5 GHz STA and Wi-Fi 5 AP                                             | Hardware verified  |
 | [FTP upload](docs/ftp-upload.md#english)                         | Select photos and videos from both cards in one grid and batch upload with an optional 4 MiB send buffer                                | Hardware verified  |
 | [Browser gallery](docs/browser-gallery.md#english)               | Browse CFexpress/XQD and SD photos, filter by card, rating, protection, or date, and download original JPG and NEF files                | Hardware verified  |
@@ -37,8 +37,9 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 - Automatic video orientation is currently unavailable in the native playback menu. Players that support orientation metadata display the recording in its recorded orientation. [Automatic video orientation](docs/video-rotation.md#english)
 - The Z 7II's CMOS sensor lacks dual data paths, so JPEG pre-capture relies on H+ burst mode. This can make live view stutter when pre-capture starts.
 - During playback, some JPEG pre-capture photos may temporarily show “Cannot display this file.” The camera registers these photos before writing them to the card. The photos become viewable once writing finishes.
-- Pixel shift uses half-pixel offsets of X=11 and Y=9, calibrated on my camera. If Nikon calibrates sensor movement at the factory, other bodies should give similar results. Large alignment errors in a merge may indicate that the calibration differs or is absent. If you see this, please open an issue. I’ll add a way to calibrate your own camera and provide instructions. [Issues](https://github.com/JKWTCN/z7ii-extensions/issues)
-- Nikon does not officially support pixel shift on the Z 7II. When merging 14-bit lossless compressed NEFs from this camera, NX Studio 1.10.1 can produce a NEFX that it cannot preview or export. Use the Windows x64 repair tool on the merged NEFX. Merges from 14-bit uncompressed NEFs can be opened and exported directly. [Download the NEFX repair tool](releases/ibis-nefx-repair.exe) · [Pixel shift shooting](docs/pixel-shift.md)
+- If an in-camera pixel shift merge runs longer than the menu standby timeout, the camera may turn off once the merge finishes. Turn it back on to continue.
+- The default half-pixel offsets of X=11 and Y=9 were calibrated on my camera. For in-camera or NX Studio merging, follow the [calibration guide](docs/IBIS-calibration.md#why-calibrate) to calibrate your own camera. To skip calibration, merge the original NEFs with [Parsek NEFX](releases/parsek-nefx-gui.exe), then export JPEG or TIFF in NX Studio.
+- Pixel shift shooting records uncompressed 14-bit NEFs. NX Studio can merge the series and open or export the result directly. [Pixel shift shooting](docs/pixel-shift.md) · [Download Parsek NEFX for Windows x64](releases/parsek-nefx-gui.exe)
 
 **Flash at your own risk. Modified firmware and native modules may cause crashes, data loss, hardware damage, or an unbootable camera (bricking), potentially requiring professional repair.** Successful testing does not guarantee safety on every camera or in every situation.
 
@@ -65,10 +66,10 @@ The updated host fixes missing extension menus and incorrect framing grids on th
 For instructions on building the firmware update package yourself, see [Building](#building).
 
 1. Wait for card access to finish, turn off the camera, and remove the memory card.
-2. Copy [Z72APP.BIN](releases/v0.1.0-preview.39/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
+2. Copy [Z72APP.BIN](releases/v0.1.0-preview.40/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
 3. Reinsert the card and battery, wait until the card access lamp next to the **i** button goes out, then turn on the camera.
 
-Current release `v0.1.0-preview.39` · 285,548 bytes · [SHA-256 checksums](releases/v0.1.0-preview.39/SHA256SUMS)
+Current release `v0.1.0-preview.40` · 322,476 bytes · [SHA-256 checksums](releases/v0.1.0-preview.40/SHA256SUMS)
 
 This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
 
@@ -118,4 +119,4 @@ Both scripts extract the master internally and reuse the verified release's publ
 
 ## License
 
-[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound, filtered playback, and the browser gallery carry their own [font license](releases/v0.1.0-preview.39/menu-font-license.txt).
+[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound, filtered playback, and the browser gallery carry their own [font license](releases/v0.1.0-preview.40/menu-font-license.txt).

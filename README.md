@@ -11,7 +11,7 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 | [取景网格](docs/framing-grid.md)                        | 关闭、2×2、3×3、4×4、黄金分割，支持保存设置                                         | 已实机验证 |
 | [直方图与水平仪同显](docs/histogram-horizon.md)         | 照片模式下，后屏和电子取景器均可同时显示实时直方图与水平仪                             | 已实机验证 |
 | [后屏竖拍界面](docs/portrait-ui.md)                     | 照片／视频拍摄信息、音频电平、i 菜单和直方图随相机方向转正                             | 已实机验证 |
-| [倒置照片回放](docs/inverted-playback.md)      | JPG／NEF 自动转正，播放菜单提供独立开关，默认开启                                      | 已实机验证 |
+| [倒置照片回放](docs/inverted-playback.md)               | JPG／NEF 自动转正，播放菜单提供独立开关，默认开启                                      | 已实机验证 |
 | [照片拍摄加亮显示](docs/photo-highlights.md)            | LCD 与取景器的独立照片斑马纹，支持两种图案和八档阈值                                   | 已实机验证 |
 | [自定义 DISP 页面](docs/custom-disp.md)                 | 照片 LCD 页面开关、四套预设、八项拍摄信息、原厂滚动列表及参数信息页                    | 已实机验证 |
 | [焦距显示](docs/focal-length.md)                        | 手动变焦镜头的实时焦距（需电子通信），支持独立 DISP 开关                               | 已实机验证 |
@@ -25,7 +25,7 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 | [自定义宽区域 AF（C1/C2）](docs/custom-wide-area-af.md) | 独立调整两个照片 AF 区域的宽度、高度和主体识别，支持 i 菜单、波轮与按键快捷切换        | 已实机验证 |
 | [主体跟踪](docs/subject-tracking.md)                    | 照片 AF-C 下直接用半按快门或 AF-ON 开始跟踪，重启自动恢复瞄准框                        | 已实机验证 |
 | [对焦改进](docs/focus-improvements.md)                  | 主体短暂遮挡后辅助找回，设定菜单提供开关，默认关闭                                     | 已实机验证 |
-| [像素变化拍摄](docs/pixel-shift.md)                     | 机身防抖移位拍摄 4／8／16／32 张 NEF，支持尼康工坊合并                                 | 已实机验证 |
+| [像素变化拍摄](docs/pixel-shift.md)                     | 机身防抖移位拍摄 4／8／16／32 张 NEF，支持机内和尼康工坊合成                           | 已实机验证 |
 | [WiFi 设置](docs/wifi-settings.md)                      | 统一子菜单，包含地区选择与80 MHz热点开关，支持5 GHz STA与Wi-Fi 5 AP                    | 已实机验证 |
 | [FTP 上传](docs/ftp-upload.md)                          | 在同一六宫格勾选两张卡的照片和视频，批量上传，支持 4 MiB 发送缓冲                      | 已实机验证 |
 | [浏览器相册](docs/browser-gallery.md)                   | 浏览 CFexpress／XQD 和 SD 照片，按卡槽、星级、保护状态和日期筛选，下载 JPG／NEF 原文件 | 已实机验证 |
@@ -37,8 +37,9 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 - 原厂回放菜单暂未实现视频方向跟随。支持方向元数据的播放器可按录像方向显示。[视频自动方向](docs/video-rotation.md)
 - 在 JPEG 预拍摄中,启动预拍摄时取景卡顿是因为 z7ii 的 cmos 没有双数据通路,只能使用 H+ 模式进行捕获,导致取景卡顿.
 - 在 JPEG 预拍摄中,可能出现无法显示此文件,这个是由于预拍摄的图片先注册了后写入,此时因为写入性能不够还没有写入,过一会写入了就能看到了.
-- 像素变化拍摄中目前使用的半格位移是 X=11、Y=9, 此半格位移是建立在我在我的相机标定的基础上的.如果尼康出厂做过标定的话,你的相机应该也差不多,如果你的相机合成偏差很大的话,意味着尼康可能出厂没这步,请在 [issue](https://github.com/JKWTCN/z7ii-extensions/issues) 中联系我,我将更新一个可以让使用者自己标定的功能,并且给出标定帮助文档.
-- 尼康工坊未正式支持 Z 7II 的像素变化拍摄。合并 Z 7II 的 14 位无损压缩 NEF 时，尼康工坊 1.10.1 可能生成无法预览或导出的 NEFX，可用 Windows x64 图形工具修复。14 位未压缩 NEF 的合成文件可直接打开和导出。[下载 NEFX 修复工具](releases/ibis-nefx-repair.exe) · [像素变化拍摄](docs/pixel-shift.md)
+- 机内合成像素变化拍摄如果合成时间超过你的菜单睡眠时间,机器合成完后会自动关机,这个是正常现象,重新开机即可.
+- 像素变化拍摄中目前使用的半格位移是 X=11、Y=9, 此半格位移是建立在我在我的相机标定的基础上的.如果你想要使用尼康工坊合成和机内合成,建议根据你自己的相机进行标定.参考 [标定指南](docs/IBIS-calibration.md) ,如果你懒得标定的话,请使用 [parsek-nefx-gui.exe](releases/parsek-nefx-gui.exe) 进行 NEFX 合成,最后使用尼康工坊进行导出 jpeg/tif.
+- 像素变化拍摄固定输出 14 位未压缩 NEF，可用尼康工坊直接合并、打开和导出。[像素变化拍摄](docs/pixel-shift.md) · [下载 Parsek NEFX（Windows x64）](releases/parsek-nefx-gui.exe)
 
 **刷机有风险，请谨慎操作。修改版固件和原生模块可能导致死机、数据丢失、硬件损坏，甚至相机无法启动（变砖），可能需要专业维修。** 已有实机验证不代表所有相机和使用场景均安全。
 
@@ -67,10 +68,10 @@ Wi-Fi 设置的[使用限制与风险声明](docs/wifi-settings.md#important-lim
 如果要自己构建固件升级包的生成方法见[构建](#构建)。
 
 1. 等待存储卡访问结束，关机并取出存储卡。
-2. 将 [Z72APP.BIN](releases/v0.1.0-preview.39/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.40/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
 3. 装回卡和电池，等待到 i 按键旁边的读取灯灭了再开机。
 
-当前版本为 `v0.1.0-preview.39`，模块 285,548 字节。[SHA-256 校验](releases/v0.1.0-preview.39/SHA256SUMS)
+当前版本为 `v0.1.0-preview.40`，模块 322,476 字节。[SHA-256 校验](releases/v0.1.0-preview.40/SHA256SUMS)
 
 这是试用版本，休眠唤醒和长期稳定性尚未单独确认。替换或移除模块请完整断电。只加载可信模块。
 
@@ -120,4 +121,4 @@ python -B tools/build.py --stock-package "path/to/original/Z7_2_0170.bin" --outp
 
 ## 许可证
 
-采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」「筛选的播放」和「浏览器相册」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.39/menu-font-license.txt)。
+采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」「筛选的播放」和「浏览器相册」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.40/menu-font-license.txt)。

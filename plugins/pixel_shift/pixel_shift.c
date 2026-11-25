@@ -9,6 +9,7 @@
 enum {
     PIXEL_OFF=0, PIXEL_ONE, PIXEL_REPEAT,
     PIXEL_IDLE=0, PIXEL_RUNNING, PIXEL_STARTING, PIXEL_REVIEW_READY, PIXEL_REVIEW_SHOWING,
+    PIXEL_MERGE_STARTING, PIXEL_MERGE_SCANNING, PIXEL_MERGING,
     PIXEL_MAX_SHOTS=32,
     PIXEL_REVIEW_EVENT=1,
     PIXEL_REVIEW_PROPERTY=0x0308u,
@@ -24,6 +25,70 @@ static z72_u32 pixel_full_owned,pixel_pressed_at,pixel_count,pixel_delay,pixel_g
 static z72_u32 pixel_state,pixel_tasks_started,pixel_review_request;
 static z72_u32 pixel_job,pixel_release_result;
 static z72_u32 pixel_observe_file,pixel_file_request,pixel_file_id,pixel_file_result;
+static z72_u32 pixel_half_steps=Z72_PIXEL_HALF_STEPS_DEFAULT;
+static z72_u32 pixel_merge_input_lock;
+static void merge_menu_wake(void);
+
+#include "pixel_shift_merge_file.h"
+#include "pixel_shift_merge_gallery.h"
+
+enum {
+    PIXEL_REFRESH_DISPLAY_TIMER=0x106533d5u, PIXEL_REFRESH_STANDBY_TIMER=0x103db2c1u,
+    PIXEL_DISPLAY_REFRESH_MS=500
+};
+static unsigned pixel_merge_format,pixel_merge_selection;
+static unsigned pixel_merge_percent,pixel_merge_result,pixel_merge_cancel,pixel_merge_ca;
+
+static int pixel_merge_stop_requested(void)
+{
+    unsigned mode=BYTE(0xb1824f0cu);
+    return PIXEL_LOAD(pixel_merge_cancel) || mode<1 || mode>3;
+}
+
+static int pixel_merge_claim(void)
+{
+    z72_u32 idle=PIXEL_IDLE;
+    return __atomic_compare_exchange_n(&pixel_state,&idle,PIXEL_MERGE_STARTING,0,
+                                        __ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE);
+}
+
+static void pixel_merge_progress(unsigned percent)
+{
+    if (percent!=PIXEL_LOAD(pixel_merge_percent)) PIXEL_STORE(pixel_merge_percent,percent);
+}
+
+static void pixel_merge_worker(void *arg)
+{
+    (void)arg;
+    for (;;) {
+        z72_u32 job=PIXEL_LOAD(pixel_state);
+        if (job==PIXEL_MERGE_SCANNING) {
+            merge_gallery_scan(pixel_merge_stop_requested);
+        } else if (job==PIXEL_MERGING) {
+            const struct merge_group *group=&merge_gallery_groups[pixel_merge_selection];
+            unsigned ca_status=0;
+            unsigned result=merge_write_image(group->ids,group->count,pixel_merge_stop_requested,
+                                              &ca_status,pixel_merge_format,pixel_merge_progress);
+            PIXEL_STORE(pixel_merge_ca,ca_status);
+            PIXEL_STORE(pixel_merge_result,result);
+        } else {
+            pixel_sleep(50);
+            continue;
+        }
+        PIXEL_STORE(pixel_state,PIXEL_IDLE);
+    }
+}
+
+static void pixel_merge_refresh_display(z72_u32 *last_refresh)
+{
+    unsigned state=PIXEL_LOAD(pixel_state);
+    if ((state!=PIXEL_MERGING && state!=PIXEL_MERGE_SCANNING) || pixel_merge_stop_requested()) return;
+    z72_u32 now=pixel_tick();
+    if (now-*last_refresh<PIXEL_DISPLAY_REFRESH_MS) return;
+    CALL(PIXEL_REFRESH_DISPLAY_TIMER,void,z72_u32)(1);
+    CALL(PIXEL_REFRESH_STANDBY_TIMER,void,void)();
+    *last_refresh=now;
+}
 
 static int pixel_photo_view(void)
 {
@@ -42,16 +107,16 @@ static int pixel_capture_idle(void)
         !WORD(0xb18693a8u) && !WORD(0xb18693acu);
 }
 
-static void pixel_target(unsigned i,z72_u32 *x,z72_u32 *y)
+#include "pixel_shift_capture_settings.h"
+
+static void pixel_target(unsigned i,z72_u32 steps,z72_u32 *x,z72_u32 *y)
 {
     /* Each group of four samples the four Bayer phases one pixel apart. */
-    enum { HALF_PIXEL_X=11, HALF_PIXEL_Y=9 };
     static const unsigned char corners[][2]={{0,0},{1,0},{1,1},{0,1}};
-    static const unsigned char levels_x[]={0,HALF_PIXEL_X,21,31}, levels_y[]={0,HALF_PIXEL_Y,18,27};
     const unsigned char *coarse=corners[i&3];
     const unsigned char *phase=corners[pixel_count>=16 ? (i>>2)&3 : 0];
-    *x=levels_x[2*coarse[0]+phase[0]];
-    *y=levels_y[2*coarse[1]+phase[1]];
+    *x=21u*coarse[0]+phase[0]*((steps&255u)-coarse[0]);
+    *y=18u*coarse[1]+phase[1]*(steps>>8);
 }
 
 static int pixel_cancelled(void)
@@ -75,8 +140,7 @@ static int pixel_shutter_event(z72_u32 callback)
         return 1;
     }
     if (!PIXEL_LOAD(pixel_tasks_started) || PIXEL_LOAD(pixel_mode)==PIXEL_OFF || !pixel_photo_view() ||
-        CALL(0x104d1e8bu,z72_u32,void)()!=1 ||
-        CALL(0x1063c7d5u,z72_u32,z72_u32)(0x057a)!=1) return 0;
+        CALL(0x104d1e8bu,z72_u32,void)()!=1) return 0;
 
     PIXEL_STORE(pixel_full_owned,1);
     if (PIXEL_LOAD(reply)==0x102u) return 1;
@@ -94,12 +158,12 @@ static int pixel_shutter_event(z72_u32 callback)
     return 1;
 }
 
-static int pixel_capture_ready(void)
+static int pixel_capture_ready(int require_silent)
 {
     return !pixel_cancelled() && pixel_capture_idle() &&
         !CALL(0x1022cfa7u,z72_u32,z72_u32)(0x58) &&
         !CALL(0x1022cfa7u,z72_u32,z72_u32)(0x59) &&
-        CALL(0x1063c7d5u,z72_u32,z72_u32)(0x057a)==1 &&
+        (!require_silent || CALL(0x1063c7d5u,z72_u32,z72_u32)(PIXEL_SILENT_PHOTOGRAPHY)==1) &&
         CALL(0x104d1e8bu,z72_u32,void)()==1 &&
         CALL(0x1034ffbfu,z72_u32,z72_u32)(0x1b04)==0 &&
         CALL(0x10496b8bu,z72_u32,void)()==1 &&
@@ -114,7 +178,7 @@ static int pixel_wait_capture(z72_u32 start)
     const z72_u32 delay_ms=pixel_delay*1000u;
     while (pixel_tick()-start<delay_ms+12000u) {
         if (pixel_cancelled()) return 0;
-        if (pixel_tick()-start>=delay_ms && pixel_capture_ready()) return 1;
+        if (pixel_tick()-start>=delay_ms && pixel_capture_ready(0)) return 1;
         pixel_sleep(100);
     }
     return 0;
@@ -188,11 +252,11 @@ static void pixel_capture_worker(void *arg)
     for (;;) {
         z72_u32 expected=1;
         if (!__atomic_compare_exchange_n(&pixel_job,&expected,2,0,__ATOMIC_ACQUIRE,__ATOMIC_RELAXED)) {
-            pixel_sleep(pixel_running() ? 10 : 100);
+            pixel_sleep(PIXEL_LOAD(pixel_state)==PIXEL_RUNNING ? 10 : 100);
             continue;
         }
         pixel_release_result=1;
-        if (pixel_capture_ready()) {
+        if (pixel_capture_ready(1) && pixel_settings_match()) {
             PIXEL_STORE(pixel_observe_file,1);
             pixel_release_result=CALL(0x103ba6ebu,z72_u32,const z72_u32 *,
                 z72_u32 (*)(z72_u32,z72_u32,z72_u32,z72_u32))(settings,pixel_release_done);
@@ -203,7 +267,7 @@ static void pixel_capture_worker(void *arg)
 
 static int pixel_take_frame(void)
 {
-    if (!pixel_capture_ready()) return 0;
+    if (!pixel_capture_ready(1)) return 0;
     PIXEL_STORE(pixel_file_request,0);
     PIXEL_STORE(pixel_file_id,0);
     PIXEL_STORE(pixel_file_result,0);
@@ -233,7 +297,7 @@ static int pixel_wait_between_frames(struct d2_settings *saved)
 {
     for (z72_u32 i=0;i<30;++i) {
         if (pixel_cancelled()) return 0;
-        if (pixel_capture_ready() && pixel_raw_vr_idle()) {
+        if (pixel_capture_ready(1) && pixel_raw_vr_idle()) {
             struct vr_sample sample;
             read_sample(&sample);
             if (sample.status==0x102u) return 0;
@@ -252,6 +316,7 @@ static int pixel_capture_series(struct d2_settings *saved)
     static const struct vr_request command={.opcode=0xf1f1,.payload=payload};
     struct vr_sample center;
     z72_u32 ids[PIXEL_MAX_SHOTS],count=pixel_count,gap_ms=pixel_gap*1000u,frame_started=0;
+    z72_u32 steps=PIXEL_LOAD(pixel_half_steps);
     unsigned i=0;
     int position_issued=0;
     for (;i<count;++i) {
@@ -259,7 +324,7 @@ static int pixel_capture_series(struct d2_settings *saved)
         if (pixel_cancelled()) break;
         if (i && !pixel_wait_between_frames(saved)) break;
         z72_u32 x,y;
-        pixel_target(i,&x,&y);
+        pixel_target(i,steps,&x,&y);
         payload[1]=(unsigned char)x;
         payload[3]=(unsigned char)y;
         z72_u32 result=send_position(&command,saved);
@@ -317,11 +382,21 @@ static int pixel_capture_with_review_deferred(struct d2_settings *saved)
 static void pixel_worker(void *arg)
 {
     (void)arg;
+    z72_u32 display_refreshed=0,last_restore=0;
     for (;;) {
-        while (PIXEL_LOAD(pixel_state)!=PIXEL_RUNNING) pixel_sleep(100);
+        while (PIXEL_LOAD(pixel_state)!=PIXEL_RUNNING) {
+            if (pixel_settings_restore_mask && pixel_tick()-last_restore>=1000u) {
+                pixel_settings_restore();
+                last_restore=pixel_tick();
+            }
+            pixel_merge_refresh_display(&display_refreshed);
+            merge_menu_wake();
+            pixel_sleep(100);
+        }
         struct d2_settings saved;
-        int complete=pixel_wait_capture(pixel_pressed_at) && wait_baseline(&saved) &&
-            pixel_capture_ready() && pixel_capture_with_review_deferred(&saved);
+        int complete=pixel_wait_capture(pixel_pressed_at) && pixel_settings_prepare() &&
+            wait_baseline(&saved) && pixel_capture_ready(1) && pixel_capture_with_review_deferred(&saved);
+        if (!pixel_settings_restore()) complete=0;
         z72_u32 one=PIXEL_ONE;
         __atomic_compare_exchange_n(&pixel_mode,&one,PIXEL_OFF,0,__ATOMIC_ACQ_REL,__ATOMIC_RELAXED);
         PIXEL_STORE(pixel_state,complete ? PIXEL_REVIEW_READY : PIXEL_IDLE);
@@ -338,14 +413,23 @@ static int pixel_ready(void)
 }
 
 static int pixel_start_task(const unsigned char *original,unsigned char *descriptor,
-                            z72_u32 *control,void (*worker)(void *))
+                            z72_u32 *control,void (*worker)(void *),unsigned char core)
 {
     for (z72_u32 i=0;i<28;++i) descriptor[i]=original[i];
-    descriptor[0]=1;
+    descriptor[0]=core;
     *(z72_u32 *)(descriptor+8)=8192;
     *(unsigned short *)(descriptor+26)=0;
     CALL(0x103dc46bu,int,void *,void (*)(void *),void *)(control,worker,descriptor);
     return (int)control[0]>0 && !CALL(0x103606dfu,z72_u32,void *)(control);
+}
+
+static const unsigned char *pixel_task_template(void)
+{
+    const unsigned char *original=CALL(0x103d3dffu,const unsigned char *,z72_u32)(0x10005);
+    z72_u32 address=(z72_u32)original;
+    if (!pixel_ram_range(address,28) &&
+        ((address&3u) || address<0x10020000u || address>0x12497b78u-28)) return 0;
+    return original;
 }
 
 static int pixel_start_tasks(void)
@@ -355,12 +439,24 @@ static int pixel_start_tasks(void)
     static z72_u32 controls[2][8];
     if (!attempted) {
         attempted=1;
-        const unsigned char *original=CALL(0x103d3dffu,const unsigned char *,z72_u32)(0x10005);
-        z72_u32 address=(z72_u32)original;
-        if (!pixel_ram_range(address,28) &&
-            ((address&3u) || address<0x10020000u || address>0x12497b78u-28)) return 0;
-        PIXEL_STORE(pixel_tasks_started,pixel_start_task(original,descriptors[0],controls[0],pixel_worker) &&
-            pixel_start_task(original,descriptors[1],controls[1],pixel_capture_worker));
+        const unsigned char *original=pixel_task_template();
+        if (!original) return 0;
+        PIXEL_STORE(pixel_tasks_started,pixel_start_task(original,descriptors[0],controls[0],pixel_worker,1) &&
+            pixel_start_task(original,descriptors[1],controls[1],pixel_capture_worker,1));
     }
     return PIXEL_LOAD(pixel_tasks_started);
+}
+
+static int pixel_start_merge_task(void)
+{
+    static int attempted,started;
+    static _Alignas(4) unsigned char descriptor[28];
+    static z72_u32 control[8];
+    if (!pixel_start_tasks()) return 0;
+    if (!attempted) {
+        attempted=1;
+        const unsigned char *original=pixel_task_template();
+        started=original && pixel_start_task(original,descriptor,control,pixel_merge_worker,2);
+    }
+    return started;
 }

@@ -22,6 +22,11 @@
 #define Z72_FTP_FILE_ROWS (Z72_FTP_PHOTOS_PER_LIST+2u)
 #define Z72_FTP_FILE_LABEL_UNITS 26u
 #endif
+#ifdef Z72_PIXEL_SHIFT
+#define Z72_PIXEL_LIVE_LABELS 7u
+#define Z72_PIXEL_LIVE_UNITS 16u
+#endif
+
 enum {
     Z72_TEXT_GRID_GOLDEN=Z72_MENU_STOCK_TEXTS,
     Z72_TEXT_AUTO_ROTATE,
@@ -138,6 +143,16 @@ enum {
     Z72_TEXT_PIXEL_REPEAT,Z72_TEXT_PIXEL_ONE,Z72_TEXT_PIXEL_OFF,
     Z72_TEXT_PIXEL_4,Z72_TEXT_PIXEL_8,Z72_TEXT_PIXEL_16,Z72_TEXT_PIXEL_32,
     Z72_TEXT_PIXEL_0S,Z72_TEXT_PIXEL_1S,Z72_TEXT_PIXEL_2S,Z72_TEXT_PIXEL_3S,Z72_TEXT_PIXEL_5S,Z72_TEXT_PIXEL_10S,
+    Z72_TEXT_PIXEL_CALIBRATION,Z72_TEXT_PIXEL_X,Z72_TEXT_PIXEL_Y,Z72_TEXT_PIXEL_STEP_6,
+    Z72_TEXT_PIXEL_X_VALUE=Z72_TEXT_PIXEL_STEP_6+9,
+    Z72_TEXT_PIXEL_Y_VALUE=Z72_TEXT_PIXEL_X_VALUE+Z72_PIXEL_STEP_CHOICES,
+    Z72_TEXT_PIXEL_MERGE=Z72_TEXT_PIXEL_Y_VALUE+Z72_PIXEL_STEP_CHOICES,
+    Z72_TEXT_PIXEL_SCAN,Z72_TEXT_PIXEL_NO_GROUPS,Z72_TEXT_PIXEL_OUTPUT,Z72_TEXT_PIXEL_TIF,
+    Z72_TEXT_PIXEL_NEFX,Z72_TEXT_PIXEL_NEFX_UNAVAILABLE,Z72_TEXT_PIXEL_MERGE_READ,
+    Z72_TEXT_PIXEL_MERGE_ALIGN,Z72_TEXT_PIXEL_MERGE_RENDER,Z72_TEXT_PIXEL_MERGE_SAVE,
+    Z72_TEXT_PIXEL_MERGE_CANCELLING,Z72_TEXT_PIXEL_MERGE_SAVED,Z72_TEXT_PIXEL_MERGE_NO_CA,
+    Z72_TEXT_PIXEL_MERGE_FAILED,Z72_TEXT_PIXEL_MERGE_CANCELLED,
+    Z72_TEXT_PIXEL_MERGE_PREVIOUS,Z72_TEXT_PIXEL_MERGE_NEXT,Z72_TEXT_PIXEL_MERGE_BLANK,
 #endif
 #ifdef Z72_FTP_FULL
     Z72_TEXT_FTP_MARK,
@@ -173,6 +188,10 @@ enum {
     Z72_TEXT_REFERENCE_END=Z72_TEXT_REFERENCE_PERCENT+Z72_REFERENCE_OPACITIES-1,
     Z72_TEXT_REFERENCE_PICK,
 #endif
+#ifdef Z72_PIXEL_SHIFT
+    Z72_TEXT_PIXEL_LIVE,
+    Z72_TEXT_PIXEL_LIVE_PADDING=Z72_TEXT_PIXEL_LIVE+Z72_PIXEL_LIVE_LABELS,
+#endif
 #ifdef Z72_FTP_FULL
     Z72_TEXT_FTP_ROW,
     Z72_TEXT_FTP_LAST_ROW=Z72_TEXT_FTP_ROW+Z72_FTP_FILE_ROWS-1,
@@ -180,7 +199,9 @@ enum {
     Z72_MENU_TEXT_END
 };
 
-#ifdef Z72_FTP_FULL
+#ifdef Z72_PIXEL_SHIFT
+#define Z72_MENU_STATIC_TEXT_END Z72_TEXT_PIXEL_LIVE
+#elif defined(Z72_FTP_FULL)
 #define Z72_MENU_STATIC_TEXT_END Z72_TEXT_FTP_ROW
 #else
 #define Z72_MENU_STATIC_TEXT_END Z72_MENU_TEXT_END
@@ -201,6 +222,10 @@ struct z72_menu_locale {
 static struct z72_menu_locale *z72_ftp_locale;
 #endif
 
+#ifdef Z72_PIXEL_SHIFT
+static struct z72_menu_locale *z72_pixel_locale;
+#endif
+
 /* Register labels before exposing any menu rows that reference them. */
 static inline int z72_menu_locale_install(void)
 {
@@ -214,6 +239,24 @@ static inline int z72_menu_locale_install(void)
         !z72_golden_font_ready()) return 0;
 
     /* The firmware stores consecutive UTF-16LE strings with byte offsets. */
+#ifdef Z72_PIXEL_SHIFT
+#define PIXEL_CAL_VALUES \
+    u"6",u"7",u"8",u"9",u"10",u"11",u"12",u"13",u"14", \
+    u"X  8",u"X  9",u"X  10",u"X  11",u"X  12",u"X  13",u"X  14", \
+    u"Y  6",u"Y  7",u"Y  8",u"Y  9",u"Y  10",u"Y  11",u"Y  12"
+#define PIXEL_MERGE_EN ,u"In-camera merge",u"Reading photo sets",u"No complete photo sets", \
+    u"Output format",u"TIF",u"NEFX",u"NEFX needs uncompressed",u"Checking originals", \
+    u"Aligning frames",u"Merging and writing",u"Saving file",u"Cancelling",u"Saved to memory card", \
+    u"Saved without lens CA",u"Merge failed",u"Cancelled",u"Previous page",u"Next page",u""
+#define PIXEL_MERGE_CN ,u"机内合成",u"正在读取照片组",u"没有完整的照片组", \
+    u"输出格式",u"TIF",u"NEFX",u"NEFX 需要未压缩原片",u"正在检查原片", \
+    u"正在对齐照片",u"正在合成和写卡",u"正在保存文件",u"正在取消",u"已保存到存储卡", \
+    u"已保存，未校正镜头色差",u"合成失败",u"已取消",u"上一页",u"下一页",u""
+#define PIXEL_MERGE_TW ,u"機內合成",u"正在讀取相片組",u"沒有完整的相片組", \
+    u"輸出格式",u"TIF",u"NEFX",u"NEFX 需要未壓縮原始檔",u"正在檢查原始檔", \
+    u"正在對齊相片",u"正在合成和寫卡",u"正在儲存檔案",u"正在取消",u"已儲存到記憶卡", \
+    u"已儲存，未校正鏡頭色差",u"合成失敗",u"已取消",u"上一頁",u"下一頁",u""
+#endif
 #ifdef Z72_COMPOSITION_REFERENCE
 #define Z72_REFERENCE_VALUE_TEXT \
     u"1",u"2",u"3",u"4",u"5",u"6", \
@@ -253,6 +296,7 @@ static inline int z72_menu_locale_install(void)
          u"Pixel shift shooting",u"Pixel shift mode",u"Number of shots",u"Start delay",u"Shot interval",
          u"On (continuous)",u"On (single set)",u"Off",u"4 shots",u"8 shots",u"16 shots",u"32 shots",
          u"0 s",u"1 s",u"2 s",u"3 s",u"5 s",u"10 s",
+         u"Half-step calibration",u"X half-step",u"Y half-step",PIXEL_CAL_VALUES PIXEL_MERGE_EN,
 #endif
 #ifdef Z72_FTP_FULL
          u"Mark/unmark for FTP",u"Transfer status",u"Edit FTP profile",
@@ -304,6 +348,7 @@ static inline int z72_menu_locale_install(void)
          u"像素变化拍摄",u"像素变化拍摄模式",u"拍摄张数",u"开始拍摄延迟",u"拍摄间隔",
          u"开启（连续）",u"开启（单组）",u"关闭",u"4 张",u"8 张",u"16 张",u"32 张",
          u"0 秒",u"1 秒",u"2 秒",u"3 秒",u"5 秒",u"10 秒",
+         u"半格位移校准",u"X 半格位移",u"Y 半格位移",PIXEL_CAL_VALUES PIXEL_MERGE_CN,
 #endif
 #ifdef Z72_FTP_FULL
          u"选择以FTP发送/取消",u"传输状态",u"编辑 FTP 配置",
@@ -354,6 +399,7 @@ static inline int z72_menu_locale_install(void)
          u"像素變化拍攝",u"像素變化拍攝模式",u"拍攝張數",u"開始拍攝延遲",u"拍攝間隔",
          u"開啟（連續）",u"開啟（單組）",u"關閉",u"4 張",u"8 張",u"16 張",u"32 張",
          u"0 秒",u"1 秒",u"2 秒",u"3 秒",u"5 秒",u"10 秒",
+         u"半格位移校準",u"X 半格位移",u"Y 半格位移",PIXEL_CAL_VALUES PIXEL_MERGE_TW,
 #endif
 #ifdef Z72_FTP_FULL
          u"選擇以FTP傳送/取消",u"傳輸狀態",u"編輯 FTP 設定",
@@ -379,6 +425,14 @@ static inline int z72_menu_locale_install(void)
 #undef Z72_REFERENCE_VALUE_TEXT
 #endif
     z72_u32 bytes=sizeof(struct z72_menu_locale)+Z72_MENU_LANGUAGES*sizeof(translations[0]);
+#ifdef Z72_PIXEL_SHIFT
+#undef PIXEL_CAL_VALUES
+#undef PIXEL_MERGE_EN
+#undef PIXEL_MERGE_CN
+#undef PIXEL_MERGE_TW
+    const z72_u32 pixel_label_bytes=Z72_PIXEL_LIVE_LABELS*Z72_PIXEL_LIVE_UNITS*sizeof(unsigned short);
+    bytes+=Z72_MENU_LANGUAGES*pixel_label_bytes;
+#endif
 #ifdef Z72_FTP_FULL
     _Static_assert(Z72_FTP_FILE_ROWS*Z72_FTP_FILE_LABEL_UNITS>=Z72_FTP_MENU_ROWS*Z72_FTP_LABEL_UNITS,
                    "FTP label buffer must hold either list");
@@ -420,6 +474,10 @@ static inline int z72_menu_locale_install(void)
     for (z72_u32 i=0;i<sizeof(gallery_supplemental)/sizeof(gallery_supplemental[0]);++i)
         locale->styles[gallery_supplemental[i]]=Z72_GOLDEN_STYLE;
 #endif
+#ifdef Z72_PIXEL_SHIFT
+    for (z72_u32 id=Z72_TEXT_PIXEL_LIVE;id<Z72_TEXT_PIXEL_LIVE_PADDING;++id)
+        locale->styles[id]=Z72_MENU_LATIN_STYLE;
+#endif
     z72_golden_font_prepare(&locale->golden,copy,styles[template]);
     unsigned char *text=locale->text;
     for (z72_u32 lang=0;lang<Z72_MENU_LANGUAGES;++lang) {
@@ -453,6 +511,15 @@ static inline int z72_menu_locale_install(void)
             locale->offsets[lang][id+1]=end;
             locale->attributes[lang][id]=attrs[lang][attribute_template];
         }
+#ifdef Z72_PIXEL_SHIFT
+        for (z72_u32 id=Z72_TEXT_PIXEL_LIVE;id<Z72_TEXT_PIXEL_LIVE_PADDING;++id) {
+            locale->offsets[lang][id+1]=end;
+            locale->attributes[lang][id]=attrs[lang][template];
+        }
+        end+=pixel_label_bytes;
+        locale->offsets[lang][Z72_TEXT_PIXEL_LIVE_PADDING+1]=end;
+        locale->attributes[lang][Z72_TEXT_PIXEL_LIVE_PADDING]=attrs[lang][template];
+#endif
 #ifdef Z72_FTP_FULL
         /* Keep the mutable FTP rows at the end of each language text block. */
         for (z72_u32 id=Z72_TEXT_FTP_ROW;id<Z72_MENU_TEXT_END;++id) {
@@ -473,6 +540,9 @@ static inline int z72_menu_locale_install(void)
     tables[2]=(z72_u32)locale->offset_tables;
     tables[3]=(z72_u32)locale->attribute_tables;
     __asm__ volatile("dmb sy" ::: "memory");
+#ifdef Z72_PIXEL_SHIFT
+    z72_pixel_locale=locale;
+#endif
 #ifdef Z72_FTP_FULL
     z72_ftp_locale=locale;
 #endif
