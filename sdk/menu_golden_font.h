@@ -13,7 +13,8 @@ enum { Z72_SOUND_GLYPHS=0, Z72_SOUND_FONT_BYTES=0 };
 
 #ifdef Z72_FILTERED_PLAYBACK
 #include "menu_playback_glyphs.h"
-enum { Z72_PLAYBACK_GLYPHS=7, Z72_PLAYBACK_FONT_BYTES=2079+sizeof(playback_u7b5b),
+enum { Z72_PLAYBACK_GLYPHS=15,
+       Z72_PLAYBACK_FONT_BYTES=4268+sizeof(playback_u7b5b)+sizeof(playback_u5012),
        Z72_PLAYBACK_STYLES=2 };
 #else
 enum { Z72_PLAYBACK_GLYPHS=0, Z72_PLAYBACK_FONT_BYTES=0, Z72_PLAYBACK_STYLES=0 };
@@ -171,6 +172,7 @@ static inline void z72_golden_font_prepare(struct z72_golden_font *font,
         {0x4eea,sizeof(instrument_simplified),(z72_u32)instrument_simplified}, /* 仪 */
 #ifdef Z72_FILTERED_PLAYBACK
         {0x4ef6,219,0x10a097c6u}, /* 件 */
+        {0x5012,sizeof(playback_u5012),(z72_u32)playback_u5012}, /* 倒 */
 #endif
         {0x5100,sizeof(instrument_traditional),(z72_u32)instrument_traditional}, /* 儀 */
         {0x5206,252,0x109e2fe2u+0x1ee35u}, /* 分 */
@@ -178,6 +180,9 @@ static inline void z72_golden_font_prepare(struct z72_golden_font *font,
         {0x524d,251,0x109e2fe2u+0x32616u}, /* 前 */
 #endif
         {0x5272,277,0x10b664adu+0x188d2u}, /* 割 */
+#ifdef Z72_FILTERED_PLAYBACK
+        {0x5411,156,0x10a21b40u}, /* 向 */
+#endif
 #ifdef Z72_MENU_SOUND_FONT
         {0x542c,sizeof(sound_u542c),(z72_u32)sound_u542c}, /* 听 */
 #endif
@@ -194,6 +199,10 @@ static inline void z72_golden_font_prepare(struct z72_golden_font *font,
 #endif
 #ifdef Z72_MENU_SOUND_FONT
         {0x6548,422,0x109e2fe2u+0x3f0d7u}, /* 效 */
+#endif
+#ifdef Z72_FILTERED_PLAYBACK
+        {0x65b9,187,0x10a01586u}, /* 方 */
+        {0x65cb,400,0x10a23768u}, /* 旋 */
 #endif
         {0x663e,sizeof(battery_u663e),(z72_u32)battery_u663e}, /* 显 */
         {0x673a,249,0x109e2fe2u+0x24ec8u}, /* 机 */
@@ -214,16 +223,24 @@ static inline void z72_golden_font_prepare(struct z72_golden_font *font,
         {0x793a,sizeof(battery_u793a),(z72_u32)battery_u793a}, /* 示 */
 #ifdef Z72_FILTERED_PLAYBACK
         {0x7b5b,sizeof(playback_u7b5b),(z72_u32)playback_u7b5b}, /* 筛 */
+        {0x7f6e,232,0x10a2ad4eu}, /* 置 */
 #endif
         {0x7f8e,sizeof(region_u7f8e),(z72_u32)region_u7f8e}, /* 美 */
 #ifdef Z72_MENU_SOUND_FONT
         {0x807d,sizeof(sound_u807d),(z72_u32)sound_u807d}, /* 聽 */
+#endif
+#ifdef Z72_FILTERED_PLAYBACK
+        {0x81f3,200,0x10a2ab03u}, /* 至 */
+#endif
+#ifdef Z72_MENU_SOUND_FONT
         {0x8a66,436,0x10972c2cu+0x42c38u}, /* 試 */
         {0x8bd5,302,0x109e2fe2u+0x3745bu}, /* 试 */
 #endif
         {0x8ddf,335,0x109e2fe2u+0x213cbu}, /* 跟 */
         {0x8eab,240,0x109e2fe2u+0x35e4au}, /* 身 */
 #ifdef Z72_FILTERED_PLAYBACK
+        {0x8f49,590,0x109c98b5u}, /* 轉 */
+        {0x8f6c,424,0x10a2c001u}, /* 转 */
         {0x9009,379,0x10a238f8u}, /* 选 */
 #endif
         {0x91cf,sizeof(battery_u91cf),(z72_u32)battery_u91cf}, /* 量 */

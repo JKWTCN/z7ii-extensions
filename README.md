@@ -11,6 +11,7 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 | [取景网格](docs/framing-grid.md)                        | 关闭、2×2、3×3、4×4、黄金分割，支持保存设置                                         | 已实机验证 |
 | [直方图与水平仪同显](docs/histogram-horizon.md)         | 照片模式下，后屏和电子取景器均可同时显示实时直方图与水平仪                             | 已实机验证 |
 | [后屏竖拍界面](docs/portrait-ui.md)                     | 照片／视频拍摄信息、音频电平、i 菜单和直方图随相机方向转正                             | 已实机验证 |
+| [倒置照片回放](docs/inverted-playback.md)      | JPG／NEF 自动转正，播放菜单提供独立开关，默认开启                                      | 已实机验证 |
 | [照片拍摄加亮显示](docs/photo-highlights.md)            | LCD 与取景器的独立照片斑马纹，支持两种图案和八档阈值                                   | 已实机验证 |
 | [自定义 DISP 页面](docs/custom-disp.md)                 | 照片 LCD 页面开关、四套预设、八项拍摄信息、原厂滚动列表及参数信息页                    | 已实机验证 |
 | [焦距显示](docs/focal-length.md)                        | 手动变焦镜头的实时焦距（需电子通信），支持独立 DISP 开关                               | 已实机验证 |
@@ -66,10 +67,10 @@ Wi-Fi 设置的[使用限制与风险声明](docs/wifi-settings.md#important-lim
 如果要自己构建固件升级包的生成方法见[构建](#构建)。
 
 1. 等待存储卡访问结束，关机并取出存储卡。
-2. 将 [Z72APP.BIN](releases/v0.1.0-preview.35/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.37/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
 3. 装回卡和电池，等待到 i 按键旁边的读取灯灭了再开机。
 
-当前版本为 `v0.1.0-preview.35`，模块 275,368 字节。[SHA-256 校验](releases/v0.1.0-preview.35/SHA256SUMS)
+当前版本为 `v0.1.0-preview.37`，模块 283,756 字节。[SHA-256 校验](releases/v0.1.0-preview.37/SHA256SUMS)
 
 这是试用版本，休眠唤醒和长期稳定性尚未单独确认。替换或移除模块请完整断电。只加载可信模块。
 
@@ -119,4 +120,4 @@ python -B tools/build.py --stock-package "path/to/original/Z7_2_0170.bin" --outp
 
 ## 许可证
 
-采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」「筛选的播放」和「浏览器相册」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.35/menu-font-license.txt)。
+采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」「筛选的播放」和「浏览器相册」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.37/menu-font-license.txt)。

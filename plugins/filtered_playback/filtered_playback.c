@@ -3,7 +3,10 @@
 #include "config.h"
 #define NATIVE CALL
 #define COUNT(a) (sizeof(a)/sizeof((a)[0]))
-#include "filtered_playback_native.h"
+#include "playback_shadow.h"
+#ifdef Z72_PHOTO_PLAYBACK
+#include "photo_playback.h"
+#endif
 
 static void copy_bytes(void *to,const void *from,z72_u32 size)
 {
@@ -17,28 +20,8 @@ enum {
 static volatile z72_u32 filter_settings;
 /* Image-control dispatch is serialized. All queries in one request use the same settings. */
 static z72_u32 playback_settings;
-static _Alignas(64) unsigned char native_code[FILTER_NATIVE_BYTES+(COUNT(filter_branches)+7)*8];
-static _Alignas(4) unsigned char native_tables[FILTER_TABLE_BYTES];
 static z72_u32 ordinal_in_progress;
 static _Alignas(4) unsigned char ordinal_view[0x3f0];
-
-static z72_u32 translate(z72_u32 address)
-{
-    if (address>=FILTER_NATIVE_START && address<FILTER_NATIVE_START+FILTER_NATIVE_BYTES)
-        return (z72_u32)native_code+address-FILTER_NATIVE_START;
-    if (address>=FILTER_TABLE_START && address<FILTER_TABLE_START+FILTER_TABLE_BYTES)
-        return (z72_u32)native_tables+address-FILTER_TABLE_START;
-    return address;
-}
-
-static void branch(z72_u32 site,z72_u32 target,z72_u32 link)
-{
-    z72_u32 delta=target-site-4,s=delta>>24&1;
-    z72_u32 j1=1^((delta>>23&1)^s),j2=1^((delta>>22&1)^s);
-    *(volatile unsigned short *)site=(unsigned short)(0xf000|(s<<10)|(delta>>12&0x3ff));
-    *(volatile unsigned short *)(site+2)=(unsigned short)((link ? 0xd000 : 0x9000)|
-        (j1<<13)|(j2<<11)|(delta>>1&0x7ff));
-}
 
 /* Extend the release build's no-op normalized-query validation calls. Admit
  * the rating condition before native seeking/counting, including native
@@ -182,38 +165,21 @@ static z72_u32 requested_ordinal(const z72_u32 *view,unsigned char *spec)
     return NATIVE(translate(0x10669f53u),z72_u32,const z72_u32 *,unsigned char *)(view,spec);
 }
 
-static z72_u32 fingerprint(z72_u32 address,z72_u32 bytes)
+static z72_u32 filter_target(z72_u32 site,z72_u32 target)
 {
-    z72_u32 hash=2166136261u;
-    for (z72_u32 i=0;i<bytes;++i) hash=(hash^BYTE(address+i))*16777619u;
-    return hash;
+    if (site==0x1066719au) return (z72_u32)ordinal_workspace;
+    if (target==0x106d3285u) return (z72_u32)seek_filtered;
+    if (target==0x106d32cdu) return (z72_u32)count_filtered;
+#ifdef Z72_PHOTO_PLAYBACK
+    return photo_play_target(target);
+#else
+    return target;
+#endif
 }
 
-static z72_u32 prepare_native(void)
+static __attribute__((noinline)) z72_u32 prepare_native(void)
 {
-    if (fingerprint(FILTER_NATIVE_START,FILTER_NATIVE_BYTES)!=FILTER_NATIVE_HASH ||
-        fingerprint(FILTER_TABLE_START,FILTER_TABLE_BYTES)!=FILTER_TABLE_HASH) return 1;
-    for (z72_u32 i=0;i<FILTER_NATIVE_BYTES;++i) native_code[i]=BYTE(FILTER_NATIVE_START+i);
-    for (z72_u32 i=0;i<FILTER_TABLE_BYTES;++i) native_tables[i]=BYTE(FILTER_TABLE_START+i);
-    for (z72_u32 i=0;i<COUNT(filter_branches);++i) {
-        z72_u32 site=(z72_u32)native_code+filter_branches[i].offset;
-        z72_u32 stub=(z72_u32)native_code+FILTER_NATIVE_BYTES+i*8;
-        WORD(stub)=0xf000f8dfu;
-        z72_u32 target=filter_branches[i].target;
-        if (filter_branches[i].offset==0x1066719au-FILTER_NATIVE_START) target=(z72_u32)ordinal_workspace;
-        if (target==0x106d3285u) target=(z72_u32)seek_filtered;
-        if (target==0x106d32cdu) target=(z72_u32)count_filtered;
-        WORD(stub+4)=target;
-        branch(site,stub,filter_branches[i].link);
-    }
-    for (z72_u32 i=0;i<COUNT(filter_pools);++i) {
-        z72_u32 address=(z72_u32)native_code+filter_pools[i];
-        WORD(address)=translate(WORD(address));
-    }
-    for (z72_u32 i=0;i<FILTER_TABLE_BYTES;i+=4) {
-        z72_u32 address=(z72_u32)native_tables+i;
-        WORD(address)=translate(WORD(address));
-    }
+    if (playback_shadow_prepare(filter_target)) return 1;
     z72_u32 stub=(z72_u32)native_code+FILTER_NATIVE_BYTES+COUNT(filter_branches)*8;
     WORD(stub)=0xf000f8dfu; WORD(stub+4)=(z72_u32)query_filter;
     for (z72_u32 i=0;i<COUNT(filter_query_calls);++i)
@@ -237,18 +203,22 @@ static z72_u32 prepare_native(void)
         WORD(stub+4)=ordinal_calls[i][1];
         branch(translate(ordinal_calls[i][0]),stub,1);
     }
-    for (z72_u32 p=(z72_u32)native_code;p<(z72_u32)native_code+sizeof(native_code);p+=32)
-        __asm__ volatile("mcr p15,0,%0,c7,c11,1" :: "r"(p) : "memory");
-    z72_u32 zero=0;
-    __asm__ volatile("dsb sy\n mcr p15,0,%0,c7,c1,0\n dsb sy\n isb sy" :: "r"(zero) : "memory");
+#ifdef Z72_PHOTO_PLAYBACK
+    photo_play_enable_table();
+#endif
+    playback_shadow_sync();
     return 0;
 }
 
 static void playback_dispatch(const z72_u32 *message)
 {
     playback_settings=__atomic_load_n(&filter_settings,__ATOMIC_ACQUIRE);
+#ifdef Z72_PHOTO_PLAYBACK
+    z72_u32 entry=translate(PLAYBACK_TASK_STOCK);
+#else
     z72_u32 entry=(playback_settings&Z72_FILTER_ENABLED) && playback_settings!=Z72_FILTER_ENABLED ?
-        translate(0x1063dc05u) : 0x1063dc05u;
+        translate(PLAYBACK_TASK_STOCK) : PLAYBACK_TASK_STOCK;
+#endif
     NATIVE(entry,void,const z72_u32 *)(message);
 }
 
@@ -262,8 +232,12 @@ static int filtered_playback_ready(void)
 static void filtered_playback_install(void)
 {
     __atomic_store_n(&filter_settings,z72_config_current.playback_filter,__ATOMIC_RELEASE);
+    photo_play_set_enabled(z72_config_current.rotate_inverted);
     install_menu();
-    WORD(0xb29d2ec0u)=(z72_u32)playback_dispatch;
+    WORD(PLAYBACK_TASK_SLOT)=(z72_u32)playback_dispatch;
+#ifdef Z72_PHOTO_PLAYBACK
+    photo_prefill_install();
+#endif
     __asm__ volatile("dmb sy" ::: "memory");
 }
 

@@ -6,30 +6,31 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 
 ## Features
 
-| Feature                                                      | Description                                                                                                                             | Status             |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| [Framing grid](docs/framing-grid.md)                          | Off, 2×2, 3×3, 4×4, and Golden ratio, with persistent settings                                                                       | Hardware verified  |
-| [Histogram and virtual horizon](docs/histogram-horizon.md)    | Live histogram and virtual horizon together on the rear screen and in the viewfinder in photo mode                                      | Hardware verified  |
-| [Portrait display](docs/portrait-ui.md)                       | Rear-screen photo/video information, audio meters, i menu, and histogram rotate with the camera                                         | Hardware verified  |
-| [Photo shooting highlights](docs/photo-highlights.md)         | Independent photo highlight stripes on LCD and EVF, with two patterns and eight thresholds                                              | Hardware verified  |
-| [Custom DISP pages](docs/custom-disp.md)                      | Photo LCD page selection, four presets, eight shooting-information controls, native scrolling lists, and the native information display | Hardware verified  |
-| [Focal length display](docs/focal-length.md)                  | Live focal length for electronically reporting manual-zoom lenses, with an independent DISP switch                                      | Hardware verified  |
-| [Battery percentage display](docs/battery-percent.md)         | Transparent in-frame percentage on the photo and movie LCD, with a global switch that defaults to off                                   | Hardware verified  |
-| [Extended movie recording](docs/movie-recording-limit.md)     | Ordinary movies beyond 29:59; 38:52 continuous recording verified at 1080/60p                                                           | Hardware verified  |
-| [Automatic video orientation](docs/video-rotation.md#english) | Locks orientation when each MOV or MP4 file opens and writes it to the video track                                                      | Hardware verified  |
-| [JPEG pre-capture](docs/jpeg-pre-capture.md)                  | Rolling JPEG buffer with selectable duration and continuous H+ capture through full press                                               | Hardware verified  |
-| [Silent shutter sound](docs/shutter-sound.md)                 | Custom WAV clips from SD, with preview, five volume levels, and continuous-release controls                                             | Hardware verified  |
-| [Filtered playback](docs/filtered-playback.md)                | Filter full-frame and thumbnail playback by protection, image type, rating, and date                                                    | Hardware verified  |
-| [AF-area shortcuts](docs/af-area-shortcut.md)                 | Assign photo AF-area shortcuts to five buttons through native Custom controls; press once to switch and keep the selected area          | Hardware verified  |
-| [Custom wide-area AF (C1/C2)](docs/custom-wide-area-af.md)    | Set width, height, and subject detection for two photo AF presets. Select them with the i menu, command dials, or button shortcuts      | Hardware verified  |
-| [Subject tracking](docs/subject-tracking.md)                  | Start tracking with a half-press or AF-ON in photo AF-C. The targeting reticle returns after power-up                                   | Hardware verified  |
-| [Focus improvements](docs/focus-improvements.md)              | Optional assistance for reacquiring a briefly occluded subject in photo AF-C                                                            | Hardware verified  |
-| [Pixel shift shooting](docs/pixel-shift.md)                   | Use in-body sensor shift to capture 4, 8, 16 or 32 NEFs for NX Studio merging                                                           | Hardware verified  |
-| [Wi-Fi settings](docs/wifi-settings.md)                       | One submenu for region selection and an optional 80 MHz AP switch; 5 GHz STA and Wi-Fi 5 AP                                             | Hardware verified  |
-| [FTP upload](docs/ftp-upload.md#english)                      | Select photos and videos from both cards in one grid and batch upload with an optional 4 MiB send buffer                               | Hardware verified  |
-| [Browser gallery](docs/browser-gallery.md#english)            | Browse CFexpress/XQD and SD photos, filter by card, rating, protection, or date, and download original JPG and NEF files               | Hardware verified  |
-| [Composition reference](docs/composition-reference.md#english) | Edit and upload reference images, choose from six thumbnails, and show an adjustable-opacity overlay in photo live view                 | Hardware verified  |
-| [Menu localization](docs/menu-localization.md)                | English, Simplified Chinese, and Traditional Chinese labels for the extension settings                                                  | Hardware verified  |
+| Feature                                                         | Description                                                                                                                             | Status             |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| [Framing grid](docs/framing-grid.md)                             | Off, 2×2, 3×3, 4×4, and Golden ratio, with persistent settings                                                                       | Hardware verified  |
+| [Histogram and virtual horizon](docs/histogram-horizon.md)       | Live histogram and virtual horizon together on the rear screen and in the viewfinder in photo mode                                      | Hardware verified  |
+| [Portrait display](docs/portrait-ui.md)                          | Rear-screen photo/video information, audio meters, i menu, and histogram rotate with the camera                                         | Hardware verified  |
+| [Upside-down photo playback](docs/inverted-playback.md) | Automatic JPG/NEF orientation with a separate playback switch, on by default                                                            | Hardware verified  |
+| [Photo shooting highlights](docs/photo-highlights.md)            | Independent photo highlight stripes on LCD and EVF, with two patterns and eight thresholds                                              | Hardware verified  |
+| [Custom DISP pages](docs/custom-disp.md)                         | Photo LCD page selection, four presets, eight shooting-information controls, native scrolling lists, and the native information display | Hardware verified  |
+| [Focal length display](docs/focal-length.md)                     | Live focal length for electronically reporting manual-zoom lenses, with an independent DISP switch                                      | Hardware verified  |
+| [Battery percentage display](docs/battery-percent.md)            | Transparent in-frame percentage on the photo and movie LCD, with a global switch that defaults to off                                   | Hardware verified  |
+| [Extended movie recording](docs/movie-recording-limit.md)        | Ordinary movies beyond 29:59; 38:52 continuous recording verified at 1080/60p                                                           | Hardware verified  |
+| [Automatic video orientation](docs/video-rotation.md#english)    | Locks orientation when each MOV or MP4 file opens and writes it to the video track                                                      | Hardware verified  |
+| [JPEG pre-capture](docs/jpeg-pre-capture.md)                     | Rolling JPEG buffer with selectable duration and continuous H+ capture through full press                                               | Hardware verified  |
+| [Silent shutter sound](docs/shutter-sound.md)                    | Custom WAV clips from SD, with preview, five volume levels, and continuous-release controls                                             | Hardware verified  |
+| [Filtered playback](docs/filtered-playback.md)                   | Filter full-frame and thumbnail playback by protection, image type, rating, and date                                                    | Hardware verified  |
+| [AF-area shortcuts](docs/af-area-shortcut.md)                    | Assign photo AF-area shortcuts to five buttons through native Custom controls; press once to switch and keep the selected area          | Hardware verified  |
+| [Custom wide-area AF (C1/C2)](docs/custom-wide-area-af.md)       | Set width, height, and subject detection for two photo AF presets. Select them with the i menu, command dials, or button shortcuts      | Hardware verified  |
+| [Subject tracking](docs/subject-tracking.md)                     | Start tracking with a half-press or AF-ON in photo AF-C. The targeting reticle returns after power-up                                   | Hardware verified  |
+| [Focus improvements](docs/focus-improvements.md)                 | Optional assistance for reacquiring a briefly occluded subject in photo AF-C                                                            | Hardware verified  |
+| [Pixel shift shooting](docs/pixel-shift.md)                      | Use in-body sensor shift to capture 4, 8, 16 or 32 NEFs for NX Studio merging                                                           | Hardware verified  |
+| [Wi-Fi settings](docs/wifi-settings.md)                          | One submenu for region selection and an optional 80 MHz AP switch; 5 GHz STA and Wi-Fi 5 AP                                             | Hardware verified  |
+| [FTP upload](docs/ftp-upload.md#english)                         | Select photos and videos from both cards in one grid and batch upload with an optional 4 MiB send buffer                                | Hardware verified  |
+| [Browser gallery](docs/browser-gallery.md#english)               | Browse CFexpress/XQD and SD photos, filter by card, rating, protection, or date, and download original JPG and NEF files                | Hardware verified  |
+| [Composition reference](docs/composition-reference.md#english)   | Edit and upload reference images, choose from six thumbnails, and show an adjustable-opacity overlay in photo live view                 | Hardware verified  |
+| [Menu localization](docs/menu-localization.md)                   | English, Simplified Chinese, and Traditional Chinese labels for the extension settings                                                  | Hardware verified  |
 
 ## Known issues
 
@@ -64,10 +65,10 @@ The updated host fixes missing extension menus and incorrect framing grids on th
 For instructions on building the firmware update package yourself, see [Building](#building).
 
 1. Wait for card access to finish, turn off the camera, and remove the memory card.
-2. Copy [Z72APP.BIN](releases/v0.1.0-preview.35/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
+2. Copy [Z72APP.BIN](releases/v0.1.0-preview.37/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
 3. Reinsert the card and battery, wait until the card access lamp next to the **i** button goes out, then turn on the camera.
 
-Current release `v0.1.0-preview.35` · 275,368 bytes · [SHA-256 checksums](releases/v0.1.0-preview.35/SHA256SUMS)
+Current release `v0.1.0-preview.37` · 283,756 bytes · [SHA-256 checksums](releases/v0.1.0-preview.37/SHA256SUMS)
 
 This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
 
@@ -117,4 +118,4 @@ Both scripts extract the master internally and reuse the verified release's publ
 
 ## License
 
-[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound, filtered playback, and the browser gallery carry their own [font license](releases/v0.1.0-preview.35/menu-font-license.txt).
+[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound, filtered playback, and the browser gallery carry their own [font license](releases/v0.1.0-preview.37/menu-font-license.txt).

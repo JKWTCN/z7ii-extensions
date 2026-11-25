@@ -28,6 +28,15 @@ static u32 battery_owned_object(void)
     return object && object==battery_text_object && WORD(object)==BATTERY_TEXT_ID ? object : 0;
 }
 
+__attribute__((noinline)) static void battery_relayout(u32 orientation)
+{
+    u32 object=battery_owned_object();
+    /* In portrait the old landscape battery footprint intersects the ISO
+     * button. Erase it before the native pass repaints the live controls. */
+    if (object && WORD(object+0x28) && orientation!=battery_text_orientation)
+        battery_clear(battery_text_orientation);
+}
+
 __attribute__((noinline)) static void battery_prepare(void)
 {
     if ((z72_config_current.disp_enabled&Z72_BATTERY_PERCENT_ON) || !battery_text_object) return;
@@ -194,8 +203,6 @@ __attribute__((noinline)) static void battery_update(u32 output_before,u32 orien
     }
     if (created || rebound || object!=battery_text_object || battery_percent!=battery_text_value ||
         orientation!=battery_text_orientation || !WORD(object+0x28)) {
-        if (object==battery_text_object && orientation!=battery_text_orientation)
-            battery_clear(battery_text_orientation);
         char text[8];
         CALL(0x103fa101u,u32,char *,const char *,u32)(text,"%d%%",battery_percent);
         CALL(0x10636a07u,void,const char *,u32,u32)(text,BATTERY_LABEL_SLOT,BYTE(0xb181dc42u));

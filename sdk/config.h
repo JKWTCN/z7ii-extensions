@@ -44,7 +44,7 @@ enum { Z72_DISP_INFO=1u, Z72_DISP_GRID=2u, Z72_DISP_HISTOGRAM=4u,
 #define Z72_REFERENCE_BUTTON_MASK 7u
 #define Z72_REFERENCE_HOLD (1u<<3)
 #define Z72_REFERENCE_DEFAULT (2u<<8) /* Shortcut off, toggle, first image, 50%. */
-#define Z72_CONFIG_DEFAULTS {Z72_CFG_NO_GRID,1,0,1,31,Z72_DISP_DEFAULTS,{0,0,0,0,0},Z72_WIFI_REGION_BODY,0,0,1,Z72_SOUND_VOLUME_MAX,0,Z72_WIDE_AF_DEFAULTS,0,Z72_PIXEL_SHIFT_DEFAULT,0,0,Z72_REFERENCE_DEFAULT,0}
+#define Z72_CONFIG_DEFAULTS {Z72_CFG_NO_GRID,1,0,1,31,Z72_DISP_DEFAULTS,{0,0,0,0,0},Z72_WIFI_REGION_BODY,0,0,1,Z72_SOUND_VOLUME_MAX,0,Z72_WIDE_AF_DEFAULTS,0,Z72_PIXEL_SHIFT_DEFAULT,0,0,Z72_REFERENCE_DEFAULT,0,1}
 
 enum { Z72_DISP_SHUTTER=1u, Z72_DISP_APERTURE=2u, Z72_DISP_ISO=4u,
        Z72_DISP_SHOOTING=8u, Z72_DISP_RELEASE=16u,
@@ -87,6 +87,7 @@ struct z72_config {
     z72_u32 ftp_4mib;
     z72_u32 reference; /* Button (bits 0–2), hold (3), image (4–7), opacity (8–11). */
     z72_u32 gallery_enabled;
+    z72_u32 rotate_inverted;
 };
 
 /* The freestanding build lowers copies of the settings record to these helpers. */
@@ -122,7 +123,7 @@ static inline struct z72_config z72_config_load(void)
     z72_u32 size=file[6],result=1;
     if((size==16 || size==24 || size==32 || size==40 || size==80 || size==120 || size==128 ||
         size==136 || size==160 || size==168 || size==184 || size==192 || size==200 || size==208 || size==216 ||
-        size==224 || size==232) && file[7]==0) {
+        size==224 || size==232 || size==240) && file[7]==0) {
         /* The native reader needs one byte of capacity beyond EOF. */
         struct { z72_u32 kind; void *buffer; z72_u32 capacity; } request={1,data,size+1};
         Z72_CFG_FN(0x1034fa29,void,void *,z72_u32)(data,sizeof(data));
@@ -144,7 +145,8 @@ static inline struct z72_config z72_config_load(void)
         (size==136 && data[1]==13) || (size==160 && data[1]==14) || (size==168 && data[1]==15) ||
         (size==184 && data[1]==16) || (size==192 && data[1]==17) ||
         (size==200 && data[1]==18) || (size==208 && data[1]==19) ||
-        (size==216 && data[1]==20) || (size==224 && data[1]==21) || (size==232 && data[1]==22)) &&
+        (size==216 && data[1]==20) || (size==224 && data[1]==21) || (size==232 && data[1]==22) ||
+        (size==240 && data[1]==23)) &&
        (data[2]<=4 || data[2]==Z72_CFG_NO_GRID) &&
        data[4]<=1 && data[5]==~data[4] && data[6]<=2 && data[7]==~data[6] &&
        data[8]<=7 && data[9]==~data[8])
@@ -209,7 +211,8 @@ static inline struct z72_config z72_config_load(void)
             if(size>=224 && data[55]==~data[54] && (data[54]&Z72_REFERENCE_BUTTON_MASK)<=Z72_AF_SHORTCUT_BUTTONS &&
                ((data[54]>>4)&15u)<Z72_REFERENCE_SLOTS && (data[54]>>8)<Z72_REFERENCE_OPACITIES)
                 config.reference=data[54];
-            if(size==232 && data[56]<=1 && data[57]==~data[56]) config.gallery_enabled=data[56];
+            if(size>=232 && data[56]<=1 && data[57]==~data[56]) config.gallery_enabled=data[56];
+            if(size==240 && data[58]<=1 && data[59]==~data[58]) config.rotate_inverted=data[58];
             if(size>=184)
                 for(z72_u32 i=0;i<2;++i) {
                     if(data[43+2*i]!=~data[42+2*i] || !z72_wide_af_valid(data[42+2*i])) continue;
@@ -247,6 +250,7 @@ static inline z72_u32 z72_config_save(struct z72_config config)
        config.ftp_4mib==z72_config_current.ftp_4mib &&
        config.reference==z72_config_current.reference &&
        config.gallery_enabled==z72_config_current.gallery_enabled &&
+       config.rotate_inverted==z72_config_current.rotate_inverted &&
        config.photo_zebra_pattern==z72_config_current.photo_zebra_pattern &&
        config.photo_zebra_threshold==z72_config_current.photo_zebra_threshold) return Z72_CFG_OK;
     z72_config_current=config;
@@ -266,7 +270,7 @@ static inline z72_u32 z72_config_save(struct z72_config config)
     z72_u32 sound=config.sound_choice || !config.sound_every_frame || config.sound_volume!=Z72_SOUND_VOLUME_MAX;
     static const z72_u32 wide_defaults[2]=Z72_WIDE_AF_DEFAULTS;
     z72_u32 wide=config.wide_af[0]!=wide_defaults[0] || config.wide_af[1]!=wide_defaults[1];
-    z72_u32 version=config.gallery_enabled ? 22 : config.reference!=Z72_REFERENCE_DEFAULT ? 21 :
+    z72_u32 version=!config.rotate_inverted ? 23 : config.gallery_enabled ? 22 : config.reference!=Z72_REFERENCE_DEFAULT ? 21 :
                     config.ftp_4mib ? 20 : config.tracking_assist ? 19 :
                     config.pixel_shift!=Z72_PIXEL_SHIFT_DEFAULT ? 18 :
                     config.wide_af_selected || wide_shortcut ? 17 : wide ? 16 : config.playback_filter ? 15 : sound ? 14 :
@@ -276,7 +280,7 @@ static inline z72_u32 z72_config_save(struct z72_config config)
                     config.photo_zebra_pattern || config.photo_zebra_threshold!=1 ? 4 :
                     config.auto_rotate && config.grid_style!=Z72_CFG_NO_GRID ? 1 : 2;
     z72_u32 size=version==1 ? 16 : version==2 ? 24 : version==4 ? 40 :
-                 version==22 ? 232 : version==21 ? 224 : version==20 ? 216 : version==19 ? 208 : version==18 ? 200 :
+                 version==23 ? 240 : version==22 ? 232 : version==21 ? 224 : version==20 ? 216 : version==19 ? 208 : version==18 ? 200 :
                  version==17 ? 192 : version==16 ? 184 : version==15 ? 168 :
                  version==14 ? 160 : version==13 ? 136 :
                  version==12 ? 128 : version==10 ? 120 : 80,actual=0;
@@ -330,6 +334,8 @@ static inline z72_u32 z72_config_save(struct z72_config config)
     data[55]=~data[54];
     data[56]=config.gallery_enabled;
     data[57]=~data[56];
+    data[58]=config.rotate_inverted;
+    data[59]=~data[58];
     struct { z72_u32 kind; void *buffer; z72_u32 capacity; } request={1,data,size};
     int opened=Z72_CFG_FN(0x105beb2b,int,const char *,z72_u32)("B:\\Z72APP.CFG",0);
     if(opened<0) return (z72_u32)opened;

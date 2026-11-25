@@ -773,6 +773,7 @@ static void card_peer_dispatch(z72_u32 event,z72_u32 packet)
      * counted from its real close notice, not from the borrowed packet. */
     z72_u32 owned=LOAD(in_flight) && fallback[7]==CARD_SHOT;
     if (owned) __atomic_fetch_add(&card_peer_inflight,1,__ATOMIC_ACQ_REL);
+    photo_peer_fix(event,packet);
     if (!owned || !card_queue_peer(event,packet))
         CALL(CARD_PEER_NATIVE,void,z72_u32,z72_u32)(event,packet);
     if (owned) __atomic_fetch_sub(&card_peer_inflight,1,__ATOMIC_ACQ_REL);

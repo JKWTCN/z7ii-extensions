@@ -113,6 +113,7 @@ enum {
     TEXT_UNRATED,
     TEXT_ON,
     TEXT_OFF,
+    TEXT_ROTATE_INVERTED,
 #endif
 #ifdef Z72_WIDE_AF
     Z72_TEXT_WIDE_TITLE,
@@ -239,7 +240,7 @@ static inline int z72_menu_locale_install(void)
 #ifdef Z72_FILTERED_PLAYBACK
          u"Filtered playback",u"Filtered playback criteria",u"Protection status",u"Image type",
          u"Shooting date",u"Any",u"All",u"Protected only",u"Unprotected only",u"Photos only",
-         u"Unrated",u"On",u"Off",
+         u"Unrated",u"On",u"Off",u"Rotate inverted",
 #endif
 #ifdef Z72_WIDE_AF
          u"Custom wide-area AF",u"Wide-area AF (C1)",u"Wide-area AF (C2)",u"Subject detection",u"People",u"Animals",u"Off",
@@ -290,7 +291,7 @@ static inline int z72_menu_locale_install(void)
 #ifdef Z72_FILTERED_PLAYBACK
          u"筛选的播放",u"筛选的播放条件",u"保护状态",u"影像类型",
          u"拍摄日期",u"不限",u"全部",u"仅已保护",u"仅未保护",u"仅照片",
-         u"无评级",u"开启",u"关闭",
+         u"无评级",u"开启",u"关闭",u"旋转至倒置方向",
 #endif
 #ifdef Z72_WIDE_AF
          u"自定义宽区域 AF",u"宽区域 AF（C1）",u"宽区域 AF（C2）",u"主体识别",u"人物",u"动物",u"关闭",
@@ -340,7 +341,7 @@ static inline int z72_menu_locale_install(void)
 #endif
 #ifdef Z72_FILTERED_PLAYBACK
          /* Filtered playback resolves its labels from the English or Simplified Chinese bank. */
-         [TEXT_OFF-Z72_MENU_STOCK_TEXTS]=u"",
+         [TEXT_ROTATE_INVERTED-Z72_MENU_STOCK_TEXTS]=u"旋轉至倒置方向",
 #endif
 #ifdef Z72_WIDE_AF
          u"自訂寬區域 AF",u"寬區域 AF（C1）",u"寬區域 AF（C2）",u"主體偵測",u"人物",u"動物",u"關閉",
@@ -405,6 +406,7 @@ static inline int z72_menu_locale_install(void)
 #ifdef Z72_FILTERED_PLAYBACK
     for (z72_u32 id=TEXT_FILTER;id<=TEXT_OFF;++id)
         locale->styles[id]=id<=TEXT_CONDITIONS ? Z72_PLAYBACK_TITLE_STYLE : Z72_PLAYBACK_ROW_STYLE;
+    locale->styles[TEXT_ROTATE_INVERTED]=Z72_GOLDEN_STYLE;
 #endif
 #ifdef Z72_FIRMWARE_INFO
     const unsigned short *host_version=z72_host_version_label();
@@ -436,6 +438,7 @@ static inline int z72_menu_locale_install(void)
                 label_language=lang==8;
                 attribute_template=0x367;
             }
+            if (id==TEXT_ROTATE_INVERTED) attribute_template=0x178;
 #endif
             const unsigned short *label=translations[label_language][id-Z72_MENU_STOCK_TEXTS];
 #ifdef Z72_FIRMWARE_INFO

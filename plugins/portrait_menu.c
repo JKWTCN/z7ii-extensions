@@ -79,6 +79,11 @@ static void portrait_log(z72_u32 *log);
 #define LIVE_UPDATE_STOCK 0x104e6cb5u
 #define I_MENU_APP 0xb1821a08u
 #define I_MENU_STATE 0xb1821964u
+#define LIVE_ADJUST_APP 0xb1821e48u
+#define NOTIFICATION_ROOT 0xb1fa710cu
+#define NOTIFICATION_WIDGET_PAINT 0x1048416bu
+#define NOTIFICATION_STYLES 0x1094102cu
+#define LIVE_NOTIFICATION_TABLE 0x1094929cu
 #define APP_SWITCH_STOCK 0x1053cf67u
 #define PICTURE_APP 0xb1823b30u
 #define COLOR_APP 0xb1823d84u
@@ -112,19 +117,26 @@ enum { LCD_W=720, LCD_H=480, OLD_TOP=280, GRID_TOP=440, CELL_W=120, CELL_H=73,
        FOOTER_DX=-211, FOOTER_DY=295, STOCK_HINT_LEFT=242,
        DIAL_STOCK_TOP=44, DIAL_TOP=283, DIAL_SHIFT=254,
        SETTING_SHIFT=235, EXTERNAL_SHIFT=394,
+       ADJUST_LEFT=93, ADJUST_RIGHT=627, ADJUST_TOP=350, ADJUST_BOTTOM=438,
+       ADJUST_SCALE=57344, ADJUST_DX=-75, ADJUST_DY=87,
+       UPSIDE_DOWN=3, LANDSCAPE_LAYOUT=4,
+       HUD_DX=10, HUD_DY=8, HUD_STOCK_BOTTOM=112,
        HUD_SCALE=41943, WIDTH_SCALE=43691, UNIT_SCALE=65536 };
-enum page { OTHER, NATIVE_SCREEN, LIVE, GRID, DIAL, SETTING, EXTERNAL_SETTING };
+enum page { OTHER, NATIVE_SCREEN, LIVE, GRID, DIAL, SETTING, EXTERNAL_SETTING, LIVE_ADJUST, LIVE_TOAST };
 enum placement { UNMAPPED, NORMAL, FIT_WIDTH, FIT_PAGE, HUD };
 struct box { int x, y, w, h; };
+struct panel_transform { int scale, dx, dy; };
 
-/* 0 means no backdrop yet; 3 is a menu opened in landscape. */
+/* Zero means the menu has yet to pick an opening layout. */
 static u32 layout_orientation;
+static u32 adjust_orientation;
 static u32 external_app;
 static u32 auto_rotate=1;
 #if Z72_PORTRAIT_TRACE
 static volatile u32 portrait_counts[10];
 #endif
 static u32 live_orientation;
+static u32 live_inverted; /* Graphics task's last rendered inversion state. */
 #ifdef Z72_BATTERY_PERCENT
 static volatile u32 battery_painting;
 #endif
@@ -133,6 +145,9 @@ static u32 footer_orientation, footer_dirty;
 static u32 dial_orientation;
 static const struct box footer_area={0,FOOTER_Y,LCD_H,LCD_W-FOOTER_Y};
 static const struct box dial_area={0,DIAL_TOP,LCD_H,GRID_TOP-DIAL_TOP};
+static const struct box adjust_confirm={636,4,80,48};
+static const struct panel_transform adjust_transform={ADJUST_SCALE,ADJUST_DX,ADJUST_DY};
+static const struct panel_transform toast_transform={ADJUST_SCALE,ADJUST_DX,150};
 
 static u32 rotation_enabled(void)
 {
@@ -152,6 +167,11 @@ static u32 grid_page(enum page page)
 static u32 setting_page(enum page page)
 {
     return page==SETTING || page==EXTERNAL_SETTING;
+}
+
+static u32 live_page(enum page page)
+{
+    return page==LIVE || page==LIVE_ADJUST;
 }
 
 static u32 external_root(u32 app)
@@ -174,6 +194,8 @@ static enum page current_page(void)
 #ifdef Z72_CUSTOM_DISP
     if (app==15 && WORD(APP_ROOTS+15*4)==DISP_INFORMATION_APP) return NATIVE_SCREEN;
 #endif
+    /* 0x10000D through 0x10000F select the shared aperture/shutter/ISO app. */
+    if (app>=11 && app<=13 && WORD(APP_ROOTS+app*4)==LIVE_ADJUST_APP) return LIVE_ADJUST;
     if (app && app==__atomic_load_n(&external_app,__ATOMIC_ACQUIRE)) {
         u32 root=external_root(app);
         if (root && WORD(APP_ROOTS+app*4)==root) return EXTERNAL_SETTING;
@@ -210,9 +232,27 @@ static struct box tile_box(int index,int x,int y,int w,int h)
     return (struct box){(index%4)*CELL_W+x,GRID_TOP+(index/4)*CELL_H+y,w,h};
 }
 
+static u32 is_portrait(u32 orientation)
+{
+    return orientation==1 || orientation==2;
+}
+
+static u32 is_rotated(u32 orientation)
+{
+    return orientation>=1 && orientation<=UPSIDE_DOWN;
+}
+
+static u32 live_draw_orientation(u32 sensed)
+{
+    u32 layout=__atomic_load_n(&live_orientation,__ATOMIC_ACQUIRE);
+    return sensed==UPSIDE_DOWN || layout==UPSIDE_DOWN ? layout : sensed;
+}
+
 /* Both input and output here use a top-left origin. */
 static struct box lcd_box(struct box box,u32 orientation)
 {
+    if (orientation==UPSIDE_DOWN)
+        return (struct box){LCD_W-box.x-box.w,LCD_H-box.y-box.h,box.w,box.h};
     if (orientation==2) return (struct box){box.y,LCD_H-box.x-box.w,box.h,box.w};
     return (struct box){LCD_W-box.y-box.h,box.x,box.h,box.w};
 }
@@ -234,7 +274,8 @@ static void clear_band(struct box box,u32 orientation)
 static void battery_clear(u32 orientation)
 {
     struct box box={2,396,60,32};
-    if (orientation) { box.x+=380; box.y+=191; box=lcd_box(box,orientation); }
+    if (orientation==1 || orientation==2) { box.x+=380; box.y+=191; }
+    if (orientation) box=lcd_box(box,orientation);
     u32 args[7]={(u32)box.x,(u32)(LCD_H-box.y-box.h),(u32)box.w,(u32)box.h,0,0,0};
     CALL(OSD_CLEAR,void,const u32 *)(args);
 }
@@ -272,6 +313,46 @@ static void scale_box(struct box *box,int sx,int sy,int dx,int dy)
     int right=fixed_product(box->x+box->w,sx), bottom=fixed_product(box->y+box->h,sy);
     int left=fixed_product(box->x,sx), top=fixed_product(box->y,sy);
     *box=(struct box){left+dx,top+dy,right>left ? right-left : 1,bottom>top ? bottom-top : 1};
+}
+
+static u32 stock_adjust_panel(struct box box)
+{
+    /* The fast arrows paint 22–24 pixels beyond their glyph rectangles. */
+    return box.x>=ADJUST_LEFT && box.x+box.w<=ADJUST_RIGHT && box.y>=ADJUST_TOP &&
+           box.y+box.h<=ADJUST_BOTTOM && box.w>0 && box.h>0;
+}
+
+static u32 touch_toast_target(u32 target)
+{
+    /* Live notification records 21 through 25 describe the five touch modes.
+     * The native painter attaches item 7 to group 4 only while drawing it. */
+    u32 index=(unsigned short)HALF(DISPLAY_SNAPSHOT+0x248);
+    if (index<21 || index>25) return 0;
+    u32 node=WORD(NOTIFICATION_ROOT+0xa0);
+    if (!ram_words(node,3)) return 0;
+    u32 widget=WORD(node+8);
+    u32 style=(unsigned short)HALF(LIVE_NOTIFICATION_TABLE+24*index);
+    if (!ram_words(widget,0x50/4) || WORD(widget)!=7 ||
+        WORD(widget+0x4c)!=NOTIFICATION_WIDGET_PAINT ||
+        WORD(widget+8)!=WORD(NOTIFICATION_STYLES+32*style)) return 0;
+
+    /* Resolve the native notification plane and match the currently selected
+     * graphics buffer. Live-view focus, overlays, and other messages can use
+     * the same coordinates while the toast is being painted. */
+    u32 output=WORD(NOTIFICATION_ROOT+0xbc), layer=WORD(NOTIFICATION_ROOT+0xc0);
+    if (output>2 || (layer!=1 && layer!=4) || WORD(NOTIFICATION_ROOT+0xc4)!=2) return 0;
+    u32 surface=CALL(0x1068cf07u,u32,u32,u32,u32)(output,layer,2);
+    u32 buffer=ram_words(surface,0x2c/4) ? WORD(surface+0x28) : 0;
+    u32 table=WORD(DRAW_TARGET+4);
+    if (!buffer || target==0xff || !ram_words(table,33*6)) return 0;
+    u32 slot=table+24*CALL(0x1056a0dbu,u32,void)();
+    return BYTE(slot+8)==target && WORD(slot)==buffer;
+}
+
+static struct box text_bounds(const volatile unsigned short *desc)
+{
+    return (struct box){desc[0x5e/2],LCD_H-desc[0x64/2],
+        desc[0x62/2]-desc[0x5e/2],desc[0x64/2]-desc[0x60/2]};
 }
 
 static u32 stock_hint(int top,int bottom)
@@ -422,8 +503,8 @@ static enum placement relocate_live(struct box *box)
 #endif
     /* The top status rows form a single strip. Keep their stock spacing,
      * including independently drawn symbols and their clear rectangles. */
-    if (y>=0 && y+box->h<=112 && x>=0 && x+box->w<=LCD_W+4) {
-        scale_box(box,HUD_SCALE,HUD_SCALE,10,8);
+    if (y>=0 && y+box->h<=HUD_STOCK_BOTTOM && x>=0 && x+box->w<=LCD_W+4) {
+        scale_box(box,HUD_SCALE,HUD_SCALE,HUD_DX,HUD_DY);
         return HUD;
     }
     /* The native tracking/OK/exit strip contains several child labels. Keep
@@ -454,6 +535,58 @@ static enum placement relocate_live(struct box *box)
     return NORMAL;
 }
 
+/* C 1.70 uses +0x70 as the touch-only rectangle for these live LCD
+ * buttons. The native hit test adds the margins at +0x78 to that rectangle. */
+static void live_touch_layout(u32 orientation)
+{
+    /* Shutter speed, aperture, ISO, touch AF mode, and i. */
+    static const struct { u32 record,action; } controls[]={
+        {0xb181e2ccu,0x10523f79u}, {0xb181e4acu,0x105240d5u}, {0xb181e89cu,0x1052445fu},
+        {0xb1820054u,0x10527795u}, {0xb1821404u,0x10527853u}
+    };
+    static struct { u32 object,left_top,right_bottom; } saved[sizeof(controls)/sizeof(controls[0])];
+    const u32 lcd_root=0xb202ce28u;
+    if (BYTE(0xb181da91u) || WORD(0xb202ce08u)!=lcd_root ||
+        (WORD(DISPLAY_OUTPUTS)&7u)!=1 || !rotation_enabled()) orientation=0;
+
+    for (u32 i=0;i<sizeof(controls)/sizeof(controls[0]);++i) {
+        u32 record=controls[i].record, object=WORD(record+0x24);
+        if (!ram_words(object,0x90/4)) {
+            saved[i].object=0;
+            continue;
+        }
+        u32 left_top=WORD(object+0x70), right_bottom=WORD(object+0x74);
+        u32 owned=object==saved[i].object && left_top==saved[i].left_top &&
+                  right_bottom==saved[i].right_bottom;
+        if (orientation && WORD(object+0x48)==lcd_root && WORD(object+0x8c)==controls[i].action &&
+            WORD(object+0x80) && (owned || !(left_top|right_bottom))) {
+            const volatile short *rect=(const volatile short *)(record+4);
+            struct box box={rect[0],rect[1],rect[2]-rect[0],rect[3]-rect[1]};
+            if (orientation==UPSIDE_DOWN || relocate_live(&box)) {
+                box=lcd_box(box,orientation);
+                const volatile short *pad=(const volatile short *)(object+0x78);
+                /* Rotate the touch margins with the visible button. */
+                static const unsigned char margins[3][4]={{3,0,1,2},{1,2,3,0},{2,3,0,1}};
+                const unsigned char *rotated=margins[orientation-1];
+                int x=box.x+pad[0]-pad[rotated[0]];
+                int y=box.y+pad[1]-pad[rotated[1]];
+                int right=box.x+box.w-pad[2]+pad[rotated[2]];
+                int bottom=box.y+box.h-pad[3]+pad[rotated[3]];
+                u32 start=(u32)(unsigned short)x|((u32)(unsigned short)y<<16);
+                u32 end=(u32)(unsigned short)right|((u32)(unsigned short)bottom<<16);
+                if (start!=left_top) WORD(object+0x70)=start;
+                if (end!=right_bottom) WORD(object+0x74)=end;
+                saved[i].object=object;
+                saved[i].left_top=start;
+                saved[i].right_bottom=end;
+                continue;
+            }
+        }
+        if (owned) WORD(object+0x70)=WORD(object+0x74)=0;
+        saved[i].object=0;
+    }
+}
+
 /* Native meter fills bypass portrait_draw. Move the entire LCD control before
  * its GUI update, including the label rectangles used by its clear path. */
 #define MOVIE_METER_CONTROL 0xb2bb2948u
@@ -482,11 +615,11 @@ static void movie_meter_layout(u32 orientation)
     for (u32 row=0;row<68;++row) {
         const short *source=movie_meter_rects[row];
         struct box dest={source[0],source[1],source[2]-source[0],source[3]-source[1]};
-        if (orientation) {
+        if (orientation==1 || orientation==2) {
             dest.x+=8;
             dest.y+=374-(row<34 ? 354 : 224);
-            dest=lcd_box(dest,orientation);
         }
+        if (orientation) dest=lcd_box(dest,orientation);
         volatile short *rect=(volatile short *)(MOVIE_METER_CONTROL+row*48+4);
         rect[0]=dest.x; rect[1]=dest.y;
         rect[2]=dest.x+dest.w; rect[3]=dest.y+dest.h;
@@ -508,8 +641,11 @@ static u32 movie_meter_label(struct box physical,struct box *logical,u32 orienta
             physical.x<rect[0]-2 || physical.y<rect[1]-2 ||
             physical.x+physical.w>rect[2]+2 || physical.y+physical.h>rect[3]+2) continue;
         const short *source=movie_meter_rects[row];
-        *logical=(struct box){source[0]+8,source[1]+374-(row<34 ? 354 : 224),
-                             source[2]-source[0],source[3]-source[1]};
+        *logical=(struct box){source[0],source[1],source[2]-source[0],source[3]-source[1]};
+        if (orientation!=UPSIDE_DOWN) {
+            logical->x+=8;
+            logical->y+=374-(row<34 ? 354 : 224);
+        }
         return 1;
     }
     return 0;
@@ -517,7 +653,11 @@ static u32 movie_meter_label(struct box physical,struct box *logical,u32 orienta
 
 static enum placement relocate_box(struct box *box,enum page page,u32 image)
 {
-    if (page==LIVE) return relocate_live(box);
+    if (page==LIVE_ADJUST && stock_adjust_panel(*box)) {
+        scale_box(box,ADJUST_SCALE,ADJUST_SCALE,ADJUST_DX,ADJUST_DY);
+        return NORMAL;
+    }
+    if (live_page(page)) return relocate_live(box);
     if (page==SETTING) {
         if (!onscreen(*box,LCD_W,LCD_H)) return 0;
         scale_box(box,WIDTH_SCALE,UNIT_SCALE,0,SETTING_SHIFT);
@@ -552,7 +692,7 @@ static enum placement relocate_label(struct box *stock,struct box *dest,enum pag
     enum placement placement=relocate_box(dest,page,0);
     if (placement) return placement;
     /* Some live widgets supply a tighter box than their surrounding UI slot. */
-    if (page!=LIVE) return 0;
+    if (!live_page(page)) return 0;
     stock->y=clamp(anchor_y,0,LCD_H-stock->h);
     *dest=*stock;
     return relocate_box(dest,page,0);
@@ -598,9 +738,15 @@ static void defer_completion(u32 command,u32 result)
 }
 
 static const volatile unsigned char *text_descriptor;
+static const struct panel_transform *text_transform;
 static enum page text_page;
 static u32 text_orientation;
 static int text_symbol_sx, text_symbol_sy, text_symbol_top, text_symbol_bottom;
+
+static u32 draw_rotation(u32 orientation)
+{
+    return orientation==UPSIDE_DOWN ? 180u : orientation==2 ? 90u : 270u;
+}
 
 static u32 hint_text(const volatile unsigned short *desc)
 {
@@ -665,13 +811,17 @@ static u32 draw_menu_symbol(const u32 *glyph,u32 capacity,u32 *attributes,u32 de
     if (text_orientation==1) {
         x=LCD_H*UNIT_SCALE-x;
         baseline=LCD_W*UNIT_SCALE-baseline;
+    } else if (text_orientation==UPSIDE_DOWN) {
+        x=LCD_W*UNIT_SCALE-matrix[2];
+        baseline=matrix[5];
     }
     int ascent=(int)((long long)(unsigned short)HALF(descriptor+0xa)*
                      ((long long)metrics[1]-metrics[2])/2);
     /* The native provider vertically centres the bitmap on the font's em box. */
     int top=baseline-fixed_product(h*(UNIT_SCALE/2)+ascent,text_symbol_sy);
     struct box box={x>>16,top>>16,fixed_product(w,text_symbol_sx),fixed_product(h,text_symbol_sy)};
-    if (box.y>=text_symbol_top && onscreen(box,LCD_H,text_symbol_bottom)) {
+    int canvas_width=text_orientation==UPSIDE_DOWN ? LCD_W : LCD_H;
+    if (box.y>=text_symbol_top && onscreen(box,canvas_width,text_symbol_bottom)) {
         static const unsigned char formats[]={0,1,5,7,9,10};
         u32 kind[5]={info.depth,info.format,info.palette,0,0};
         CALL(0x106b74c3u,void,u32 *)(kind);
@@ -686,7 +836,7 @@ static u32 draw_menu_symbol(const u32 *glyph,u32 capacity,u32 *attributes,u32 de
             image[7]=(u32)(dest.x+dest.w) | ((u32)(dest.y+dest.h)<<16);
             image[8]=WORD(descriptor+0x28);
             image[14]=kind[4];
-            image[16]=text_orientation==2 ? 90u : 270u;
+            image[16]=draw_rotation(text_orientation);
             image[19]=((u32)w+15)&~15u;
             image[20]=((u32)h+7)&~7u;
             CALL(OSD_IMAGE,void,const u32 *)(image);
@@ -706,8 +856,9 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
     u32 *matrix=context+0x34/4;
     if (metrics || bounds || !origin) return render(context,options,origin,metrics,bounds);
     const volatile unsigned short *desc=(const volatile unsigned short *)text_descriptor;
-    u32 hint=grid_page(text_page) && hint_text(desc);
-    u32 child_hint=setting_page(text_page) && hint_text(desc);
+    u32 inverted=text_orientation==UPSIDE_DOWN;
+    u32 hint=!inverted && grid_page(text_page) && hint_text(desc);
+    u32 child_hint=!inverted && setting_page(text_page) && hint_text(desc);
     if (!matrix[0] || !matrix[4] || matrix[0]>2*UNIT_SCALE ||
         matrix[4]>2*UNIT_SCALE || matrix[1] || matrix[3])
         return hint || child_hint ? 0 : render(context,options,origin,metrics,bounds);
@@ -719,16 +870,14 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
     if (!height) height=desc[0xa/2];
     width=fixed_product(width,(int)matrix[0]);
     height=fixed_product(height,(int)matrix[4]);
-    hint=hint || (grid_page(text_page) && y>STOCK_GRID_END);
-    child_hint=child_hint || (setting_page(text_page) && y>STOCK_GRID_END);
+    hint=hint || (!inverted && grid_page(text_page) && y>STOCK_GRID_END);
+    child_hint=child_hint || (!inverted && setting_page(text_page) && y>STOCK_GRID_END);
     if (x<0 || x>=LCD_W || y<0 || y>LCD_H || (!child_hint &&
         (width<=0 || width>LCD_W || height<=0 || height>LCD_H)))
         return hint || child_hint ? 0 : render(context,options,origin,metrics,bounds);
     struct box stock={x,y,width,height}, dest;
     struct box meter;
-    u32 meter_label=text_page==LIVE && movie_meter_label((struct box){desc[0x5e/2],
-        LCD_H-desc[0x64/2],desc[0x62/2]-desc[0x5e/2],desc[0x64/2]-desc[0x60/2]},
-        &meter,text_orientation);
+    u32 meter_label=text_page==LIVE && movie_meter_label(text_bounds(desc),&meter,text_orientation);
     if (meter_label)
         dest=(struct box){meter.x+(meter.w-width)/2,meter.y+(meter.h+height)/2,width,height};
     u32 battery=0;
@@ -753,7 +902,10 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
             anchor=bottom<OLD_TOP ? bottom : OLD_TOP-1;
     }
     enum placement place=UNMAPPED;
-    if (battery || meter_label) {
+    if (battery || meter_label || text_transform) {
+        place=NORMAL;
+    } else if (inverted) {
+        dest=stock;
         place=NORMAL;
     } else if (hint) {
         dest=(struct box){x,y-height,width,height};
@@ -772,15 +924,17 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
     u32 saved[7];
     for (u32 i=0;i<7;++i) saved[i]=matrix[i];
     /* Use the same scale as the corresponding rectangles and bitmaps. */
-    int sx=hint ? FOOTER_SCALE : place==HUD ? HUD_SCALE :
+    int sx=text_transform ? text_transform->scale : hint ? FOOTER_SCALE : place==HUD ? HUD_SCALE :
            place==FIT_WIDTH || place==FIT_PAGE ? WIDTH_SCALE : UNIT_SCALE;
-    int sy=hint ? FOOTER_SCALE : place==HUD ? HUD_SCALE : place==FIT_PAGE ? WIDTH_SCALE : UNIT_SCALE;
+    int sy=text_transform ? text_transform->scale : hint ? FOOTER_SCALE : place==HUD ? HUD_SCALE :
+           place==FIT_PAGE ? WIDTH_SCALE : UNIT_SCALE;
 #ifdef Z72_BATTERY_PERCENT
     if (battery) sx=sy=battery_scale;
 #endif
     int child_shift=text_page==SETTING ? SETTING_SHIFT : EXTERNAL_SHIFT;
-    int dx=hint ? FOOTER_DX*UNIT_SCALE : child_hint ? 0 : dest.x*UNIT_SCALE-x*sx;
-    int dy=hint ? FOOTER_DY*UNIT_SCALE : child_hint ? child_shift*UNIT_SCALE :
+    int dx=text_transform ? text_transform->dx*UNIT_SCALE : hint ? FOOTER_DX*UNIT_SCALE :
+           child_hint ? 0 : dest.x*UNIT_SCALE-x*sx;
+    int dy=text_transform ? text_transform->dy*UNIT_SCALE : hint ? FOOTER_DY*UNIT_SCALE : child_hint ? child_shift*UNIT_SCALE :
            dest.y*UNIT_SCALE-stock.y*sy;
     int tx=dx+fixed_product((int)saved[2],sx);
     int ty=dy+LCD_H*sy-fixed_product((int)saved[5],sy);
@@ -796,6 +950,12 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
         matrix[2]=(u32)(LCD_W*UNIT_SCALE-ty);
         matrix[3]=(u32)-ax;
         matrix[5]=(u32)(LCD_H*UNIT_SCALE-tx);
+    } else if (inverted) {
+        matrix[0]=(u32)-ax;
+        matrix[1]=matrix[3]=0;
+        matrix[2]=(u32)(LCD_W*UNIT_SCALE-tx);
+        matrix[4]=(u32)-ay;
+        matrix[5]=(u32)ty;
     } else {
         matrix[0]=(u32)ax;
         matrix[1]=matrix[3]=0;
@@ -807,7 +967,7 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
     /* Inline bitmap glyphs need the same rotation as ordinary text, including
      * live-view status symbols and OK/exit hints. */
     u32 provider_slot=0, provider=0, local_provider[5];
-    if (hint || setting_page(text_page) || dial || text_page==LIVE) {
+    if (inverted || hint || setting_page(text_page) || dial || live_page(text_page)) {
         u32 state=context[0x45d8/4];
         if (ram_words(state,0xbc/4) && WORD(state+0xb4)==1) {
             provider=WORD(state+0xb8);
@@ -817,8 +977,9 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
                 local_provider[3]=(u32)draw_menu_symbol;
                 text_symbol_sx=sx;
                 text_symbol_sy=sy;
-                text_symbol_top=text_page==LIVE ? 0 : hint ? FOOTER_Y : dial ? DIAL_TOP : child_shift;
-                text_symbol_bottom=dial ? GRID_TOP : LCD_W;
+                text_symbol_top=inverted || live_page(text_page) ? 0 :
+                                hint ? FOOTER_Y : dial ? DIAL_TOP : child_shift;
+                text_symbol_bottom=inverted ? LCD_H : dial ? GRID_TOP : LCD_W;
                 provider_slot=state+0xb8;
                 WORD(provider_slot)=(u32)local_provider;
             }
@@ -828,7 +989,7 @@ static u32 render_text(u32 *context,void *options,const int *origin,void *metric
     if (provider_slot) WORD(provider_slot)=provider;
     for (u32 i=0;i<7;++i) matrix[i]=saved[i];
 #if Z72_PORTRAIT_TRACE
-    ++portrait_counts[text_orientation+5];
+    if (!inverted) ++portrait_counts[text_orientation+5];
 #endif
     return result;
 }
@@ -848,13 +1009,17 @@ static u32 portrait_text(volatile u32 *message,enum page page,u32 orientation,u3
     table[7]=(u32)render_text;
     local[3]=(u32)defer_completion;
     text_descriptor=(const volatile unsigned char *)descriptor;
-    text_page=page;
+    text_page=page==LIVE_TOAST ? LIVE : page;
     text_orientation=orientation;
     const volatile unsigned short *desc=(const volatile unsigned short *)descriptor;
-    u32 hint=(grid_page(page) || setting_page(page)) && hint_text(desc);
-    u32 dial=page==DIAL && stock_dial(LCD_H-desc[0x64/2],LCD_H-desc[0x60/2]);
+    u32 reflow=is_portrait(orientation);
+    u32 hint=reflow && (grid_page(page) || setting_page(page)) && hint_text(desc);
+    u32 dial=reflow && page==DIAL && stock_dial(LCD_H-desc[0x64/2],LCD_H-desc[0x60/2]);
+    u32 adjust=page==LIVE_ADJUST && stock_adjust_panel(text_bounds(desc));
+    u32 toast=page==LIVE_TOAST;
+    text_transform=reflow ? (toast ? &toast_transform : adjust ? &adjust_transform : 0) : 0;
     /* The native 0x34 path can paint a backing rectangle before calling the glyph renderer. */
-    u32 background=(hint || dial) && message[4]==DRAW_FAMILY+0x34 ? WORD(descriptor+0x2c) : 0;
+    u32 background=(hint || dial || adjust || toast) && message[4]==DRAW_FAMILY+0x34 ? WORD(descriptor+0x2c) : 0;
     if (background) WORD(descriptor+0x2c)=0;
     WORD(context+0x45b4)=(u32)table;
     CALL(DRAW_DISPATCH,void,const u32 *)(local);
@@ -863,11 +1028,6 @@ static u32 portrait_text(volatile u32 *message,enum page page,u32 orientation,u3
     message[6]=local[6];
     CALL(TEXT_COMPLETE,void,u32,u32)(0x42010063u,local[6]);
     return 1;
-}
-
-static u32 is_portrait(u32 orientation)
-{
-    return orientation==1 || orientation==2;
 }
 
 static u32 focus_color(u32 color)
@@ -894,8 +1054,23 @@ static u32 portrait_draw(volatile u32 *message,u32 outputs,u32 orientation)
         return portrait_text(message,LIVE,live_orientation,command==0x38 ? 3 : 2);
 #endif
     enum page page=outputs==1 ? current_page() : OTHER;
+    u32 live_canvas=page==LIVE && target==2;
     if (page!=NATIVE_SCREEN && !rotation_enabled()) page=OTHER;
     u32 grid=grid_page(page);
+    u32 adjust=__atomic_load_n(&adjust_orientation,__ATOMIC_ACQUIRE);
+    if (page!=LIVE_ADJUST && adjust && (outputs!=1 || page==NATIVE_SCREEN || target==2)) {
+        if (outputs==1 && page!=NATIVE_SCREEN && is_rotated(adjust)) {
+            struct box panel={ADJUST_LEFT,ADJUST_TOP,ADJUST_RIGHT-ADJUST_LEFT,ADJUST_BOTTOM-ADJUST_TOP};
+            struct box confirm=adjust_confirm;
+            if (is_portrait(adjust)) {
+                scale_box(&panel,ADJUST_SCALE,ADJUST_SCALE,ADJUST_DX,ADJUST_DY);
+                scale_box(&confirm,HUD_SCALE,HUD_SCALE,HUD_DX,HUD_DY);
+            }
+            clear_band(panel,adjust);
+            clear_band(confirm,adjust);
+        }
+        __atomic_store_n(&adjust_orientation,0,__ATOMIC_RELEASE);
+    }
     if (page==NATIVE_SCREEN) footer_orientation=footer_dirty=dial_orientation=0;
     if (!grid && outputs==1 && target==2 && footer_orientation) {
         clear_band(footer_area,footer_orientation);
@@ -906,27 +1081,46 @@ static u32 portrait_draw(volatile u32 *message,u32 outputs,u32 orientation)
         clear_band(dial_area,dial_orientation);
         dial_orientation=0;
     }
-    if (page==OTHER || page==NATIVE_SCREEN || page==LIVE) {
+    if (page==OTHER || page==NATIVE_SCREEN || live_page(page)) {
         if (__atomic_load_n(&external_app,__ATOMIC_RELAXED))
             __atomic_store_n(&external_app,0,__ATOMIC_RELEASE);
         if (__atomic_load_n(&layout_orientation,__ATOMIC_RELAXED))
             __atomic_store_n(&layout_orientation,0,__ATOMIC_RELEASE);
     }
-    u32 layout=page==LIVE ? orientation : __atomic_load_n(&layout_orientation,__ATOMIC_ACQUIRE);
+    u32 layout=page==LIVE ? live_draw_orientation(orientation) :
+                          __atomic_load_n(&layout_orientation,__ATOMIC_ACQUIRE);
+    if (live_canvas) {
+        u32 inverted=page==LIVE && layout==UPSIDE_DOWN;
+        if (inverted!=live_inverted) {
+            /* Clear the previous HUD on the graphics task's LCD surface. */
+            clear_band((struct box){0,0,LCD_W,LCD_H},UPSIDE_DOWN);
+            live_inverted=inverted;
+        }
+    } else if (page==NATIVE_SCREEN || outputs!=1) live_inverted=0;
     if (grid && is_portrait(layout) && target==1 && command==0x17 &&
         message[3]==DRAW_COMPLETE && ram_words(message[5],7)) {
         const volatile u32 *rect=(const volatile u32 *)message[5];
         if (rect[0]==0 && rect[1]==0 && rect[2]==LCD_W && rect[3]==LCD_H) footer_dirty=1;
     }
-    if (page==OTHER || page==NATIVE_SCREEN || target!=2) return 0;
-    if (page==SETTING && !layout) {
-        layout=is_portrait(orientation) ? orientation : 3;
+    u32 text=command==0x34 || command==0x37 || command==0x38;
+    u32 toast=page==LIVE && is_rotated(layout) &&
+             (text || command==0x13 || command==0x16 || command==0x17) && touch_toast_target(target);
+    if (page==OTHER || page==NATIVE_SCREEN || (target!=2 && !toast)) return 0;
+    if (page==LIVE_ADJUST) {
+        /* Match the i-menu lifetime: input and drawing use the opening orientation. */
+        layout=adjust;
+        if (!layout) {
+            layout=is_rotated(orientation) ? orientation : LANDSCAPE_LAYOUT;
+            __atomic_store_n(&adjust_orientation,layout,__ATOMIC_RELEASE);
+        }
+    } else if (!layout && (page==SETTING || (grid && orientation==UPSIDE_DOWN))) {
+        layout=is_rotated(orientation) ? orientation : LANDSCAPE_LAYOUT;
         __atomic_store_n(&layout_orientation,layout,__ATOMIC_RELEASE);
     }
-    if (command==0x34 || command==0x37 || command==0x38) {
+    if (text) {
         if (grid && !layout) layout=orientation;
-        if (!is_portrait(layout)) return 0;
-        u32 handled=portrait_text(message,page,layout,command==0x38 ? 3 : 2);
+        if (!is_rotated(layout)) return 0;
+        u32 handled=portrait_text(message,toast ? LIVE_TOAST : page,layout,command==0x38 ? 3 : 2);
         if (!handled && grid) footer_dirty=1;
         return handled;
     }
@@ -981,10 +1175,10 @@ static u32 portrait_draw(volatile u32 *message,u32 outputs,u32 orientation)
         }
         stock=(struct box){x,LCD_H-y-h,w,h};
     }
-    if (page==LIVE && ((image && command!=0x1c && focus_color(source[8])) ||
+    if (!toast && live_page(page) && ((image && command!=0x1c && focus_color(source[8])) ||
         (command==0x13 && focus_color(source[4]))) && !movie_meter_segment(stock)) return 0;
     struct box meter;
-    if (page==LIVE && !image && movie_meter_label(stock,&meter,layout)) return 0;
+    if (!toast && page==LIVE && !image && movie_meter_label(stock,&meter,layout)) return 0;
 
     u32 backdrop=grid && (command==0x13 || command==0x17) && stock.x==0 && stock.y==OLD_TOP &&
                  stock.w==LCD_W && stock.h==2*CELL_H;
@@ -994,21 +1188,23 @@ static u32 portrait_draw(volatile u32 *message,u32 outputs,u32 orientation)
     if (dial && !image && stock.y>=OLD_TOP-2 && stock.h<=2 &&
         stock.w>=CELL_W-2 && stock.w<=CELL_W+3) dial=0;
     if ((backdrop || clear_title || dial) && layout==0) {
-        layout=is_portrait(orientation) ? orientation : 3;
+        layout=is_rotated(orientation) ? orientation : LANDSCAPE_LAYOUT;
         __atomic_store_n(&layout_orientation,layout,__ATOMIC_RELEASE);
 #if Z72_PORTRAIT_TRACE
-        if (layout!=3) ++portrait_counts[layout-1];
+        if (is_portrait(layout)) ++portrait_counts[layout-1];
 #endif
     }
-    if (!is_portrait(layout)) return 0;
-    u32 hint=grid && onscreen(stock,LCD_W+4,LCD_H+4) && stock_hint(stock.y,stock.y+stock.h);
-    u32 strip=hint || dial;
+    if (!is_rotated(layout)) return 0;
+    u32 inverted=layout==UPSIDE_DOWN;
+    u32 hint=!inverted && grid && onscreen(stock,LCD_W+4,LCD_H+4) && stock_hint(stock.y,stock.y+stock.h);
+    u32 strip=!inverted && (hint || dial || (page==LIVE_ADJUST && stock_adjust_panel(stock)));
     if (!hint && !onscreen(stock,LCD_W+4,LCD_H)) return dial ? consume_draw(message) : 0;
     if (image) {
         if (command==0x1c && (source[17] || source[18])) return strip ? consume_draw(message) : 0;
-        if (!hint && grid && stock.y>=OLD_TOP && (source_width>2*CELL_W || source_height>2*CELL_H)) return 0;
+        if (!inverted && !hint && grid && stock.y>=OLD_TOP &&
+            (source_width>2*CELL_W || source_height>2*CELL_H)) return 0;
         if (angle==360) angle=0;
-        if (angle && (angle>270 || angle%90 || (!strip && page!=EXTERNAL_SETTING)))
+        if (angle && (angle>270 || angle%90 || (!inverted && !strip && page!=EXTERNAL_SETTING)))
             return strip ? consume_draw(message) : 0;
         /* This path's mirror flag reflects across the entire LCD. */
         if (strip && command==0x19 && (source[15] || source_width<=0 || source_height<=0 ||
@@ -1018,7 +1214,14 @@ static u32 portrait_draw(volatile u32 *message,u32 outputs,u32 orientation)
     struct box boxes[2];
     struct box panel={0,GRID_TOP,LCD_H,3*CELL_H};
     u32 count=1;
-    if (hint) {
+    if (inverted) {
+        boxes[0]=stock;
+        if (live_page(page) && !toast && !(page==LIVE_ADJUST && stock_adjust_panel(stock))) {
+            struct box hud=stock;
+            if (!relocate_live(&hud)) return 0;
+        }
+        if (!onscreen(stock,LCD_W,LCD_H)) return 0;
+    } else if (hint) {
         boxes[0]=stock;
         if (!relocate_hint(&boxes[0],command)) return consume_draw(message);
         begin_footer(layout);
@@ -1027,6 +1230,11 @@ static u32 portrait_draw(volatile u32 *message,u32 outputs,u32 orientation)
         if (!relocate_box(&boxes[0],page,image)) return consume_draw(message);
         begin_dial(layout);
     } else if (backdrop) boxes[0]=panel;
+    else if (toast) {
+        boxes[0]=stock;
+        scale_box(&boxes[0],toast_transform.scale,toast_transform.scale,toast_transform.dx,toast_transform.dy);
+        if (!onscreen(boxes[0],LCD_H,LCD_W)) return 0;
+    }
     else if (clear_title) {
         /* Clear the reserved title band and the part of the old sideways
          * title above it, keeping the current grid and footer intact. */
@@ -1073,7 +1281,7 @@ static u32 portrait_draw(volatile u32 *message,u32 outputs,u32 orientation)
     local[3]=(u32)defer_completion;
     local[5]=(u32)payload;
     if (command==0x1c) local[4]=DRAW_FAMILY+0x1a;
-    angle+=layout==2 ? 90u : 270u;
+    angle+=draw_rotation(layout);
     if (angle>=360) angle-=360;
     for (u32 i=0;i<count;++i) {
         struct box dest=lcd_box(boxes[i],layout);
@@ -1099,8 +1307,8 @@ static u32 portrait_draw(volatile u32 *message,u32 outputs,u32 orientation)
 #endif
     }
 #if Z72_PORTRAIT_TRACE
-    if (page==LIVE) ++portrait_counts[layout+7];
-    else if (image) ++portrait_counts[layout+1];
+    if (page==LIVE && is_portrait(layout)) ++portrait_counts[layout+7];
+    else if (image && is_portrait(layout)) ++portrait_counts[layout+1];
 #endif
     message[6]=local[6];
     CALL(DRAW_COMPLETE,void,u32,u32)(0x42010062u,local[6]);
@@ -1113,7 +1321,7 @@ static void menu_switch(u32 kind,u32 event)
         u32 child=0;
         enum page page=current_page();
         if ((WORD(DISPLAY_OUTPUTS)&7u)==1 && (grid_page(page) || page==SETTING) &&
-            is_portrait(menu_orientation())) {
+            is_rotated(menu_orientation())) {
             switch (event) {
             case 0x00100002u: child=1; break;
             case 0x00100012u: child=10; break;
@@ -1130,6 +1338,7 @@ static u32 external_key(u32 app,u32 key)
     if (key<2 || key>5 || BYTE(APP_CURRENT)!=app || (WORD(DISPLAY_OUTPUTS)&7u)!=1 ||
         current_page()!=EXTERNAL_SETTING) return key;
     u32 layout=menu_orientation();
+    if (layout==UPSIDE_DOWN) return key^1u;
     static const unsigned char rotated[2][4]={{4,5,3,2},{5,4,2,3}};
     return is_portrait(layout) ? rotated[layout-1][key-2] : key;
 }
@@ -1149,6 +1358,13 @@ static int unscale_pixel(int pixel,int scale)
 
 static void menu_touch_point(short *point,enum page page,u32 orientation)
 {
+    if (orientation==UPSIDE_DOWN) {
+        if (point[0]>=0 && point[0]<TOUCH_W && point[1]>=0 && point[1]<TOUCH_H) {
+            point[0]=(short)(TOUCH_W-1-point[0]);
+            point[1]=(short)(TOUCH_H-1-point[1]);
+        }
+        return;
+    }
     int x=(point[0]*LCD_W+TOUCH_W/2)/TOUCH_W;
     int y=(point[1]*LCD_H+TOUCH_H/2)/TOUCH_H;
     int u=orientation==2 ? LCD_H-1-y : y;
@@ -1168,6 +1384,15 @@ static void menu_touch_point(short *point,enum page page,u32 orientation)
             } else if (page==DIAL && v>=DIAL_TOP && v<GRID_TOP) {
                 stock_x=unscale_pixel(u,WIDTH_SCALE);
                 stock_y=unscale_pixel(v-DIAL_SHIFT,WIDTH_SCALE);
+            }
+        } else if (page==LIVE_ADJUST) {
+            if (v>=ADJUST_DY+fixed_product(ADJUST_TOP,ADJUST_SCALE) &&
+                v<=ADJUST_DY+fixed_product(ADJUST_BOTTOM,ADJUST_SCALE)) {
+                stock_x=unscale_pixel(u-ADJUST_DX,ADJUST_SCALE);
+                stock_y=unscale_pixel(v-ADJUST_DY,ADJUST_SCALE);
+            } else if (u>=HUD_DX && v>=HUD_DY && v<HUD_DY+fixed_product(HUD_STOCK_BOTTOM,HUD_SCALE)) {
+                stock_x=unscale_pixel(u-HUD_DX,HUD_SCALE);
+                stock_y=unscale_pixel(v-HUD_DY,HUD_SCALE);
             }
         } else {
             int shift=page==SETTING ? SETTING_SHIFT : EXTERNAL_SHIFT;
@@ -1191,14 +1416,15 @@ static void menu_touch_point(short *point,enum page page,u32 orientation)
 static void portrait_touch(const u32 *event)
 {
     void (*stock)(const u32 *)=CALL(TOUCH_STOCK,void,const u32 *);
-    u32 orientation=menu_orientation();
-    if (!event || !is_portrait(orientation) || (WORD(DISPLAY_OUTPUTS)&7u)!=1) {
+    if (!event || (WORD(DISPLAY_OUTPUTS)&7u)!=1 || !rotation_enabled()) {
         stock(event);
         return;
     }
     enum page page=current_page();
+    u32 orientation=page==LIVE_ADJUST ? __atomic_load_n(&adjust_orientation,__ATOMIC_ACQUIRE) : menu_orientation();
     u32 kind=((const unsigned char *)event)[9];
-    if ((!grid_page(page) && !setting_page(page)) || !kind || kind>=9) {
+    if (!is_rotated(orientation) || (!grid_page(page) && !setting_page(page) && page!=LIVE_ADJUST) ||
+        !kind || kind>=9) {
         stock(event);
         return;
     }
@@ -1221,8 +1447,9 @@ static u32 portrait_nav(u32 direction)
     u32 (*stock)(u32)=CALL(WORD(NAV_TABLE+8*mode),u32,u32);
     enum page page=current_page();
     u32 layout=menu_orientation();
-    if (!is_portrait(layout) || direction>=4 || (WORD(DISPLAY_OUTPUTS)&7u)!=1)
+    if (!is_rotated(layout) || direction>=4 || (WORD(DISPLAY_OUTPUTS)&7u)!=1)
         return stock(direction);
+    if (layout==UPSIDE_DOWN && (grid_page(page) || page==SETTING)) return stock(direction^1u);
     if (page==SETTING) {
         static const unsigned char rotated[2][4]={{3,2,0,1},{2,3,1,0}};
         return stock(rotated[layout-1][direction]);
@@ -1272,12 +1499,17 @@ static u32 histogram_lcd_ready(void)
 static u32 portrait_histogram_orientation(void)
 {
     if (!rotation_enabled() || (WORD(DISPLAY_OUTPUTS)&7u)!=LCD_OUTPUT || current_page()!=LIVE) return 0;
-    u32 orientation=CALL(ORIENTATION_GET,u32,void)();
-    return is_portrait(orientation) && histogram_lcd_ready() ? orientation : 0;
+    u32 orientation=live_draw_orientation(CALL(ORIENTATION_GET,u32,void)());
+    return is_rotated(orientation) && histogram_lcd_ready() ? orientation : 0;
 }
 
 static void histogram_rectangle(struct box box,u32 orientation,u32 color)
 {
+    if (orientation==UPSIDE_DOWN) {
+        /* The native primary LCD histogram sits at (475, 269). */
+        box.x+=475-PLOT_X;
+        box.y+=269-PLOT_Y;
+    }
     struct box dest=lcd_box(box,orientation);
     short rect[4]={dest.x,dest.y,dest.x+dest.w,dest.y+dest.h};
     CALL(0x10528f2du,void,const short *,u32,u32)(rect,color,0);
@@ -1359,7 +1591,8 @@ static u32 live_update(u32 a,u32 b,u32 c,u32 d)
 #endif
 #ifdef Z72_CUSTOM_DISP
     if (BYTE(APP_CURRENT)==15) {
-        live_orientation=0;
+        if (live_orientation) live_touch_layout(0);
+        __atomic_store_n(&live_orientation,0,__ATOMIC_RELEASE);
         movie_meter_layout(0);
         last_plot_orientation=0;
 #ifdef Z72_PHOTO_ZEBRA
@@ -1369,7 +1602,8 @@ static u32 live_update(u32 a,u32 b,u32 c,u32 d)
     }
 #endif
     if (current_page()!=LIVE) {
-        live_orientation=0;
+        if (live_orientation) live_touch_layout(0);
+        __atomic_store_n(&live_orientation,0,__ATOMIC_RELEASE);
         movie_meter_layout(0);
         last_plot_orientation=0;
         u32 result=CALL(LIVE_UPDATE_STOCK,u32,u32,u32,u32,u32)(a,b,c,d);
@@ -1381,12 +1615,16 @@ static u32 live_update(u32 a,u32 b,u32 c,u32 d)
     u32 orientation=0;
     if (rotation_enabled() && (WORD(DISPLAY_OUTPUTS)&7u)==LCD_OUTPUT) {
         u32 value=CALL(ORIENTATION_GET,u32,void)();
-        if (is_portrait(value)) orientation=value;
+        if (is_rotated(value)) orientation=value;
     }
-    if (orientation!=live_orientation) {
-        if (!CALL(0x106355a1,u32,void)()) {
+    u32 previous_orientation=live_orientation;
+    if (orientation!=previous_orientation) {
+        if (!display_work_pending()) {
+#ifdef Z72_BATTERY_PERCENT
+            if ((WORD(DISPLAY_OUTPUTS)&7u)==LCD_OUTPUT) battery_relayout(orientation);
+#endif
             /* The stock GUI invalidation refreshes unchanged widgets on the next pass. */
-            live_orientation=orientation;
+            __atomic_store_n(&live_orientation,orientation,__ATOMIC_RELEASE);
             CALL(0x10554cf9,void,void)();
         }
     }
@@ -1396,6 +1634,9 @@ static u32 live_update(u32 a,u32 b,u32 c,u32 d)
     u32 preset=wide_af_active(),output=WORD(DISPLAY_OUTPUTS)&7u;
 #endif
     u32 result=gui_update(a,b,c,d);
+    /* Native widgets can recreate their touch bounds during the update. */
+    if (previous_orientation || live_orientation)
+        live_touch_layout(current_page()==LIVE ? live_orientation : 0);
 #ifdef Z72_WIDE_AF
     wide_hud_update(preset,output);
 #endif
