@@ -1,6 +1,6 @@
 # 浏览器相册
 
-在 Nikon Z 7II C 1.70 的「设定菜单 → 浏览器相册」中进入相册设置。选择「开启」，并让手机或电脑连上相机热点。浏览器访问相机 IP，AP 模式的默认地址为 [http://192.168.1.1/](http://192.168.1.1/)。
+在 Nikon Z 7II C 1.70 的「设定菜单 → 浏览器相册」中选择「开启」。使用相机热点（AP）时，让手机或电脑连上热点，再打开相机 IP，默认地址为 [http://192.168.1.1/](http://192.168.1.1/)。从 v0.1.0-preview.42 起，也可让相机接入路由器（STA），再用同一局域网内的手机或电脑打开路由器分配给相机的 IP。相册开启时，能访问相机 IP 的设备无需登录即可浏览、下载照片和上传构图参考图。
 
 | 设置 | 操作 |
 | --- | --- |
@@ -33,6 +33,10 @@
 独立 SD 模块已在实机验证滚动浏览、预览、多选逐个下载，以及星级、保护状态和拍摄日期的组合筛选。用户已确认双卡组合测试版通过实机验证。
 
 ## 版本更新与实机截图
+
+### v0.1.0-preview.42 版本更新
+
+相册支持路由器（STA）连接。「下载所选」等待每个文件下载状态的重试窗口由 30 秒延长到 180 秒。整合版已通过实机验证。
 
 ### v0.1.0-preview.34 版本更新
 
@@ -95,15 +99,15 @@
 
 See the [release notes and hardware screenshots](#版本更新与实机截图) for dual-card browsing, composition reference uploads, gallery filters, and batch downloads.
 
-Open **Setup Menu → Browser gallery** on the Nikon Z 7II running C 1.70. Set **Browser gallery** to **On**, connect your phone or computer to the camera hotspot, then open the camera IP address in a browser. The default AP address is [http://192.168.1.1/](http://192.168.1.1/).
+Open **Setup Menu → Browser gallery** on the Nikon Z 7II running C 1.70 and set **Browser gallery** to **On**. In hotspot (AP) mode, join the camera hotspot and open the camera IP address. The default is [http://192.168.1.1/](http://192.168.1.1/). Starting with v0.1.0-preview.42, you can also connect the camera to a router (STA mode) and open the camera's assigned IP from a device on the same network. Devices that can reach the camera can browse and download photos or upload composition references without signing in.
 
-**Refresh status** updates the service status and the TCP send buffer used by the most recent original download. The gallery starts **Off** on first use, then restores the saved setting from the SD card. Use the camera's Wi-Fi menu to start the hotspot.
+**Refresh status** updates the service status and the TCP send buffer used by the most recent original download. The gallery starts **Off** on first use, then restores the saved setting from the SD card. Use the camera's Wi-Fi menu to start the hotspot or connect to the router.
 
 Scroll to load more photos from CFexpress/XQD and SD cards, up to 24 per batch. Each entry shows its source card. A RAW+JPEG pair from the same folder appears as one entry labeled **JPG + NEF**, with separate original-file download buttons. An entry with a single format shows its original filename and the corresponding download button. **View full-size JPG** loads the complete JPEG in the browser.
 
 Filter by card slot, exact star rating (unrated or 1–5 stars), protection (protected only or unprotected only), or capture date. The date filter accepts either bound on its own or both bounds, including both selected dates. Set both bounds to the same day to see photos taken that day. Photos must match all active filters. Clearing dates keeps the other filters. Changing a filter clears the current photo selection.
 
-In multi-select mode, selected photos stay selected as you scroll. Choose **JPG + RAW** (default), **JPG only**, or **RAW only**. Download selected originals as separate files in sequence or as one ZIP archive. ZIP entries use separate folders for CFexpress/XQD (`A/`) and SD (`B/`). Your browser may ask to allow multiple downloads. You can stop the remaining files from the page and cancel the current download in your browser. Each batch supports up to 128 originals, with a ZIP size limit below 4 GiB.
+In multi-select mode, selected photos stay selected as you scroll. Choose **JPG + RAW** (default), **JPG only**, or **RAW only**. Download selected originals as separate files in sequence or as one ZIP archive. ZIP entries use separate folders for CFexpress/XQD (`A/`) and SD (`B/`). Your browser may ask to allow multiple downloads. You can stop the remaining files from the page and cancel the current download in your browser. Each batch supports up to 128 originals, with a ZIP size limit below 4 GiB. Version v0.1.0-preview.42 extends the per-file download status retry window from 30 to 180 seconds.
 
 Original and ZIP downloads of at least 4 MiB can use a 4 MiB TCP send buffer when memory is available. The gallery defers the Wi-Fi idle timer while it is on. Choosing **Off** restores the camera's usual timer. You can also turn off the hotspot manually.
 
