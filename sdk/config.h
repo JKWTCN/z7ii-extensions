@@ -35,6 +35,7 @@ enum { Z72_DISP_INFO=1u, Z72_DISP_GRID=2u, Z72_DISP_HISTOGRAM=4u,
 #endif
 #define Z72_SOUND_CLIP_COUNT 5u
 #define Z72_SOUND_VOLUME_MAX 5u
+enum { Z72_SOUND_BURST_FIRST=0, Z72_SOUND_BURST_EVERY, Z72_SOUND_BURST_RESTART, Z72_SOUND_BURST_MODE_COUNT };
 #define Z72_WIDE_AF_MIN 5u
 #define Z72_WIDE_AF_STOCK 20u
 #define Z72_WIDE_AF_FIXED_GRID_MAX 25u
@@ -52,7 +53,7 @@ enum { Z72_DISP_INFO=1u, Z72_DISP_GRID=2u, Z72_DISP_HISTOGRAM=4u,
 #define Z72_REFERENCE_BUTTON_MASK 7u
 #define Z72_REFERENCE_HOLD (1u<<3)
 #define Z72_REFERENCE_DEFAULT (2u<<8) /* Shortcut off, toggle, first image, 50%. */
-#define Z72_CONFIG_DEFAULTS {Z72_CFG_NO_GRID,1,0,1,31,Z72_DISP_DEFAULTS,{0,0,0,0,0},Z72_WIFI_REGION_BODY,0,0,1,Z72_SOUND_VOLUME_MAX,0,Z72_WIDE_AF_DEFAULTS,0,Z72_PIXEL_SHIFT_DEFAULT,0,0,Z72_REFERENCE_DEFAULT,0,1,Z72_PIXEL_HALF_STEPS_DEFAULT}
+#define Z72_CONFIG_DEFAULTS {Z72_CFG_NO_GRID,1,0,1,31,Z72_DISP_DEFAULTS,{0,0,0,0,0},Z72_WIFI_REGION_BODY,0,0,Z72_SOUND_BURST_EVERY,Z72_SOUND_VOLUME_MAX,0,Z72_WIDE_AF_DEFAULTS,0,Z72_PIXEL_SHIFT_DEFAULT,0,0,Z72_REFERENCE_DEFAULT,0,1,Z72_PIXEL_HALF_STEPS_DEFAULT}
 
 enum { Z72_DISP_SHUTTER=1u, Z72_DISP_APERTURE=2u, Z72_DISP_ISO=4u,
        Z72_DISP_SHOOTING=8u, Z72_DISP_RELEASE=16u,
@@ -85,7 +86,7 @@ struct z72_config {
     z72_u32 wifi_region;
     z72_u32 wifi_80mhz;
     z72_u32 sound_choice;
-    z72_u32 sound_every_frame;
+    z72_u32 sound_burst_mode;
     z72_u32 sound_volume;
     z72_u32 playback_filter;
     z72_u32 wide_af[2]; /* Width, height and subject mode in successive bytes. */
@@ -191,10 +192,10 @@ static inline struct z72_config z72_config_load(void)
                 data[30] ? Z72_WIFI_REGION_MAINLAND : Z72_WIFI_REGION_BODY;
             if(size>=136) config.wifi_80mhz=data[32];
             if(size>=160 && data[34]<=Z72_SOUND_CLIP_COUNT && data[35]==~data[34] &&
-               data[36]<=1 && data[37]==~data[36] &&
+               data[36]<Z72_SOUND_BURST_MODE_COUNT && data[37]==~data[36] &&
                data[38]>=1 && data[38]<=Z72_SOUND_VOLUME_MAX && data[39]==~data[38]) {
                 config.sound_choice=data[34];
-                config.sound_every_frame=data[36];
+                config.sound_burst_mode=data[36];
                 config.sound_volume=data[38];
             }
             if(size>=168 && data[41]==~data[40] && z72_playback_filter_valid(data[40]))
@@ -252,7 +253,7 @@ static inline z72_u32 z72_config_save(struct z72_config config)
        config.wifi_region==z72_config_current.wifi_region &&
        config.wifi_80mhz==z72_config_current.wifi_80mhz &&
        config.sound_choice==z72_config_current.sound_choice &&
-       config.sound_every_frame==z72_config_current.sound_every_frame &&
+       config.sound_burst_mode==z72_config_current.sound_burst_mode &&
        config.sound_volume==z72_config_current.sound_volume &&
        config.playback_filter==z72_config_current.playback_filter &&
        config.wide_af[0]==z72_config_current.wide_af[0] &&
@@ -281,7 +282,8 @@ static inline z72_u32 z72_config_save(struct z72_config config)
         if(config.af_shortcuts[i]) af=1;
         if(config.af_shortcuts[i]>Z72_AF_SHORTCUT_NATIVE_TARGETS) wide_shortcut=1;
     }
-    z72_u32 sound=config.sound_choice || !config.sound_every_frame || config.sound_volume!=Z72_SOUND_VOLUME_MAX;
+    z72_u32 sound=config.sound_choice || config.sound_burst_mode!=Z72_SOUND_BURST_EVERY ||
+        config.sound_volume!=Z72_SOUND_VOLUME_MAX;
     static const z72_u32 wide_defaults[2]=Z72_WIDE_AF_DEFAULTS;
     z72_u32 wide=config.wide_af[0]!=wide_defaults[0] || config.wide_af[1]!=wide_defaults[1];
     z72_u32 version=config.pixel_half_steps!=Z72_PIXEL_HALF_STEPS_DEFAULT ? 24 :
@@ -328,8 +330,8 @@ static inline z72_u32 z72_config_save(struct z72_config config)
     data[33]=~config.wifi_80mhz;
     data[34]=config.sound_choice;
     data[35]=~config.sound_choice;
-    data[36]=config.sound_every_frame;
-    data[37]=~config.sound_every_frame;
+    data[36]=config.sound_burst_mode;
+    data[37]=~config.sound_burst_mode;
     data[38]=config.sound_volume;
     data[39]=~config.sound_volume;
     data[40]=config.playback_filter;

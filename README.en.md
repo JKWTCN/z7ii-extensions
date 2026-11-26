@@ -65,12 +65,11 @@ The updated host fixes missing extension menus and incorrect framing grids on th
 For instructions on building the firmware update package yourself, see [Building](#building).
 
 1. Wait for card access to finish, turn off the camera, and remove the memory card.
-2. Copy [Z72APP.BIN](releases/v0.1.0-preview.42/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
+2. Copy [Z72APP.BIN](releases/v0.1.0-preview.43/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
 3. Reinsert the card and battery, wait until the card access lamp next to the **i** button goes out, then turn on the camera.
 
-Current release `v0.1.0-preview.42` · 323,244 bytes · [SHA-256 checksums](releases/v0.1.0-preview.42/SHA256SUMS)
+Current release `v0.1.0-preview.43` · 323,884 bytes · [SHA-256 checksums](releases/v0.1.0-preview.43/SHA256SUMS)
 
-This release updates SD module startup order, battery overlay cleanup during rotation, and Custom DISP grid refresh. It keeps photo histogram updates out of movie live view and adjusts audio meter layout and photo zebra requests. FTP Auto-Send shares file notifications with JPEG pre-capture and pixel shift. The release also corrects the rotation menu status and shutter sound input handling. Browser Gallery works when the camera joins a router and retries download status for longer on large NEFs. The integrated build passed on-camera testing.
 
 This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
 
@@ -120,4 +119,4 @@ Both scripts extract the master internally and reuse the verified release's publ
 
 ## License
 
-[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound, filtered playback, and the browser gallery carry their own [font license](releases/v0.1.0-preview.42/menu-font-license.txt).
+[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound, filtered playback, and the browser gallery carry their own [font license](releases/menu-font-license.txt).

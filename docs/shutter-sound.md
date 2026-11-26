@@ -7,7 +7,7 @@ Nikon Z 7II C 1.70 在照片模式下开启静音拍摄后，可以通过机身�
 | Setting / 设置 | Options / 选项 | Default / 默认 |
 | --- | --- | --- |
 | Custom shutter sound / 自定义快门声 | `SHUTTER1.WAV`–`SHUTTER5.WAV`, Off / 关闭 | Off / 关闭 |
-| Continuous release / 连拍时播放 | First shot only, Every shot / 仅第一张、每张照片 | Every shot / 每张照片 |
+| Continuous release / 连拍时播放 | First shot only, Every shot, Restart on every shot / 仅第一张、每张照片、每张从头播放 | Every shot / 每张照片 |
 | Volume / 音量大小 | 1–5 | 5 |
 | Preview current sound / 试听当前音效 | Plays the selected file at the current volume / 以当前音量播放所选文件 | |
 
@@ -18,6 +18,12 @@ The selected WAV, continuous-release option, and volume are saved in `Z72APP.CFG
 Use 48 kHz, 16-bit PCM WAV files up to **1 second** long. Both mono and stereo are supported. Missing files and files outside these limits appear as unavailable. In **Every shot** mode, the camera skips the sound for a frame if the previous clip is still playing. Use a short clip to hear more of the frames in a fast burst.
 
 使用最长 **1 秒**的 48 kHz、16 位 PCM WAV，支持单声道和双声道。文件缺失或不符合要求时，对应选项会显示「不可用」。「每张照片」模式下，如果前一段音效仍在播放，这一张会跳过音效。高速连拍时使用较短的音效，可以让更多帧有声音。
+
+## v0.1.0-preview.43
+
+With **Restart on every shot**, the next shot in a burst stops any custom shutter sound still playing and starts the WAV from the beginning. The module keeps one restart request while the speaker stops, so it does not replay a backlog after release. The v9 test module verified the interruption and restart on camera. The combined module restores the selected mode on startup.
+
+选择「**每张从头播放**」后，连拍下一张时会打断仍在播放的自定义快门声，并从 WAV 开头重播。若停止期间收到多帧，只保留一次重播请求，避免松开快门后逐张补播。v9 测试模块已在实机验证连拍打断重播，正式 SD 模块开机时会恢复所选模式。
 
 ## Sample WAV files / 示例音效
 

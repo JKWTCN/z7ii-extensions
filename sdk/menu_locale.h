@@ -93,6 +93,7 @@ enum {
     Z72_TEXT_SOUND_DISABLE,
     Z72_TEXT_SOUND_FIRST,
     Z72_TEXT_SOUND_EVERY,
+    Z72_TEXT_SOUND_RESTART,
     Z72_TEXT_SOUND_LEVEL1,
     Z72_TEXT_SOUND_LEVEL2,
     Z72_TEXT_SOUND_LEVEL3,
@@ -276,7 +277,7 @@ static inline int z72_menu_locale_install(void)
 #ifdef Z72_MENU_SOUND_FONT
          u"Silent shutter sound",u"Custom shutter sound",u"Continuous release",u"Volume",u"Preview current sound",
          u"SHUTTER1.WAV",u"SHUTTER2.WAV",u"SHUTTER3.WAV",u"SHUTTER4.WAV",u"SHUTTER5.WAV",u"Off",
-         u"First shot only",u"Every shot",u"1",u"2",u"3",u"4",u"5",
+         u"First shot only",u"Every shot",u"Restart on every shot",u"1",u"2",u"3",u"4",u"5",
          u"SHUTTER1.WAV (unavailable)",u"SHUTTER2.WAV (unavailable)",u"SHUTTER3.WAV (unavailable)",
          u"SHUTTER4.WAV (unavailable)",u"SHUTTER5.WAV (unavailable)",
 #endif
@@ -328,7 +329,7 @@ static inline int z72_menu_locale_install(void)
 #ifdef Z72_MENU_SOUND_FONT
          u"静音拍摄快门声音",u"自定义快门声",u"连拍时播放",u"音量大小",u"试听当前音效",
          u"SHUTTER1.WAV",u"SHUTTER2.WAV",u"SHUTTER3.WAV",u"SHUTTER4.WAV",u"SHUTTER5.WAV",u"关闭",
-         u"仅第一张",u"每张照片",u"1",u"2",u"3",u"4",u"5",
+         u"仅第一张",u"每张照片",u"每张从头播放",u"1",u"2",u"3",u"4",u"5",
          u"SHUTTER1.WAV（不可用）",u"SHUTTER2.WAV（不可用）",u"SHUTTER3.WAV（不可用）",
          u"SHUTTER4.WAV（不可用）",u"SHUTTER5.WAV（不可用）",
 #endif
@@ -380,7 +381,7 @@ static inline int z72_menu_locale_install(void)
 #ifdef Z72_MENU_SOUND_FONT
          u"靜音拍攝快門聲音",u"自訂快門聲",u"連拍時播放",u"音量大小",u"試聽目前音效",
          u"SHUTTER1.WAV",u"SHUTTER2.WAV",u"SHUTTER3.WAV",u"SHUTTER4.WAV",u"SHUTTER5.WAV",u"關閉",
-         u"僅第一張",u"每張照片",u"1",u"2",u"3",u"4",u"5",
+         u"僅第一張",u"每張照片",u"每張從頭播放",u"1",u"2",u"3",u"4",u"5",
          u"SHUTTER1.WAV（無法使用）",u"SHUTTER2.WAV（無法使用）",u"SHUTTER3.WAV（無法使用）",
          u"SHUTTER4.WAV（無法使用）",u"SHUTTER5.WAV（無法使用）",
 #endif

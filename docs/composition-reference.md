@@ -2,7 +2,7 @@
 
 在 Nikon Z 7II C 1.70 的照片模式后屏实时取景中叠加参考图片。可调整不透明度，便于对齐主体和画面边缘。拍下的 JPG 和 NEF 保留原始画面。
 
-1. 从相机的[浏览器相册](browser-gallery.md#上传构图参考图)编辑 JPG 或 PNG，并保存到 1 至 6 号槽位。也可打开[离线转换工具](../tools/composition_reference.html)，下载 `Z72REF1.RFG` 至 `Z72REF6.RFG` 中的任一文件，放到 SD 卡根目录。
+1. 从相机的[浏览器相册](browser-gallery.md#上传构图参考图)编辑 JPG 或 PNG，并保存到 1 至 6 号槽位。也可打开[离线转换工具](../releases/composition_reference.html)，下载 `Z72REF1.RFG` 至 `Z72REF6.RFG` 中的任一文件，放到 SD 卡根目录。
 2. 打开「设定菜单 → 构图辅助 → 参考图片」。有图的槽位直接显示缩略图。用方向键移动后按 OK，或触摸缩略图选定。空槽位留空。
 3. 在「设定菜单 → 构图辅助 → 不透明度」选择 10%、25%、50%、75% 或 100%，默认为 50%。
 4. 在照片模式的「自定义设定菜单 → f2 自定义控制」下选择 Fn1、Fn2、AF-ON、辅助选择器中央或录像键，进入「构图辅助」，选择「按一下切换」或「按住显示」。回到后屏取景后使用该按键。
@@ -33,7 +33,7 @@ See the [v0.1.0-preview.33 release notes and hardware screenshots](#版本更新
 
 Show a reference image over photo live view on the rear screen of the Nikon Z 7II running C 1.70. Adjust its opacity to align the subject or frame edges. The camera saves its original JPG and NEF images.
 
-1. Edit a JPG or PNG in the [browser gallery](browser-gallery.md#english) and save it to slot 1–6. You can also use the [offline converter](../tools/composition_reference.html) to download a `Z72REFn.RFG` file and place it at the root of the SD card.
+1. Edit a JPG or PNG in the [browser gallery](browser-gallery.md#english) and save it to slot 1–6. You can also use the [offline converter](../releases/composition_reference.html) to download a `Z72REFn.RFG` file and place it at the root of the SD card.
 2. Open **Setup Menu → Composition reference → Reference image**. Use the direction buttons and **OK**, or tap a thumbnail. Empty slots are left blank.
 3. Under **Composition reference → Opacity**, choose 10%, 25%, 50%, 75%, or 100%. The default is 50%.
 4. In photo mode, open **Custom Settings Menu → f2 Custom controls**. Choose Fn1, Fn2, AF-ON, the sub-selector center, or the movie-record button. Select **Composition reference**, then **Press to toggle** or **Show while held**. Use the chosen button in rear-screen live view.

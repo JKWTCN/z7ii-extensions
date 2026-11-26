@@ -4,8 +4,11 @@
 
 enum {
     SOUND_START_SLOT=0xb18646c8u, SOUND_START_NATIVE=0x102611cbu,
+    SOUND_PLAYING_START_SLOT=0xb18646d8u, SOUND_RETIRING_START_SLOT=0xb18646e8u,
+    SOUND_PLAYING_STOP_SLOT=0xb18646e0u, SOUND_RETIRING_STOP_SLOT=0xb18646f0u,
+    SOUND_POST_STOP=0x103746efu, SOUND_STOP_NATIVE=0x1026138fu,
     SOUND_MAILBOX=0xb18646acu, AUDIO_REPLY_EVENT=0xb18646b0u,
-    SOUND_STATE=0xb18646b4u, SOUND_CONTEXT=0xb21e2630u,
+    SOUND_STATE=0xb18646b4u, SOUND_LEFT_STATE=SOUND_STATE+1, SOUND_CONTEXT=0xb21e2630u,
     PHOTO_NOTIFY_SLOT=0xb1864d5cu, PHOTO_NOTIFY_NATIVE=0x10321a4du,
     RAW_NOTIFY_SLOT=0xb1887e80u, RAW_NOTIFY_RETURN=0x10230058u,
     PHOTO_RAW_READY=0x041a000fu, DRIVE_MODE_NATIVE=0x104d1e8bu, SINGLE_RELEASE=1u,
@@ -13,7 +16,7 @@ enum {
     PHOTO_INPUT_READY=0x041b0090u, SOUND_REQUEST=0x0419001eu,
     SOUND_FINISHED=0x04190023u, FILE_OK=0x043a0080u,
     RATE=48000u, MAX_FRAMES=RATE, MAX_WAV=MAX_FRAMES*4+4096,
-    IDLE=0, QUEUED=1, PLAYING=2, EARLY_SLOTS=16
+    EARLY_SLOTS=16
 };
 
 static const char sound_paths[Z72_SOUND_CLIP_COUNT][16]={
@@ -22,8 +25,8 @@ static const char sound_paths[Z72_SOUND_CLIP_COUNT][16]={
 static _Alignas(64) unsigned char wav[MAX_WAV+64];
 static _Alignas(64) short clips[Z72_SOUND_CLIP_COUNT][MAX_FRAMES*2];
 static _Alignas(64) short playback_pcm[MAX_FRAMES*2];
-static z72_u32 clip_bytes[Z72_SOUND_CLIP_COUNT],playback,sound_choice,burst_state;
-static z72_u32 sound_every_frame,sound_volume,prepared_clip,prepared_volume,full_down;
+static z72_u32 clip_bytes[Z72_SOUND_CLIP_COUNT],job_queued,pcm_playing,restart_clip,sound_choice,burst_state;
+static z72_u32 sound_burst_mode,sound_volume,prepared_clip,prepared_volume,full_down;
 static z72_u32 sound_clips_available;
 static _Alignas(8) unsigned long long early_sound[EARLY_SLOTS];
 
@@ -103,7 +106,7 @@ struct sound_job {
     z72_u32 status;
     z72_u32 preview;
     unsigned long long photo_key;
-    z72_u32 clip,volume,burst;
+    z72_u32 clip,volume,burst,restart;
 };
 
 static unsigned long long photo_key(z72_u32 owner)
@@ -132,19 +135,13 @@ static void restore_burst(z72_u32 burst)
     __atomic_compare_exchange_n(&burst_state,&consumed,burst,0,__ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE);
 }
 
-static void sound_done(z72_u32 event,const void *result)
-{
-    (void)result;
-    if (event==SOUND_FINISHED) __atomic_store_n(&playback,IDLE,__ATOMIC_RELEASE);
-}
+static void sound_done(z72_u32 event,const void *result);
 
 static void release_sound_job(z72_u32 event,struct sound_job *job)
 {
     (void)event;
-    if (__atomic_load_n(&playback,__ATOMIC_ACQUIRE)==QUEUED) {
-        restore_burst(job->burst);
-        __atomic_store_n(&playback,IDLE,__ATOMIC_RELEASE);
-    }
+    if (job->status) restore_burst(job->burst);
+    __atomic_store_n(&job_queued,0,__ATOMIC_RELEASE);
 }
 
 static const struct sound_record pcm_record={1,31,0,0,0,0,1,18,sound_done};
@@ -164,25 +161,18 @@ static void prepare_pcm(z72_u32 clip,z72_u32 volume)
     prepared_volume=volume;
 }
 
-/* Only our PCM job takes this branch. Stock jobs retain the original SoundService
- * dispatcher. Configure its output and hand playback retirement back to the
- * original DMA/stop callbacks. */
-static z72_u32 sound_start(const z72_u32 *message)
+static z72_u32 start_pcm(z72_u32 clip,z72_u32 volume,z72_u32 preview,unsigned long long key)
 {
-    struct sound_job *job=(struct sound_job *)message[5];
-    if (job!=&pcm_job)
-        return NATIVE(SOUND_START_NATIVE,z72_u32,const z72_u32 *)(message);
-
     unsigned char speaker=0;
     NATIVE(0x1036f781u,z72_u32,unsigned char *)(&speaker);
     if (speaker!=1 || NATIVE(0x1036f867u,z72_u32,void)() || BYTE(SOUND_STATE)) return 0;
-    if (__atomic_load_n(&sound_choice,__ATOMIC_ACQUIRE)!=job->clip ||
-        (!job->preview && !silent_photo())) return 0;
+    if (__atomic_load_n(&sound_choice,__ATOMIC_ACQUIRE)!=clip ||
+        (!preview && !silent_photo())) return 0;
 
-    z72_u32 pcm_bytes=clip_bytes[job->clip-1];
-    prepare_pcm(job->clip,job->volume);
+    z72_u32 pcm_bytes=clip_bytes[clip-1];
+    prepare_pcm(clip,volume);
     NATIVE(0x10360f44u,void,void *,const void *,z72_u32)(
-        (void *)SOUND_CONTEXT,job->record,sizeof(*job->record));
+        (void *)SOUND_CONTEXT,&pcm_record,sizeof(pcm_record));
     WORD(SOUND_STATE+4)=WORD(SOUND_STATE+12)=WORD(SOUND_STATE+16)=0;
 
     const z72_u32 format[]={0x01010502u,pcm_bytes,0};
@@ -193,30 +183,80 @@ static z72_u32 sound_start(const z72_u32 *message)
         NATIVE(0x10260b4du,z72_u32,const z72_u32 *)(tones)!=1 ||
         NATIVE(0x10260e6bu,z72_u32,const z72_u32 *)(data)!=1 ||
         NATIVE(0x10260cfdu,z72_u32,const z72_u32 *)(start)!=1) return 0;
-    BYTE(SOUND_STATE+1)=1;
+    BYTE(SOUND_LEFT_STATE)=1;
     /* The native right-channel flag is set only when a second playback
      * request is started. This stereo PCM clip uses one DMA stream. */
     BYTE(SOUND_STATE+2)=0;
     BYTE(SOUND_STATE)=1;
-    if (job->photo_key) __atomic_store_n(early_slot(job->photo_key),job->photo_key,__ATOMIC_RELEASE);
-    __atomic_store_n(&playback,PLAYING,__ATOMIC_RELEASE);
+    if (key) __atomic_store_n(early_slot(key),key,__ATOMIC_RELEASE);
+    __atomic_store_n(&pcm_playing,1,__ATOMIC_RELEASE);
     return 1;
 }
 
-static void enqueue_sound(z72_u32 preview,unsigned long long key,z72_u32 first_only)
+static void sound_done(z72_u32 event,const void *result)
+{
+    if (event!=SOUND_FINISHED) return;
+    __atomic_store_n(&pcm_playing,0,__ATOMIC_RELEASE);
+    z72_u32 clip=restart_clip;
+    restart_clip=0;
+    if (clip && !((const z72_u32 *)result)[1] &&
+        __atomic_load_n(&sound_burst_mode,__ATOMIC_ACQUIRE)==Z72_SOUND_BURST_RESTART)
+        start_pcm(clip,__atomic_load_n(&sound_volume,__ATOMIC_ACQUIRE),0,0);
+}
+
+static z72_u32 sound_start(const z72_u32 *message)
+{
+    const struct sound_job *job=(const struct sound_job *)message[5];
+    if (job!=&pcm_job)
+        return NATIVE(SOUND_START_NATIVE,z72_u32,const z72_u32 *)(message);
+    return start_pcm(job->clip,job->volume,job->preview,job->photo_key);
+}
+
+static z72_u32 sound_restart(const z72_u32 *message)
+{
+    const struct sound_job *job=(const struct sound_job *)message[5];
+    if (job!=&pcm_job || !job->restart ||
+        !__atomic_load_n(&pcm_playing,__ATOMIC_ACQUIRE) ||
+        __atomic_load_n(&sound_burst_mode,__ATOMIC_ACQUIRE)!=Z72_SOUND_BURST_RESTART ||
+        __atomic_load_n(&sound_choice,__ATOMIC_ACQUIRE)!=job->clip || !silent_photo()) return 0;
+    if (!restart_clip && BYTE(SOUND_LEFT_STATE)==1 && !NATIVE(SOUND_POST_STOP,z72_u32,void)())
+        return 0;
+    restart_clip=job->clip;
+    return 1;
+}
+
+static z72_u32 sound_stop(const z72_u32 *message)
+{
+    if (!__atomic_load_n(&pcm_playing,__ATOMIC_ACQUIRE))
+        return NATIVE(SOUND_STOP_NATIVE,z72_u32,const z72_u32 *)(message);
+
+    /* If EOF queued its own stop before the audio worker acknowledged ours,
+     * SoundService sees both requests before the stop completion. */
+    if (BYTE(SOUND_LEFT_STATE)==2) return 0;
+    z72_u32 result=NATIVE(SOUND_STOP_NATIVE,z72_u32,const z72_u32 *)(message);
+    if (!result) {
+        BYTE(SOUND_LEFT_STATE)=1;
+        restart_clip=0;
+    }
+    return result;
+}
+
+static void enqueue_sound(z72_u32 preview,unsigned long long key,z72_u32 burst_mode)
 {
     z72_u32 clip=__atomic_load_n(&sound_choice,__ATOMIC_ACQUIRE);
-    if (!clip || BYTE(SOUND_STATE) || !WORD(SOUND_MAILBOX) || !WORD(AUDIO_REPLY_EVENT) ||
-        (!preview && !silent_photo())) return;
-    z72_u32 idle=IDLE;
-    if (!__atomic_compare_exchange_n(&playback,&idle,QUEUED,0,__ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE)) return;
+    z72_u32 restart=burst_mode==Z72_SOUND_BURST_RESTART;
+    z72_u32 playing=__atomic_load_n(&pcm_playing,__ATOMIC_ACQUIRE);
+    if (!clip || ((BYTE(SOUND_STATE) || playing) && !(restart && playing)) ||
+        !WORD(SOUND_MAILBOX) || !WORD(AUDIO_REPLY_EVENT) || (!preview && !silent_photo())) return;
+    z72_u32 free=0;
+    if (!__atomic_compare_exchange_n(&job_queued,&free,1,0,__ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE)) return;
 
     z72_u32 burst=0;
-    if (first_only) {
+    if (burst_mode==Z72_SOUND_BURST_FIRST) {
         burst=__atomic_load_n(&burst_state,__ATOMIC_ACQUIRE);
         if (!(burst&1u) || !__atomic_compare_exchange_n(&burst_state,&burst,burst-1,0,
                                                       __ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE)) {
-            __atomic_store_n(&playback,IDLE,__ATOMIC_RELEASE);
+            __atomic_store_n(&job_queued,0,__ATOMIC_RELEASE);
             return;
         }
     }
@@ -226,15 +266,16 @@ static void enqueue_sound(z72_u32 preview,unsigned long long key,z72_u32 first_o
     pcm_job.clip=clip;
     pcm_job.volume=__atomic_load_n(&sound_volume,__ATOMIC_ACQUIRE);
     pcm_job.burst=burst;
+    pcm_job.restart=restart;
     if (NATIVE(0x102b325du,z72_u32,z72_u32,struct sound_job *)(SOUND_REQUEST,&pcm_job)==1) return;
     restore_burst(burst);
-    __atomic_store_n(&playback,IDLE,__ATOMIC_RELEASE);
+    __atomic_store_n(&job_queued,0,__ATOMIC_RELEASE);
 }
 
-static z72_u32 burst_first_only(z72_u32 drive)
+static z72_u32 burst_mode(z72_u32 drive)
 {
-    return !__atomic_load_n(&sound_every_frame,__ATOMIC_ACQUIRE) &&
-        (drive==2 || drive==0x8010 || drive==0x8019);
+    return drive==2 || drive==0x8010 || drive==0x8019 ?
+        __atomic_load_n(&sound_burst_mode,__ATOMIC_ACQUIRE) : Z72_SOUND_BURST_EVERY;
 }
 
 static void sound_shutter_event(z72_u32 fn)
@@ -266,13 +307,13 @@ static z72_u32 photo_notify(z72_u32 event,z72_u32 argument,z72_u32 a2,z72_u32 a3
         z72_u32 drive=NATIVE(DRIVE_MODE_NATIVE,z72_u32,void)();
         unsigned long long key=photo_key(WORD(argument+4));
         if (key && __atomic_load_n(early_slot(key),__ATOMIC_ACQUIRE)!=key) {
-            if (drive==SINGLE_RELEASE) enqueue_sound(0,key,0);
-            else if (burst_first_only(drive)) {
+            if (drive==SINGLE_RELEASE) enqueue_sound(0,key,Z72_SOUND_BURST_EVERY);
+            else if (burst_mode(drive)==Z72_SOUND_BURST_FIRST) {
                 /* Associate already-suppressed RAW frames with their own
                  * handoffs, even when the next full press arrives first. */
                 if (!(__atomic_load_n(&burst_state,__ATOMIC_ACQUIRE)&1u))
                     __atomic_store_n(early_slot(key),key,__ATOMIC_RELEASE);
-                else enqueue_sound(0,key,1);
+                else enqueue_sound(0,key,Z72_SOUND_BURST_FIRST);
             }
         }
     }
@@ -281,7 +322,7 @@ static z72_u32 photo_notify(z72_u32 event,z72_u32 argument,z72_u32 a2,z72_u32 a3
         if ((!key || !__atomic_compare_exchange_n(early_slot(key),&key,0,0,
                                                  __ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE)) &&
             __atomic_load_n(&sound_choice,__ATOMIC_ACQUIRE))
-            enqueue_sound(0,0,burst_first_only(NATIVE(DRIVE_MODE_NATIVE,z72_u32,void)()));
+            enqueue_sound(0,0,burst_mode(NATIVE(DRIVE_MODE_NATIVE,z72_u32,void)()));
     }
     return NATIVE(PHOTO_NOTIFY_NATIVE,z72_u32,z72_u32,z72_u32,z72_u32,z72_u32)(event,argument,a2,a3);
 }
@@ -289,9 +330,12 @@ static z72_u32 photo_notify(z72_u32 event,z72_u32 argument,z72_u32 a2,z72_u32 a3
 static u32 sound_ready(void)
 {
     return WORD(PHOTO_NOTIFY_SLOT)==PHOTO_NOTIFY_NATIVE && WORD(SOUND_START_SLOT)==SOUND_START_NATIVE &&
+        !WORD(SOUND_PLAYING_START_SLOT) && !WORD(SOUND_RETIRING_START_SLOT) &&
+        WORD(SOUND_PLAYING_STOP_SLOT)==SOUND_STOP_NATIVE && WORD(SOUND_RETIRING_STOP_SLOT)==SOUND_STOP_NATIVE &&
         WORD(INPUT_SLOT)==INPUT_NATIVE && WORD(INPUT_NATIVE-1u)==0x41f0e92du &&
         WORD(PHOTO_NOTIFY_NATIVE-1u)==0x4ff0e92du &&
-        WORD(0x10260cb4u)==0xb08cb510u && WORD(0x102b325cu)==0x460cb570u;
+        WORD(0x10260cb4u)==0xb08cb510u && WORD(0x102b325cu)==0x460cb570u &&
+        (unsigned short)HALF(SOUND_POST_STOP-1u)==0xb570u;
 }
 
 static void sound_load_clips(void)
@@ -306,6 +350,8 @@ static void sound_install(void)
 {
     if (!sound_clips_available) return;
     WORD(SOUND_START_SLOT)=(z72_u32)sound_start;
+    WORD(SOUND_PLAYING_START_SLOT)=WORD(SOUND_RETIRING_START_SLOT)=(z72_u32)sound_restart;
+    WORD(SOUND_PLAYING_STOP_SLOT)=WORD(SOUND_RETIRING_STOP_SLOT)=(z72_u32)sound_stop;
     __asm__ volatile("dmb sy" ::: "memory");
     /* Keep the pre-capture dispatcher as the slot owner when it is installed. */
     if (WORD(INPUT_SLOT)==INPUT_NATIVE) WORD(INPUT_SLOT)=(z72_u32)sound_input;

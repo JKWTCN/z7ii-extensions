@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: OFL-1.1 */
 /* Noto Sans SC outlines, weight 600, scaled to 2048 UPM.
- * Copyright Adobe. The SD release includes menu-font-license.txt.
+ * Copyright Adobe. See releases/menu-font-license.txt.
  * Other entries reference outlines stored in the original C 1.70 firmware. */
 
 static const unsigned char gallery_u51b2[]={

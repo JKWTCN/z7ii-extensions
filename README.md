@@ -67,12 +67,10 @@ Wi-Fi 设置的[使用限制与风险声明](docs/wifi-settings.md#important-lim
 如果要自己构建固件升级包的生成方法见[构建](#构建)。
 
 1. 等待存储卡访问结束，关机并取出存储卡。
-2. 将 [Z72APP.BIN](releases/v0.1.0-preview.42/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.43/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
 3. 装回卡和电池，等待到 i 按键旁边的读取灯灭了再开机。
 
-当前版本为 `v0.1.0-preview.42`，模块 323,244 字节。[SHA-256 校验](releases/v0.1.0-preview.42/SHA256SUMS)
-
-本版调整了 SD 模块启动顺序、横竖屏电量清除和自定义 DISP 网格刷新，避免照片直方图干扰视频取景，并调整视频音量表和照片斑马纹。FTP 自动发送可与 JPEG 预拍和像素位移共用文件通知，同时修正自动旋转菜单状态和快门音的输入处理。浏览器相册支持相机接入路由器，并延长大 NEF 下载的状态重试窗口。整合版已通过实机验证。
+当前版本为 `v0.1.0-preview.43`，模块 323,884 字节。[SHA-256 校验](releases/v0.1.0-preview.43/SHA256SUMS)
 
 这是试用版本，休眠唤醒和长期稳定性尚未单独确认。替换或移除模块请完整断电。只加载可信模块。
 
@@ -122,4 +120,4 @@ python -B tools/build.py --stock-package "path/to/original/Z7_2_0170.bin" --outp
 
 ## 许可证
 
-采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」「筛选的播放」和「浏览器相册」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.42/menu-font-license.txt)。
+采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」「筛选的播放」和「浏览器相册」使用的补充字形采用单独的[字体许可证](releases/menu-font-license.txt)。
