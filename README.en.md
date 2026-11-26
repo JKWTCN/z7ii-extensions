@@ -65,10 +65,10 @@ The updated host fixes missing extension menus and incorrect framing grids on th
 For instructions on building the firmware update package yourself, see [Building](#building).
 
 1. Wait for card access to finish, turn off the camera, and remove the memory card.
-2. Copy [Z72APP.BIN](releases/v0.1.0-preview.43/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
+2. Copy [Z72APP.BIN](releases/v0.1.0-preview.44/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
 3. Reinsert the card and battery, wait until the card access lamp next to the **i** button goes out, then turn on the camera.
 
-Current release `v0.1.0-preview.43` · 323,884 bytes · [SHA-256 checksums](releases/v0.1.0-preview.43/SHA256SUMS)
+Current release `v0.1.0-preview.44` · 324,268 bytes · [SHA-256 checksums](releases/v0.1.0-preview.44/SHA256SUMS)
 
 
 This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
