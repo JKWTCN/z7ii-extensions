@@ -34,6 +34,7 @@ static void merge_menu_wake(void);
 
 enum {
     PIXEL_REFRESH_DISPLAY_TIMER=0x106533d5u, PIXEL_REFRESH_STANDBY_TIMER=0x103db2c1u,
+    PIXEL_DISPLAY_ACTIVITY=1u, PIXEL_MENU_ACTIVITY=2u,
     PIXEL_DISPLAY_REFRESH_MS=500
 };
 static unsigned pixel_merge_format,pixel_merge_selection;
@@ -79,14 +80,20 @@ static void pixel_merge_worker(void *arg)
     }
 }
 
+static void pixel_merge_refresh_timers(void)
+{
+    /* The firmware tracks menu activity separately from display activity. */
+    CALL(PIXEL_REFRESH_DISPLAY_TIMER,void,z72_u32)(PIXEL_DISPLAY_ACTIVITY|PIXEL_MENU_ACTIVITY);
+    CALL(PIXEL_REFRESH_STANDBY_TIMER,void,void)();
+}
+
 static void pixel_merge_refresh_display(z72_u32 *last_refresh)
 {
     unsigned state=PIXEL_LOAD(pixel_state);
     if ((state!=PIXEL_MERGING && state!=PIXEL_MERGE_SCANNING) || pixel_merge_stop_requested()) return;
     z72_u32 now=pixel_tick();
     if (now-*last_refresh<PIXEL_DISPLAY_REFRESH_MS) return;
-    CALL(PIXEL_REFRESH_DISPLAY_TIMER,void,z72_u32)(1);
-    CALL(PIXEL_REFRESH_STANDBY_TIMER,void,void)();
+    pixel_merge_refresh_timers();
     *last_refresh=now;
 }
 

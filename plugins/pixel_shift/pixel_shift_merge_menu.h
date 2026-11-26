@@ -121,6 +121,8 @@ static int merge_menu_show(unsigned view)
     z72_u32 previous=page[10],callbacks=page[4],previous_view=merge_menu_view;
     if (page[0]!=2 || (!merge_menu_header(previous) &&
         previous!=(z72_u32)pixel_menu_views[pixel_menu_view].header)) return 0;
+    if (view==MERGE_MENU_GROUPS && previous==(z72_u32)merge_menus[MERGE_MENU_PROGRESS].header)
+        pixel_merge_refresh_timers();
     merge_menu_view=view;
     merge_menu_seen=~0u;
     *(volatile unsigned short *)(ROTATION_PAGE+0x16)=0;
@@ -199,6 +201,7 @@ static void merge_menu_update(void)
     if (key==merge_menu_seen || CALL(0x106355a1u,z72_u32,void)()) return;
     z72_u32 scene=WORD(ROTATION_PAGE+0x0c),canvas=merge_menu_widget(scene,MERGE_MENU_CANVAS);
     if (!canvas || WORD(canvas+0x4c)!=(z72_u32)merge_menu_draw) return;
+    if (view==MERGE_MENU_PROGRESS && current==PIXEL_IDLE) pixel_merge_refresh_timers();
     unsigned status=Z72_TEXT_PIXEL_MERGE_BLANK;
     if (view==MERGE_MENU_GROUPS) {
         int scanning=current==PIXEL_MERGE_SCANNING || current==PIXEL_MERGE_STARTING;

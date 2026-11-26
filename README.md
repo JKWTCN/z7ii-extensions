@@ -37,7 +37,6 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 - 原厂回放菜单暂未实现视频方向跟随。支持方向元数据的播放器可按录像方向显示。[视频自动方向](docs/video-rotation.md)
 - 在 JPEG 预拍摄中,启动预拍摄时取景卡顿是因为 z7ii 的 cmos 没有双数据通路,只能使用 H+ 模式进行捕获,导致取景卡顿.
 - 在 JPEG 预拍摄中,可能出现无法显示此文件,这个是由于预拍摄的图片先注册了后写入,此时因为写入性能不够还没有写入,过一会写入了就能看到了.
-- 机内合成像素变化拍摄如果合成时间超过你的菜单睡眠时间,机器合成完后会自动关机,这个是正常现象,重新开机即可.
 - 像素变化拍摄中目前使用的半格位移是 X=11、Y=9, 此半格位移是建立在我在我的相机标定的基础上的.如果你想要使用尼康工坊合成和机内合成,建议根据你自己的相机进行标定.参考 [标定指南](docs/IBIS-calibration.md) ,如果你懒得标定的话,请使用 [parsek-nefx-gui.exe](releases/parsek-nefx-gui.exe) 进行 NEFX 合成,最后使用尼康工坊进行导出 jpeg/tif.
 - 像素变化拍摄固定输出 14 位未压缩 NEF，可用尼康工坊直接合并、打开和导出。[像素变化拍摄](docs/pixel-shift.md) · [下载 Parsek NEFX（Windows x64）](releases/parsek-nefx-gui.exe)
 
@@ -68,10 +67,12 @@ Wi-Fi 设置的[使用限制与风险声明](docs/wifi-settings.md#important-lim
 如果要自己构建固件升级包的生成方法见[构建](#构建)。
 
 1. 等待存储卡访问结束，关机并取出存储卡。
-2. 将 [Z72APP.BIN](releases/v0.1.0-preview.40/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.41/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
 3. 装回卡和电池，等待到 i 按键旁边的读取灯灭了再开机。
 
-当前版本为 `v0.1.0-preview.40`，模块 322,476 字节。[SHA-256 校验](releases/v0.1.0-preview.40/SHA256SUMS)
+当前版本为 `v0.1.0-preview.41`，模块 322,476 字节。[SHA-256 校验](releases/v0.1.0-preview.41/SHA256SUMS)
+
+本版修复了机内合成完成后返回照片组时因菜单待机超时而黑屏的问题，已通过实机验证。
 
 这是试用版本，休眠唤醒和长期稳定性尚未单独确认。替换或移除模块请完整断电。只加载可信模块。
 
@@ -121,4 +122,4 @@ python -B tools/build.py --stock-package "path/to/original/Z7_2_0170.bin" --outp
 
 ## 许可证
 
-采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」「筛选的播放」和「浏览器相册」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.40/menu-font-license.txt)。
+采用 [MIT 许可证](LICENSE)，版权所有 © 2026 JKWTCN。「静音拍摄快门声音」「筛选的播放」和「浏览器相册」使用的补充字形采用单独的[字体许可证](releases/v0.1.0-preview.41/menu-font-license.txt)。

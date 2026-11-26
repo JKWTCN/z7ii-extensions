@@ -37,7 +37,6 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 - Automatic video orientation is currently unavailable in the native playback menu. Players that support orientation metadata display the recording in its recorded orientation. [Automatic video orientation](docs/video-rotation.md#english)
 - The Z 7II's CMOS sensor lacks dual data paths, so JPEG pre-capture relies on H+ burst mode. This can make live view stutter when pre-capture starts.
 - During playback, some JPEG pre-capture photos may temporarily show “Cannot display this file.” The camera registers these photos before writing them to the card. The photos become viewable once writing finishes.
-- If an in-camera pixel shift merge runs longer than the menu standby timeout, the camera may turn off once the merge finishes. Turn it back on to continue.
 - The default half-pixel offsets of X=11 and Y=9 were calibrated on my camera. For in-camera or NX Studio merging, follow the [calibration guide](docs/IBIS-calibration.md#why-calibrate) to calibrate your own camera. To skip calibration, merge the original NEFs with [Parsek NEFX](releases/parsek-nefx-gui.exe), then export JPEG or TIFF in NX Studio.
 - Pixel shift shooting records uncompressed 14-bit NEFs. NX Studio can merge the series and open or export the result directly. [Pixel shift shooting](docs/pixel-shift.md) · [Download Parsek NEFX for Windows x64](releases/parsek-nefx-gui.exe)
 
@@ -66,10 +65,12 @@ The updated host fixes missing extension menus and incorrect framing grids on th
 For instructions on building the firmware update package yourself, see [Building](#building).
 
 1. Wait for card access to finish, turn off the camera, and remove the memory card.
-2. Copy [Z72APP.BIN](releases/v0.1.0-preview.40/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
+2. Copy [Z72APP.BIN](releases/v0.1.0-preview.41/Z72APP.BIN) to the SD card root. Keep your existing `Z72APP.CFG`, if present.
 3. Reinsert the card and battery, wait until the card access lamp next to the **i** button goes out, then turn on the camera.
 
-Current release `v0.1.0-preview.40` · 322,476 bytes · [SHA-256 checksums](releases/v0.1.0-preview.40/SHA256SUMS)
+Current release `v0.1.0-preview.41` · 322,476 bytes · [SHA-256 checksums](releases/v0.1.0-preview.41/SHA256SUMS)
+
+This release fixes the standby timeout that could blank the screen when returning to the series picker after an in-camera pixel shift merge. The fix was verified on-camera.
 
 This is a preview release. Sleep/wake behavior and long-term stability remain unverified. Fully power down before replacing or removing the module, and only load trusted modules.
 
@@ -119,4 +120,4 @@ Both scripts extract the master internally and reuse the verified release's publ
 
 ## License
 
-[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound, filtered playback, and the browser gallery carry their own [font license](releases/v0.1.0-preview.40/menu-font-license.txt).
+[MIT](LICENSE) © 2026 JKWTCN. The supplemental menu glyphs for silent shutter sound, filtered playback, and the browser gallery carry their own [font license](releases/v0.1.0-preview.41/menu-font-license.txt).

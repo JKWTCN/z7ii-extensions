@@ -30,6 +30,8 @@
 
 机内合成会先对齐原片。4 张和 8 张输出 8256 × 5504，16 张和 32 张输出 16512 × 11008。完成后，文件保存在原片所在卡根目录的 `Synthesis` 文件夹。合成中按 MENU 或点右上角的返回键可以取消。
 
+从 `v0.1.0-preview.41` 起，相机在合成期间会刷新菜单待机计时。显示「已保存到存储卡」和返回照片组时都会重新计时。返回后按相机设定的菜单待机时长计时。
+
 四张一组的实机合成耗时为 TIF **74.411 秒**、NEFX **75.011 秒**。
 
 「半格位移校准」可单独设定 X 和 Y，默认值分别为 11 和 9，设置保存在 SD 卡的 `Z72APP.CFG` 中。16 张和 32 张模式会使用半格位移。[标定指南](IBIS-calibration.md)
@@ -72,6 +74,8 @@ Go to **Setup Menu → Pixel shift shooting → In-camera merge** and select a s
 | NEFX | 14-bit uncompressed | A merged file that NX Studio can develop and export |
 
 The camera aligns the originals before merging. With 4 or 8 shots it produces an 8256 × 5504 image, and with 16 or 32 shots it produces a 16512 × 11008 image. The result is saved in `Synthesis` at the root of the card holding the originals. Press MENU or tap the back button in the top-right corner to cancel a merge in progress.
+
+Starting with `v0.1.0-preview.41`, the module keeps the menu awake during a merge. The menu standby timer restarts when the camera shows **Saved to memory card** and again when you return to the series picker. The picker follows the configured menu standby delay.
 
 On-camera merge of a four-shot series took **74.411 seconds** for TIF and **75.011 seconds** for NEFX.
 
