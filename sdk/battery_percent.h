@@ -141,7 +141,7 @@ __attribute__((noinline)) static void battery_update(u32 output_before,u32 orien
     if (object && (object<0xb1800000u || object>=0xc0000000u || (object&3u) ||
                    WORD(object)!=BATTERY_TEXT_ID)) return;
     u32 menu=BYTE(0xb1824f0cu),playback=BYTE(0xb1828174u);
-    u32 mode=WORD(0xb25519b8u),state=BYTE(DISPLAY_SNAPSHOT+0x1a7);
+    u32 mode=WORD(0xb25519b8u),state=BYTE(DISPLAY_SNAPSHOT+0x1a7),op=BYTE(DISPLAY_SNAPSHOT);
     /* Both photo (0) and movie (1) use the live LCD's native battery layers.
      * Native battery masks allow all four movie display states (0..3),
      * including the alternate layout used while recording. Requiring zero
@@ -149,7 +149,7 @@ __attribute__((noinline)) static void battery_update(u32 output_before,u32 orien
     u32 visible=output_before==1 && (WORD(ACTIVE_OUTPUT_BITS)&7u)==1 &&
         !BYTE(DISPLAY_SCENE) && mode<=1 && !BYTE(0xb1821b18u) &&
         WORD(0xb202f728u)==0xb1821b1cu &&
-        !BYTE(DISPLAY_SNAPSHOT) && !BYTE(DISPLAY_SNAPSHOT+0x1a6) &&
+        (op==0 || op==2 || op==5) && !BYTE(DISPLAY_SNAPSHOT+0x1a6) &&
         (mode==1 ? state<=3 : !state) && !WORD(0xb181dabcu) &&
         !(menu>=1 && menu<=3) && !(playback>=1 && playback<=3);
     u32 icon=0;

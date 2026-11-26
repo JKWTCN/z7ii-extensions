@@ -200,8 +200,10 @@ static enum page current_page(void)
         u32 root=external_root(app);
         if (root && WORD(APP_ROOTS+app*4)==root) return EXTERNAL_SETTING;
     }
-    if (BYTE(DISPLAY_SNAPSHOT)!=0) return OTHER;
+    u32 op=BYTE(DISPLAY_SNAPSHOT);
+    if (op!=0 && op!=2 && op!=5) return OTHER;
     if (app==0 && WORD(APP_ROOTS)==LIVE_APP && !BYTE(DISPLAY_SNAPSHOT+0x1a6)) return LIVE;
+    if (op!=0) return OTHER;
     if ((app!=3 && app!=4) || WORD(APP_ROOTS+app*4)!=I_MENU_APP) return OTHER;
     u32 state=BYTE(I_MENU_STATE), variant=BYTE(I_MENU_STATE+1);
     if (state==3) return GRID;

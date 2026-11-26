@@ -26,10 +26,10 @@ __attribute__((noinline)) static void focal_update(u32 output_before)
         return;
     }
     u32 output=active_photo_output();
-    u32 menu=BYTE(0xb1824f0cu),playback=BYTE(0xb1828174u);
+    u32 menu=BYTE(0xb1824f0cu),playback=BYTE(0xb1828174u),op=BYTE(DISPLAY_SNAPSHOT);
     if (!output || output!=output_before || WORD(0xb25519b8u) ||
         BYTE(0xb1821b18u) || WORD(0xb202f728u)!=0xb1821b1cu ||
-        BYTE(DISPLAY_SNAPSHOT) || BYTE(DISPLAY_SNAPSHOT+0x1a6) ||
+        (op!=0 && op!=2 && op!=5) || BYTE(DISPLAY_SNAPSHOT+0x1a6) ||
         BYTE(DISPLAY_SNAPSHOT+0x1a7) || WORD(0xb181dabcu) ||
         (menu>=1 && menu<=3) || (playback>=1 && playback<=3)) {
         focal_value=0;
