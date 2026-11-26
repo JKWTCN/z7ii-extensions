@@ -39,7 +39,7 @@ static void clean_code(unsigned char *bytes, z72_u32 size)
 static void sync_code(void)
 {
     z72_u32 zero=0;
-    __asm__ volatile("dsb sy\n mcr p15,0,%0,c7,c1,0\n dsb sy\n isb sy"
+    __asm__ volatile("dsb sy\n mcr p15,0,%0,c7,c1,0\n mcr p15,0,%0,c7,c1,6\n dsb sy\n isb sy"
                      :: "r"(zero) : "memory");
 }
 #endif

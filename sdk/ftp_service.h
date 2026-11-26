@@ -43,7 +43,7 @@ static z72_u32 ftp_folder_count,ftp_folder_more;
 static struct dcim_folder ftp_folder_next,ftp_folder_send,ftp_folders[FTP_FOLDERS];
 static struct { z72_u32 id,profile; } ftp_auto[FTP_AUTO_CAPACITY];
 static z72_u32 ftp_auto_read,ftp_auto_write,ftp_auto_epoch,ftp_auto_dropped,ftp_auto_guard,ftp_auto_retry;
-static z72_u32 ftp_auto_error,ftp_auto_profile,ftp_auto_lookup_tries;
+static z72_u32 ftp_auto_error,ftp_auto_profile,ftp_auto_lookup_tries,ftp_shared_image_hook;
 static _Alignas(4) unsigned char ftp_descriptor[28];
 static z72_u32 ftp_main_tick(void) { return FTP_CALL(0x1062e59du,z72_u32,void)(); }
 
@@ -57,13 +57,20 @@ static int ftp_claim_job(void)
     return __atomic_compare_exchange_n(&ftp_job,&idle,FTP_JOB_CLAIM,0,__ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE);
 }
 
-static void ftp_image_closed(z72_u32 event,z72_u32 argument)
+static void ftp_auto_observe(z72_u32 event,z72_u32 argument,z72_u32 *epoch_out,
+                             z72_u32 *profile_out,z72_u32 *id_out)
 {
     z72_u32 epoch=ftp_load(&ftp_auto_epoch),profile=ftp_load(&ftp_auto_profile),id=0;
     if ((epoch&1u) && event==FTP_IMAGE_CLOSED && !(argument&3u) &&
         argument>=0xb1800000u && argument<=0xb5f00000u-20u)
         id=*(const z72_u32 *)argument;
-    FTP_CALL(FTP_IMAGE_CALLBACK,void,z72_u32,z72_u32)(event,argument);
+    *epoch_out=epoch;
+    *profile_out=profile;
+    *id_out=id;
+}
+
+static void ftp_auto_enqueue(z72_u32 id,z72_u32 epoch,z72_u32 profile)
+{
     if (!dcim_card_id(id) || (id&15u)>1u || epoch!=ftp_load(&ftp_auto_epoch)) return;
     z72_u32 free=0;
     if (!__atomic_compare_exchange_n(&ftp_auto_guard,&free,1,0,__ATOMIC_ACQUIRE,__ATOMIC_RELAXED)) {
@@ -78,6 +85,14 @@ static void ftp_image_closed(z72_u32 event,z72_u32 argument)
         ftp_store(&ftp_auto_write,write+1u);
     }
     ftp_store(&ftp_auto_guard,0);
+}
+
+static void ftp_image_closed(z72_u32 event,z72_u32 argument)
+{
+    z72_u32 epoch,profile,id;
+    ftp_auto_observe(event,argument,&epoch,&profile,&id);
+    FTP_CALL(FTP_IMAGE_CALLBACK,void,z72_u32,z72_u32)(event,argument);
+    ftp_auto_enqueue(id,epoch,profile);
 }
 
 static int ftp_read_profile(struct ftp_config *config,z72_u32 profile)
@@ -595,11 +610,14 @@ static void ftp_set_auto(z72_u32 enabled)
     }
     if (epoch&1u) return;
     if (!ftp_start_job(FTP_JOB_NONE)) { ftp_auto_error=1; return; }
-    z72_u32 native=FTP_IMAGE_CALLBACK;
-    if (!__atomic_compare_exchange_n((z72_u32 *)FTP_IMAGE_SLOT,&native,(z72_u32)ftp_image_closed,0,
-                                    __ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE) && native!=(z72_u32)ftp_image_closed) {
-        ftp_auto_error=1;
-        return;
+    z72_u32 shared=ftp_load(&ftp_shared_image_hook);
+    if (!shared || *(volatile z72_u32 *)FTP_IMAGE_SLOT!=shared) {
+        z72_u32 native=FTP_IMAGE_CALLBACK;
+        if (!__atomic_compare_exchange_n((z72_u32 *)FTP_IMAGE_SLOT,&native,(z72_u32)ftp_image_closed,0,
+                                        __ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE) && native!=(z72_u32)ftp_image_closed) {
+            ftp_auto_error=1;
+            return;
+        }
     }
     ftp_store(&ftp_auto_profile,ftp_profile);
     ftp_auto_error=0;

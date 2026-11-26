@@ -1725,8 +1725,8 @@ static u32 apply_rotation(u32 enabled)
     menu.rows[row][5]=value;
     /* The parent can retain its widgets until the native transition back. */
     u32 widgets=WORD(SETUP_PAGE+0x24);
-    if (widgets && CALL(0x1063464fu,u32,u32,u32,u32)(widgets,0,row)) {
-        u32 status=CALL(0x1063466du,u32,u32,u32,u32)(widgets,0,row);
+    if (widgets && CALL(0x1063464fu,u32,u32,u32,u32)(widgets,row,0)) {
+        u32 status=CALL(0x1063466du,u32,u32,u32,u32)(widgets,row,0);
         if (status) CALL(0x106361cdu,void,u32,u32)(status,value);
     }
     z72_config_save(config);

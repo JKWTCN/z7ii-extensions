@@ -251,7 +251,7 @@ static void sound_shutter_event(z72_u32 fn)
 
 static void sound_input(z72_u32 flags)
 {
-    for (z72_u32 bits=flags;bits;bits&=bits-1)
+    for (z72_u32 bits=flags&0xffffu;bits;bits&=bits-1)
         sound_shutter_event(WORD(INPUT_CALLBACKS+4*__builtin_ctz(bits)));
     NATIVE(INPUT_NATIVE,void,z72_u32)(flags);
 }

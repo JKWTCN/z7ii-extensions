@@ -69,6 +69,7 @@ static z72_u32 wide_display_work_pending(void)
 
 static void wide_display_install(void)
 {
+    __asm__ volatile("dmb sy" ::: "memory");
     WIDE_DISPLAY_DRAW_SLOT=(z72_u32)wide_display_draw;
 }
 

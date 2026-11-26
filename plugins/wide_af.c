@@ -491,6 +491,7 @@ static void wide_install(void)
     tracking_assist=z72_config_current.tracking_assist;
     tracking_reacquire_install();
     /* The shared shooting-key slot delegates the original DISP path. */
+    __asm__ volatile("dmb sy" ::: "memory");
     WORD(TRACK_KEY_SLOT)=(z72_u32)tracking_live_key;
 #endif
 }
