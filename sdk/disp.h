@@ -36,10 +36,16 @@ static z72_u32 disp_photo_context(void)
         !(playback>=1 && playback<=3);
 }
 
+static z72_u32 disp_live_overlay_ok(void)
+{
+    z72_u32 op=DISP_BYTE(0xb202be70u);
+    return op==0 || op==2 || op==5;
+}
+
 static z72_u32 disp_photo_lcd(void)
 {
     return disp_photo_context() && !DISP_BYTE(0xb1821b18u) &&
-        DISP_WORD(0xb202f728u)==0xb1821b1cu && !DISP_BYTE(0xb202be70u) &&
+        DISP_WORD(0xb202f728u)==0xb1821b1cu && disp_live_overlay_ok() &&
         !DISP_BYTE(0xb202c016u) && !DISP_BYTE(0xb202c017u);
 }
 
@@ -132,6 +138,7 @@ static void disp_update(void)
         return;
     }
     if (!disp_active) {
+        if (DISP_BYTE(0xb202be70u)) return;
         z72_u32 property=DISP_CALL(0x1055213bu,z72_u32,void)();
         /* The selector must identify the photo LCD's own native property. */
         if (property!=0x3b15u) return;
@@ -197,7 +204,7 @@ static void disp_update(void)
     }
     /* Page four is a native app transition, not just an OSD property. Retry on
      * the next idle update if the stock controller is temporarily blocked. */
-    if (information && disp_photo_lcd())
+    if (information && disp_photo_lcd() && !DISP_BYTE(0xb202be70u))
         DISP_CALL(0x1061ff63u,void,z72_u32)(0xb1821b1cu);
     else if (!information && disp_information_visible())
         DISP_CALL(0x105af219u,void,z72_u32,z72_u32,z72_u32)(DISP_INFORMATION_APP,4,0x100000);
@@ -208,7 +215,7 @@ static z72_u32 disp_can_change(void)
     /* Input ownership must not depend on the renderer being idle, or on an
      * earlier GUI pass having installed our layout. Consume the eligible DISP
      * request now; disp_update applies it when rendering can proceed. */
-    if ((!disp_photo_lcd() && !disp_information_visible()) ||
+    if (DISP_BYTE(0xb202be70u) || (!disp_photo_lcd() && !disp_information_visible()) ||
         !(z72_config_current.disp_enabled&Z72_DISP_CUSTOM)) return 0;
     /* Match the actual OSD/DISP handler (0x105543d3), rather than the zoom
      * handler's operation flags. Rendering-busy checks belong to disp_update. */

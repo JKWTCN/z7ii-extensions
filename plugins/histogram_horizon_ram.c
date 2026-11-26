@@ -205,8 +205,9 @@ static enum histogram_result update_histogram(void)
     BYTE(HISTOGRAM_CONTROL+1)=1;
 #ifdef Z72_CUSTOM_DISP
     if (custom) {
-        WORD(HISTOGRAM_MASKS)=0x444u|(0x11u<<page);
-        WORD(HISTOGRAM_MASKS+12)=0x444u|(0x11u<<page);
+        WORD(HISTOGRAM_MASKS)=0x444u|(0x111u<<page);
+        WORD(HISTOGRAM_MASKS+12)=0x444u|(0x111u<<page);
+        WORD(HISTOGRAM_MASKS+24)=0x444u|(0x111u<<page);
     }
     else
 #endif
@@ -216,6 +217,7 @@ static enum histogram_result update_histogram(void)
     if (custom) {
         WORD(HISTOGRAM_MASKS)=0x444u;
         WORD(HISTOGRAM_MASKS+12)=0x444u;
+        WORD(HISTOGRAM_MASKS+24)=0x444u;
     }
     else
 #endif
