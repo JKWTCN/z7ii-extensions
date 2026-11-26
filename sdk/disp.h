@@ -15,9 +15,15 @@
 
 static z72_u32 disp_preset_index,disp_active,disp_saved_property,disp_saved_page,disp_owned_page;
 static z72_u32 disp_masks[DISP_WIDGETS],disp_operation_masks[DISP_WIDGETS],disp_mask_key=0xffffffffu;
-static volatile z72_u32 disp_dirty;
-static z72_u32 disp_suspended;
+static volatile z72_u32 disp_masks_ready,disp_dirty;
+static z72_u32 disp_suspended,disp_grid_hidden;
 static z72_u32 disp_restore_pending;
+
+static void disp_refresh_grid(void)
+{
+    z72_u32 grid_state=DISP_CALL(0x105b0105u,z72_u32,void)();
+    if (grid_state) DISP_CALL(0x105b00fdu,void,z72_u32)(grid_state);
+}
 
 /* Photo LCD only. The stock parameter display has its own app and snapshot;
  * menus, playback, movie mode and other outputs retain their native policy. */
@@ -97,6 +103,11 @@ static void disp_restore(void)
     disp_restore_page();
     disp_mask_key=0xffffffffu;
     DISP_CALL(0x10554cf9u,void,void)();
+    if (disp_grid_hidden) {
+        disp_grid_hidden=0;
+        if (disp_photo_lcd() && !DISP_CALL(0x106355a1u,z72_u32,void)())
+            disp_refresh_grid();
+    }
 }
 
 /* Run on the existing GUI task before the native snapshot and layout pass.
@@ -104,6 +115,7 @@ static void disp_restore(void)
  * native. Never disguise the snapshot by changing it around a callback. */
 static void disp_update(void)
 {
+    if (!__atomic_load_n(&disp_masks_ready,__ATOMIC_ACQUIRE)) return;
     disp_restore_page();
     if (disp_restore_pending) return;
     if ((!disp_photo_lcd() && !disp_information_visible()) ||
@@ -166,6 +178,11 @@ static void disp_update(void)
         __asm__ volatile("dmb sy" ::: "memory");
         disp_mask_key=key;
         DISP_CALL(0x10554cf9u,void,void)();
+        z72_u32 hide_grid=!information && !(components&Z72_DISP_GRID);
+        if (hide_grid!=disp_grid_hidden) {
+            disp_grid_hidden=hide_grid;
+            if (disp_photo_lcd()) disp_refresh_grid();
+        }
     }
     if (DISP_CALL(0x1063c7d5u,z72_u32,z72_u32)(disp_saved_property)!=base) {
         if (!DISP_CALL(0x105543bbu,z72_u32,z72_u32)(base)) {
@@ -270,6 +287,7 @@ static void disp_install(void)
         disp_operation_masks[i]=DISP_WORD(descriptor+0x10);
     }
     __asm__ volatile("dmb sy" ::: "memory");
+    __atomic_store_n(&disp_masks_ready,1,__ATOMIC_RELEASE);
     DISP_WORD(DISP_KEY_SLOT)=(z72_u32)disp_key;
     DISP_WORD(DISP_INFORMATION_APP+0x14)=(z72_u32)disp_information_key;
     DISP_WORD(DISP_INFORMATION_APP+0x1c)=(z72_u32)disp_information_update;

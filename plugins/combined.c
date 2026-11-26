@@ -3,6 +3,7 @@
 #define Z72_GRID_TRACE 0
 #define Z72_PORTRAIT_TRACE 0
 #define Z72_GRID_WITH_PORTRAIT 1
+#define Z72_DEFER_PORTRAIT_HOOKS 1
 #define Z72_PHOTO_ZEBRA 1
 #define Z72_MENU_EXTRA_ROWS 13u
 #define Z72_FIRMWARE_INFO 1
@@ -80,5 +81,7 @@ z72_u32 z72_main(const struct z72_api *api)
         pixel_load_settings();
     }
     if (sound_menu_available) sound_install();
+    /* Activate display/GUI hooks only after all dependent subsystems finish installing. */
+    portrait_activate_hooks();
     return 0;
 }
