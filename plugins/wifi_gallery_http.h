@@ -38,7 +38,7 @@ static void gallery_delay(u32 ms) { CALL(0xb10a5f68u,u32,u32)(ms); }
 static int gallery_ap_active(void)
 {
     u32 state=*(const volatile u32 *)0xb12007f0u;
-    return state==2 || state==3;
+    return state==2 || state==3 || state==6;
 }
 
 static int gallery_serving(u32 epoch)
