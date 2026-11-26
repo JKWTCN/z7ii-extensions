@@ -277,7 +277,8 @@ static void battery_clear(u32 orientation)
     if (orientation==1 || orientation==2) { box.x+=380; box.y+=191; }
     if (orientation) box=lcd_box(box,orientation);
     u32 args[7]={(u32)box.x,(u32)(LCD_H-box.y-box.h),(u32)box.w,(u32)box.h,0,0,0};
-    CALL(OSD_CLEAR,void,const u32 *)(args);
+    /* battery_relayout runs on the GUI task; use the thread-safe OSD clear wrapper. */
+    CALL(0x105a9669u,void,const u32 *)(args);
 }
 #endif
 

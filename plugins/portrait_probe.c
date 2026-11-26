@@ -212,6 +212,15 @@ static u32 export_probe(u32 a,u32 b,u32 c,u32 d)
 }
 #endif
 
+static void portrait_activate_hooks(void)
+{
+    __asm__ volatile("dmb sy" ::: "memory");
+    WORD(DRAW_SLOT)=(u32)observe_draw;
+#ifdef Z72_PORTRAIT_MENU
+    portrait_install();
+#endif
+}
+
 z72_u32 z72_main(const struct z72_api *api)
 {
     if (api->abi!=Z72_ABI || api->target!=Z72_TARGET || api->size<sizeof(*api) ||
@@ -224,10 +233,8 @@ z72_u32 z72_main(const struct z72_api *api)
     u32 result=z72_menu_install(&menu,"Portrait probe: export log",export_probe);
 #endif
     if (result) return result;
-    __asm__ volatile("dmb sy" ::: "memory");
-    WORD(DRAW_SLOT)=(u32)observe_draw;
-#ifdef Z72_PORTRAIT_MENU
-    portrait_install();
+#ifndef Z72_DEFER_PORTRAIT_HOOKS
+    portrait_activate_hooks();
 #endif
     return 0;
 }
