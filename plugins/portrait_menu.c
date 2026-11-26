@@ -496,8 +496,10 @@ static enum placement relocate_live(struct box *box)
 {
     int x=box->x, y=box->y;
 #ifdef Z72_BATTERY_PERCENT
-    if (__atomic_load_n(&battery_painting,__ATOMIC_ACQUIRE)) {
-        box->x+=380; box->y+=191;
+    if (__atomic_load_n(&battery_painting,__ATOMIC_ACQUIRE) &&
+        box->x>=0 && box->x+box->w<=66 && box->y>=392 && box->y+box->h<=432) {
+        box->x=clamp(box->x+380,0,LCD_H-box->w);
+        box->y=clamp(box->y+191,0,LCD_W-box->h);
         return NORMAL;
     }
 #endif
@@ -593,6 +595,12 @@ static void live_touch_layout(u32 orientation)
 static short movie_meter_rects[68][4];
 static u32 movie_meter_saved, movie_meter_orientation;
 
+static u32 portrait_display_busy(void)
+{
+    return CALL(0x106355a1u,u32,void)() ||
+        (WORD(0xb181d3b0u) && (WORD(0xb181d3b4u) || CALL(0x1062e289u,u32,void)()));
+}
+
 static void movie_meter_layout(u32 orientation)
 {
     if (!rotation_enabled() || current_page()!=LIVE || WORD(SHOOTING_MODE)!=1 ||
@@ -611,7 +619,8 @@ static void movie_meter_layout(u32 orientation)
         }
         movie_meter_saved=1;
     }
-    if (orientation==movie_meter_orientation) return;
+    if (orientation==__atomic_load_n(&movie_meter_orientation,__ATOMIC_ACQUIRE) ||
+        portrait_display_busy()) return;
     for (u32 row=0;row<68;++row) {
         const short *source=movie_meter_rects[row];
         struct box dest={source[0],source[1],source[2]-source[0],source[3]-source[1]};
@@ -624,12 +633,14 @@ static void movie_meter_layout(u32 orientation)
         rect[0]=dest.x; rect[1]=dest.y;
         rect[2]=dest.x+dest.w; rect[3]=dest.y+dest.h;
     }
-    movie_meter_orientation=orientation;
+    __asm__ volatile("dmb sy" ::: "memory");
+    __atomic_store_n(&movie_meter_orientation,orientation,__ATOMIC_RELEASE);
 }
 
 static u32 movie_meter_label(struct box physical,struct box *logical,u32 orientation)
 {
-    if (!orientation || orientation!=movie_meter_orientation || WORD(SHOOTING_MODE)!=1) return 0;
+    if (!orientation || orientation!=__atomic_load_n(&movie_meter_orientation,__ATOMIC_ACQUIRE) ||
+        WORD(SHOOTING_MODE)!=1) return 0;
     if (physical.w<=0 || physical.h<=0) return 0;
     for (u32 label=0;label<8;++label) {
         u32 row=2+(label/4)*34+label%4;
@@ -1051,7 +1062,7 @@ static u32 portrait_draw(volatile u32 *message,u32 outputs,u32 orientation)
      * rotation disabled. Only our synchronous painter takes this path. */
     if (__atomic_load_n(&battery_painting,__ATOMIC_ACQUIRE) && outputs==1 && target==2 &&
         (command==0x34 || command==0x37 || command==0x38))
-        return portrait_text(message,LIVE,live_orientation,command==0x38 ? 3 : 2);
+        return portrait_text(message,LIVE,__atomic_load_n(&live_orientation,__ATOMIC_ACQUIRE),command==0x38 ? 3 : 2);
 #endif
     enum page page=outputs==1 ? current_page() : OTHER;
     u32 live_canvas=page==LIVE && target==2;
@@ -1498,7 +1509,8 @@ static u32 histogram_lcd_ready(void)
 
 static u32 portrait_histogram_orientation(void)
 {
-    if (!rotation_enabled() || (WORD(DISPLAY_OUTPUTS)&7u)!=LCD_OUTPUT || current_page()!=LIVE) return 0;
+    if (!rotation_enabled() || WORD(SHOOTING_MODE) || (WORD(DISPLAY_OUTPUTS)&7u)!=LCD_OUTPUT ||
+        current_page()!=LIVE) return 0;
     u32 orientation=live_draw_orientation(CALL(ORIENTATION_GET,u32,void)());
     return is_rotated(orientation) && histogram_lcd_ready() ? orientation : 0;
 }

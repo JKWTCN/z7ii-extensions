@@ -135,6 +135,8 @@ static void zebra_evf_request(void)
     if ((state&3u) || state<0xb0000000u || state>0xc0000000u-0x26cu ||
         (Z72_ZEBRA_BYTE(0xb1d178dcu)!=3 && Z72_ZEBRA_BYTE(0xb1d178dcu)!=4) ||
         Z72_ZEBRA_BYTE(state+0x268)>4) return;
+    if (!pattern && !Z72_ZEBRA_WORD(state+0x28) && !Z72_ZEBRA_WORD(state+0x1c) &&
+        !Z72_ZEBRA_WORD(state+0x24)) return;
     const volatile z72_u32 *row=zebra_packet_records[output==4 ? 2 : 0];
     if (__atomic_load_n(&zebra_evf_applied_generation,__ATOMIC_ACQUIRE)==zebra_evf_generation &&
         row[37] && row[10]==pattern && row[11]==threshold &&
