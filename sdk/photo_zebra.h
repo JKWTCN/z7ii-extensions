@@ -79,10 +79,11 @@ static inline z72_u32 zebra_photo_context(z72_u32 mode)
     z72_u32 output=zebra_photo_output();
     if (!output) return 3;
     z72_u32 menu=Z72_ZEBRA_BYTE(0xb1824f0cu),playback=Z72_ZEBRA_BYTE(0xb1828174u);
+    z72_u32 op=Z72_ZEBRA_BYTE(0xb202be70u);
     /* Normal photo GUI scenes differ from the renderer target byte:
      * rear LCD uses scene 0, while the electronic viewfinder uses scene 2. */
     if (Z72_ZEBRA_BYTE(0xb181da91u)!=(output==4 ? 2u : 0u) || Z72_ZEBRA_BYTE(0xb1821b18u) ||
-        Z72_ZEBRA_BYTE(0xb202be70u) || Z72_ZEBRA_BYTE(0xb202c016u) ||
+        (op!=0 && op!=2 && op!=5) || Z72_ZEBRA_BYTE(0xb202c016u) ||
         Z72_ZEBRA_WORD(0xb181dabcu) || (menu>=1 && menu<=3) ||
         (playback>=1 && playback<=3)) return 4;
     return 0;
