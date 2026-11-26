@@ -154,7 +154,9 @@ static void disp_update(void)
     z72_u32 components=information ? 0 : z72_config_current.disp_components[disp_preset_index];
     z72_u32 base=information ? 4u : components&Z72_DISP_HORIZON ? 3u : 0u;
     z72_u32 details=z72_disp_information(components,disp_preset_index);
-    z72_u32 key=(disp_preset_index<<24)|components;
+    /* Show the native ISO adjustment text while the ISO button is held. */
+    if (!information && DISP_BYTE(0xb202be70u)==5) details|=Z72_DISP_ISO;
+    z72_u32 key=(disp_preset_index<<24)|(details<<16)|components;
     z72_u32 dirty=__atomic_exchange_n(&disp_dirty,0,__ATOMIC_ACQ_REL);
     if (key!=disp_mask_key || dirty) {
         /* Explicit ordinary status groups only. Unidentified controls,
