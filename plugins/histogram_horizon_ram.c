@@ -90,6 +90,7 @@ static u32 native_sampling_allowed(void)
 
 static u32 active_photo_output(void)
 {
+    if (WORD(0xb25519b8u)) return 0;
     u32 scene=BYTE(DISPLAY_SCENE);
     u32 outputs=WORD(ACTIVE_OUTPUT_BITS)&7u;
     if (scene==LCD_SCENE && (outputs&LCD_OUTPUT)) return LCD_OUTPUT;
@@ -309,7 +310,7 @@ static u32 gui_update(u32 a,u32 b,u32 c,u32 d)
 #ifdef Z72_CUSTOM_DISP
     if (disp_custom_live()) extra=!!(disp_components()&Z72_DISP_HISTOGRAM);
 #endif
-    if (extra &&
+    if (!WORD(0xb25519b8u) && extra &&
         ((after && after!=before) || !CALL(0x1061e41d,u32,void)())) {
         u32 now=CALL(0x1062e59d,u32,void)();
         if (output_before!=WORD(ACTIVE_OUTPUT_BITS)) {
