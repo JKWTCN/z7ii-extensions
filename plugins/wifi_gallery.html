@@ -134,7 +134,7 @@ function selectPhoto(photo,tile){
   updateSelection();
 }
 async function directStatus(token){
-  const deadline=Date.now()+30000;
+  const deadline=Date.now()+180000;
   while(!directStopped){
     const controller=new AbortController();
     directController=controller;
@@ -188,7 +188,7 @@ async function downloadSelected(){
   const summary='相机已发送 '+sent+' / '+files.length+' 个文件。';
   message.textContent=summary+(directStopped?' 已停止后续下载。':
     status==='2'?' 相机传输失败。':
-    status==='0'?' 等待下载超时，请检查热点连接和浏览器的自动下载权限。':' 请在浏览器下载列表查看。');
+    status==='0'?' 等待下载超时，请检查网络连接和浏览器的自动下载权限。':' 请在浏览器下载列表查看。');
   directRunning=false;
   updateSelection();
   nextThumb();
@@ -379,7 +379,7 @@ async function load(reset=false){
     if(listController!==controller)return;
     failedPage=true;el('retry').hidden=false;
     el('retry').onclick=()=>load(reset);
-    el('message').textContent='读取失败，请检查热点连接后重试';
+    el('message').textContent='读取失败，请检查网络连接后重试';
   }
   finally{
     clearTimeout(timer);

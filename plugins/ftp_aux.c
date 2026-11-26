@@ -349,8 +349,9 @@ static int ftp_ap_active(void)
 static u32 ftp_network(void)
 {
     /* Radio shutdown clears its mode before the STA context can be recycled. */
-    if (!AP_STATE) return 0;
-    return ftp_ap_active() ? 1u : STA_CONTEXT ? 2u : 0u;
+    u32 state=AP_STATE;
+    if (!state) return 0;
+    return ftp_ap_active() ? 1u : (state==6 || STA_CONTEXT) ? 2u : 0u;
 }
 static void ftp_wifi_changed(u32 previous)
 {
@@ -434,7 +435,10 @@ u32 wifi_aux_ftp_init(u32 event,volatile u32 *request)
     u32 initialize=request[0]!=0xffffffffu;
     u32 result=CALL(0xb107149du,u32,u32,volatile u32 *)(event,request);
     ftp_wifi_changed(0);
-    if (initialize) start_worker();
+    if (initialize) {
+        start_worker();
+        gallery_aux_start();
+    }
     return result;
 }
 
@@ -447,7 +451,10 @@ u32 wifi_aux_sta(u32 event,volatile u32 *request)
     ftp_wifi_changed(0);
     /* STA command 14 stores this context before scheduling association. The
      * FTP connect attempts wait out association/DHCP using normal TCP errors. */
-    if (start && STA_CONTEXT==context) start_worker();
+    if (start && STA_CONTEXT==context) {
+        start_worker();
+        gallery_aux_start();
+    }
     return result;
 }
 
