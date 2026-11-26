@@ -235,6 +235,7 @@ static void filtered_playback_install(void)
     photo_play_set_enabled(z72_config_current.rotate_inverted);
     photo_draw_install();
     install_menu();
+    __asm__ volatile("dmb sy" ::: "memory");
     WORD(PLAYBACK_TASK_SLOT)=(z72_u32)playback_dispatch;
 #ifdef Z72_PHOTO_PLAYBACK
     photo_prefill_install();

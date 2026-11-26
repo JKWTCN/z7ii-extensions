@@ -237,12 +237,24 @@ static z72_u32 card_stream_close(z72_u32 argument)
     }
     return 0;
 }
+static void notify_image_native(z72_u32 event,z72_u32 argument)
+{
+#ifdef Z72_FTP_FULL
+    z72_u32 epoch,profile,id;
+    ftp_auto_observe(event,argument,&epoch,&profile,&id);
+#endif
+    CALL(IMAGE_NATIVE,void,z72_u32,z72_u32)(event,argument);
+#ifdef Z72_FTP_FULL
+    ftp_auto_enqueue(id,epoch,profile);
+#endif
+}
+
 static void image_notice(z72_u32 event,z72_u32 argument)
 {
 #ifdef Z72_PIXEL_SHIFT
     z72_u32 pixel_closed=pixel_image_notice(event,argument);
     if (pixel_closed) {
-        CALL(IMAGE_NATIVE,void,z72_u32,z72_u32)(event,argument);
+        notify_image_native(event,argument);
         pixel_finish_file(pixel_closed);
         return;
     }
@@ -261,13 +273,13 @@ static void image_notice(z72_u32 event,z72_u32 argument)
     if (event==0x041f0002u && LOAD(in_flight) && fallback[7]==CARD_SHOT &&
         pre_capture_ram(argument,20) && card_stream_close(argument)) return;
 
-    CALL(IMAGE_NATIVE,void,z72_u32,z72_u32)(event,argument);
+    notify_image_native(event,argument);
 }
 static void finish_pre_notice(void)
 {
     z72_u32 pending=2;
     if (__atomic_compare_exchange_n(&pre_notice_pending,&pending,3,0,__ATOMIC_ACQ_REL,__ATOMIC_ACQUIRE)) {
-        CALL(IMAGE_NATIVE,void,z72_u32,const void *)(0x041f0002u,(const void *)pre_notice_payload);
+        notify_image_native(0x041f0002u,(z72_u32)pre_notice_payload);
         ++metadata_stats[4]; STORE(pre_notice_pending,0);
     }
     STORE(pre_notice_id,0);
@@ -286,7 +298,7 @@ static void finish_image_notice(void)
         if (first!=i) for (z72_u32 j=0;j<5;++j) {
             z72_u32 tmp=card_images[i][j]; card_images[i][j]=card_images[first][j]; card_images[first][j]=tmp;
         }
-        CALL(IMAGE_NATIVE,void,z72_u32,const void *)(0x041f0002u,(const void *)card_images[i]);
+        notify_image_native(0x041f0002u,(z72_u32)card_images[i]);
 
     }
 
@@ -1494,6 +1506,9 @@ static z72_u32 pre_capture_ready(void)
 
 static void install_shared_capture_hooks(void)
 {
+#ifdef Z72_FTP_FULL
+    ftp_store(&ftp_shared_image_hook,(z72_u32)image_notice);
+#endif
     WORD(INPUT_SLOT)=(z72_u32)input_dispatch;
     WORD(FILE_STATE+0x14)=(z72_u32)pipeline_notify;
     WORD(IMAGE_SLOT)=(z72_u32)image_notice;
