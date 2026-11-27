@@ -22,7 +22,7 @@ ARM 模拟验证了启动直读、提前恢复和补发表的重试条件。六�
 
 ## SD 卡校准文件
 
-将 `Z72NPCAL.BIN` 放进 SD 卡根目录的 `CUSTOMPC`，和原始 NP3 放在一起，然后完整关机再开机。相机按 NP3 的字节长度和内容指纹匹配校准，重命名文件或调整 B 槽顺序也能匹配。修改 NP3 内容后，使用新内容重新拟合对应记录。
+将 `Z72NPCAL.BIN` 放到 SD 卡根目录，与 `Z72APP.BIN` 放在一起。原始 NP3 放在 `CUSTOMPC`，复制后完整关机再开机。相机按 NP3 的字节长度和内容指纹匹配校准，重命名文件或调整 B 槽顺序也能匹配。修改 NP3 内容后，使用新内容重新拟合对应记录。
 
 每条记录在通用 RGB 曲线和配对色度表上叠加该预设的修正，应用于取景和机内 JPEG。校准文件缺失、校验失败或没有对应记录时，相机采用该预设的常规渲染。Kodachrome 继续使用原厂 Red。更新校准只需替换 `Z72NPCAL.BIN` 并重新开机。
 
@@ -59,7 +59,7 @@ ARM emulation verified direct startup reads, early restoration, and retry condit
 
 ### SD calibration file
 
-Put `Z72NPCAL.BIN` beside the original presets under `CUSTOMPC` at the root of the SD card, then fully power the camera off and on. The module matches each preset by file length and content fingerprint. Renaming or reordering the files preserves the match. If you edit a preset, fit a new record for its updated content.
+Put `Z72NPCAL.BIN` beside `Z72APP.BIN` at the root of the SD card and keep the original presets in `CUSTOMPC`. Fully power the camera off and on. The module matches each preset by file length and content fingerprint. Renaming or reordering the files preserves the match. If you edit a preset, fit a new record for its updated content.
 
 Each record adjusts the preset's standard RGB and paired chroma tables for live view and camera JPEGs. The module uses the standard rendering if the calibration file is missing or fails validation or if the preset has no matching record. Kodachrome uses the camera's native Red processing. To update the calibration, replace `Z72NPCAL.BIN` and power-cycle the camera.
 
@@ -77,6 +77,11 @@ Use `tools/np3_calibrate.py fit` to generate a JSON report and a calibration fil
 | Output | Uses a shared algorithm for compatible presets. The effect appears in preview and camera JPEGs. The original NEF sensor data is retained. | Reapplies and permits editing the full preset when developing the NEF. |
 
 ## 版本更新 / Version history
+
+### v0.1.0-preview.46-np3cal.2
+
+- 校准文件移到 SD 卡根目录，与 `Z72APP.BIN` 一起复制。
+- Moved the calibration file to the root of the SD card, beside `Z72APP.BIN`.
 
 ### v0.1.0-preview.46-np3cal.1
 

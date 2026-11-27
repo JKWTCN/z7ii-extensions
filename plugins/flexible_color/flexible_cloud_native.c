@@ -90,7 +90,7 @@ static u32 cloud_boot_first_generated,cloud_boot_updates;
 
 static const char cloud_selection_path[]=CLOUD_PRESET_DIRECTORY "Z72BSEL.CFG";
 static const char cloud_resume_path[]=CLOUD_PRESET_DIRECTORY "Z72BSEL.IDX";
-static const char cloud_calibration_path[]=CLOUD_PRESET_DIRECTORY "Z72NPCAL.BIN";
+static const char cloud_calibration_path[]="B:\\Z72NPCAL.BIN";
 #define CLOUD_SELECTION_MAGIC 0x3142535au /* ZSB1 */
 #define CLOUD_RESUME_MAGIC 0x3149535au /* ZSI1 */
 struct cloud_resume {
