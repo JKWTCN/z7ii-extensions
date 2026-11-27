@@ -1357,7 +1357,15 @@ static u32 external_key(u32 app,u32 key)
     return is_portrait(layout) ? rotated[layout-1][key-2] : key;
 }
 
-static void picture_key(u32 key) { CALL(PICTURE_KEY,void,u32)(external_key(1,key)); }
+static void picture_key(u32 key)
+{
+    key=external_key(1,key);
+#ifdef Z72_FLEXIBLE_COMBINED
+    cloud_combined_picture_key(key);
+#else
+    CALL(PICTURE_KEY,void,u32)(key);
+#endif
+}
 static void color_key(u32 key) { CALL(COLOR_KEY,void,u32)(external_key(10,key)); }
 static void color_detail_key(u32 key) { CALL(COLOR_DETAIL_KEY,void,u32)(external_key(14,key)); }
 
@@ -1616,12 +1624,18 @@ static u32 live_update(u32 a,u32 b,u32 c,u32 d)
         return 0; /* The native parameter app now owns the GUI update. */
     }
 #endif
+#ifdef Z72_FLEXIBLE_COMBINED
+    cloud_before_live_update();
+#endif
     if (current_page()!=LIVE) {
         if (live_orientation) live_touch_layout(0);
         __atomic_store_n(&live_orientation,0,__ATOMIC_RELEASE);
         movie_meter_layout(0);
         last_plot_orientation=0;
         u32 result=CALL(LIVE_UPDATE_STOCK,u32,u32,u32,u32,u32)(a,b,c,d);
+#ifdef Z72_FLEXIBLE_COMBINED
+        cloud_restore_selection();
+#endif
 #ifdef Z72_PHOTO_ZEBRA
         z72_photo_zebra_update();
 #endif
@@ -1649,6 +1663,9 @@ static u32 live_update(u32 a,u32 b,u32 c,u32 d)
     u32 preset=wide_af_active(),output=WORD(DISPLAY_OUTPUTS)&7u;
 #endif
     u32 result=gui_update(a,b,c,d);
+#ifdef Z72_FLEXIBLE_COMBINED
+    cloud_restore_selection();
+#endif
     /* Native widgets can recreate their touch bounds during the update. */
     if (previous_orientation || live_orientation)
         live_touch_layout(current_page()==LIVE ? live_orientation : 0);

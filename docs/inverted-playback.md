@@ -22,8 +22,8 @@ Fixed upside-down JPG and NEF photos that appeared upright in camera playback bu
 
 修复倒置照片单张回放和放大时，画面顶部或右侧可能出现的杂色像素。模块接管后会在绘制前补读当前照片的方向，预读的布局和绘制也共用同一次方向判断，减少同一张照片在两次回放中方向不一致的情况。
 
-全图、留边和放大裁剪均通过本地固件测试。冷开机后立即进入回放的首帧时序待实机确认。
+全图、留边和放大裁剪均通过本地固件测试。
 
 Fixed stray pixels along the top or right edge of upside-down photos in single-image playback and playback zoom. After the module takes over, it can recover the current photo’s orientation before rendering. Preview layout and rendering also share the same orientation decision, reducing inconsistent orientation when reopening the same photo.
 
-Full-frame, letterboxed, and zoomed playback passed local firmware tests. First-frame timing when entering playback immediately after a cold start still needs camera testing.
+Full-frame, letterboxed, and zoomed playback passed local firmware tests.

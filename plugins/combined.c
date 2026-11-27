@@ -23,6 +23,15 @@
 #define Z72_FILTERED_PLAYBACK 1
 #define Z72_PHOTO_PLAYBACK 1
 #define Z72_PIXEL_SHIFT 1
+#define Z72_FLEXIBLE_COMBINED 1
+#include "z72.h"
+
+static void cloud_init(void);
+static void cloud_before_live_update(void);
+static void cloud_restore_selection(void);
+static void cloud_combined_picture_key(z72_u32 key);
+static z72_u32 cloud_i_input(z72_u32 key);
+static z72_u32 cloud_live_idle(z72_u32 a,z72_u32 b,z72_u32 c,z72_u32 d);
 #include "disp.h"
 #include "af_shortcut.h"
 #include "movie_limit.h"
@@ -61,6 +70,7 @@ z72_u32 z72_main(const struct z72_api *api)
         return 1;
     z72_u32 result=portrait_init(api);
     if (result) return result;
+    cloud_init();
     if (rotation_menu.title[0]) filtered_playback_install();
     grid_install(rotation_menu.title[0] ? Z72_TEXT_GRID_GOLDEN : 0);
     zebra_producer_install();
@@ -85,3 +95,5 @@ z72_u32 z72_main(const struct z72_api *api)
     portrait_activate_hooks();
     return 0;
 }
+
+#include "flexible_color/flexible_cloud_native.c"

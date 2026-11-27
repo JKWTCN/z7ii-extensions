@@ -1453,7 +1453,11 @@ static z72_u32 pre_capture_review_update(void)
 static z72_u32 gui_capture(z72_u32 a,z72_u32 b,z72_u32 c,z72_u32 d)
 {
     if (pre_capture_review_update()) return 0;
+#ifdef Z72_FLEXIBLE_COMBINED
+    return cloud_live_idle(a,b,c,d);
+#else
     return CALL(GUI_CAPTURE_NATIVE,z72_u32,z72_u32,z72_u32,z72_u32,z72_u32)(a,b,c,d);
+#endif
 }
 static z72_u32 choose_on(z72_u32 a,z72_u32 b,z72_u32 c,z72_u32 d)
 {

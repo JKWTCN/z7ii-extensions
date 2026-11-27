@@ -18,6 +18,7 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 | [电量百分比显示](docs/battery-percent.md)               | 照片及视频 LCD 电池框内透明底百分比，全局开关默认关闭                                  | 已实机验证 |
 | [解除录像时长限制](docs/movie-recording-limit.md)       | 普通视频突破 29:59，已验证 1080/60p 连续录制 38:52                                     | 已实机验证 |
 | [视频自动方向](docs/video-rotation.md)                  | 开档时锁定方向，写入 MOV／MP4 视频轨元数据                                             | 已实机验证 |
+| [风味灵活颜色](docs/flexible-color.md)                  | 照片 i 菜单支持 SD 卡 NP3 的 B 插槽、实时预览和开机恢复                                | 已实机验证 |
 | [JPEG 预拍摄](docs/jpeg-pre-capture.md)                 | 四档预拍摄时间，可由半按快门或 AF-ON 启动，全按接续 H+ 连拍                            | 已实机验证 |
 | [静音拍摄快门声音](docs/shutter-sound.md)               | 从 SD 卡读取自定义 WAV，支持试听、五档音量和连拍播放设置                               | 已实机验证 |
 | [筛选的播放](docs/filtered-playback.md)                 | 按保护状态、影像类型、评级和日期筛选全屏及缩略图播放                                   | 已实机验证 |
@@ -67,12 +68,12 @@ Wi-Fi 设置的[使用限制与风险声明](docs/wifi-settings.md#important-lim
 如果要自己构建固件升级包的生成方法见[构建](#构建)。
 
 1. 等待存储卡访问结束，关机并取出存储卡。
-2. 将 [Z72APP.BIN](releases/v0.1.0-preview.44/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.45/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
 3. 装回卡和电池，等待到 i 按键旁边的读取灯灭了再开机。
 
-当前版本为 `v0.1.0-preview.44`，模块 324,268 字节。[SHA-256 校验](releases/v0.1.0-preview.44/SHA256SUMS)
+当前版本为 `v0.1.0-preview.45`，模块 356,652 字节。[SHA-256 校验](releases/v0.1.0-preview.45/SHA256SUMS)
 
-这是试用版本，休眠唤醒和长期稳定性尚未单独确认。替换或移除模块请完整断电。只加载可信模块。
+替换或移除模块请完整断电。只加载可信模块。
 
 ## 构建
 

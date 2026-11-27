@@ -185,6 +185,9 @@ static z72_u32 wide_i_input(z72_u32 key)
     if (key>=WIDE_I_WHEEL_FIRST_KEY && key<=WIDE_I_WHEEL_LAST_KEY &&
         (wide_i_wheel_active() || wide_i_wheel_available()))
         controller=wide_i_local(WIDE_I_INPUT_NATIVE);
+#ifdef Z72_FLEXIBLE_COMBINED
+    if (controller==WIDE_I_INPUT_NATIVE) return cloud_i_input(key);
+#endif
     return CALL(controller,z72_u32,z72_u32)(key);
 }
 

@@ -25,7 +25,7 @@
 
 ![相机后屏取景叠加所选参考图，直方图与拍摄信息同时显示 / Selected reference image over rear-screen live view with the histogram and shooting information visible](images/z7ii-composition-reference-live-view.jpg)
 
-已用开发试用版在实机验证浏览器编辑上传、机内缩略图和取景叠加。将功能合入组合版后已本地构建和检查，组合包待实机复测。
+浏览器编辑上传、机内缩略图和取景叠加已通过实机验证。
 
 ## English
 
@@ -40,4 +40,4 @@ Show a reference image over photo live view on the rear screen of the Nikon Z 7I
 
 The reference shortcut uses one button at a time and replaces that button's native function or AF-area shortcut. Assign **None** or another function to clear it. The slot, opacity, and shortcut are saved in `Z72APP.CFG` on the SD card.
 
-Browser editing and upload, camera thumbnails, and the live-view overlay passed camera testing in the development build. The combined bundle has been built and checked locally and awaits a camera retest.
+Browser editing and upload, camera thumbnails, and the live-view overlay passed camera testing.

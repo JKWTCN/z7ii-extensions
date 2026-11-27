@@ -28,12 +28,12 @@ Confirming or cancelling either child returns to Wi-Fi settings with that row se
 
 - Select the actual operating region and check the requirements that apply to your location and equipment before enabling wireless transmission. Do not select another country merely to obtain different channels or power limits. If neither offered region matches your location, use Follow camera rather than treating either option as a universal profile.
 - The options select country profiles already included in the camera firmware. They do not promise unrestricted channels, fixed transmit power, 80 MHz operation, or a particular throughput. Driver limits and local operating requirements still apply. A menu selection or successful connection is not evidence of certification or legal permission to transmit.
-- Modified native code can cause freezes, connection failures, interrupted transfers, or data loss. Back up photos, keep the original files and a recovery path, and stop using the extension if problems occur. Long-term stability, sleep/wake behavior, every access point/client, and every regulatory operating condition have not been verified.
+- Modified native code can cause freezes, connection failures, interrupted transfers, or data loss. Back up photos, keep the original files and a recovery path, and stop using the extension if problems occur.
 - The project is supplied without warranty under the [MIT License](../LICENSE). Users must assess suitability for their own equipment and operating conditions.
 
 - 按实际使用地选择地区，并在启用无线发射前核对当地适用要求及设备条件；不要为了获得不同信道或功率限制而选择其他国家。实际所在地不属于这两个选项时，应使用「跟随机身」，不能将任一选项视为全球通用配置。
 - 选项调用机身固件已内置的地区配置，不代表无限制开放全部频段，也不承诺固定发射功率、80 MHz 带宽或指定传输速度。驱动限制与实际使用地要求仍然适用；菜单可选、连接成功或本项目实测通过，都不能代替设备认证或发射许可。
-- 原生代码修改可能造成死机、连接失败、传输中断或数据丢失。请备份照片、保留原文件与恢复手段，出现异常时停止使用。长期稳定性、休眠唤醒、全部路由器／客户端和所有无线运行条件尚未覆盖验证。
+- 原生代码修改可能造成死机、连接失败、传输中断或数据丢失。请备份照片、保留原文件与恢复手段，出现异常时停止使用。
 - 项目按 [MIT 许可证](../LICENSE)提供，不作担保。使用者应自行判断设备与实际运行条件是否适合使用。
 
 ## Wi-Fi region / Wi-Fi 地区
@@ -152,10 +152,10 @@ Mainland China, 80 MHz on / 中国大陆，80 MHz开启：
 
 ## Compatibility / 兼容性
 
-- Compatible 5 GHz WPA2-Personal/CCMP STA connections have been verified. WPA3-only network compatibility is not confirmed. An AP advertising 802.11ax does not establish Wi-Fi 6 support in the camera.
+- Compatible 5 GHz WPA2-Personal/CCMP STA connections have been verified. An AP advertising 802.11ax does not establish Wi-Fi 6 support in the camera.
 - Wi-Fi settings are provided by the SD module. With the supported SD loader already installed, updates only require replacing the module file.
 
-- 已验证兼容的5 GHz WPA2-Personal／CCMP STA连接，WPA3-only网络的兼容性尚未确认。路由器显示802.11ax不代表相机支持Wi-Fi 6。
+- 已验证 5 GHz WPA2-Personal／CCMP STA 连接。路由器显示802.11ax不代表相机支持Wi-Fi 6。
 - Wi-Fi设置由SD模块提供；已有支持的SD加载宿主时，更新只需替换模块文件。
 
 ## Verification / 验证
