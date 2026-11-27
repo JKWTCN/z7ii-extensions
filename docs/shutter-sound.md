@@ -21,7 +21,7 @@ Use 48 kHz, 16-bit PCM WAV files up to **1 second** long. Both mono and stereo a
 
 ## Sample WAV files / 示例音效
 
-The [release directory](../releases/) includes five sample WAV files named `SHUTTER1.WAV` through `SHUTTER5.WAV`. 发布目录附带 `SHUTTER1.WAV` 至 `SHUTTER5.WAV` 五个示例音效。
+The [release directory](../releases/latest/) includes five sample WAV files named `SHUTTER1.WAV` through `SHUTTER5.WAV`. 发布目录附带 `SHUTTER1.WAV` 至 `SHUTTER5.WAV` 五个示例音效。
 
 Use FFmpeg to convert a clip and keep its first second. 以下命令可转换音效并截取前 1 秒。
 

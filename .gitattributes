@@ -1,5 +1,6 @@
 # Preserve the exact bytes recorded in release checksums.
 releases/v*/** -text
+/releases/latest/** -text
 /releases/composition_reference.html -text
 /releases/menu-font-license.txt -text
 /plugins/wifi_gallery.html text eol=lf
