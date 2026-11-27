@@ -20,6 +20,14 @@ SD 卡根目录 `CUSTOMPC` 版已于 2026-11-27 通过 Z 7II 实机验证。
 
 ARM 模拟验证了启动直读、提前恢复和补发表的重试条件。六份配方的解析和色表生成指令数减少约 85%–87%，RGB 和色度表与优化前逐字节一致。
 
+## SD 卡校准文件
+
+将 `Z72NPCAL.BIN` 放进 SD 卡根目录的 `CUSTOMPC`，和原始 NP3 放在一起，然后完整关机再开机。相机按 NP3 的字节长度和内容指纹匹配校准，重命名文件或调整 B 槽顺序也能匹配。修改 NP3 内容后，使用新内容重新拟合对应记录。
+
+每条记录在通用 RGB 曲线和配对色度表上叠加该预设的修正，应用于取景和机内 JPEG。校准文件缺失、校验失败或没有对应记录时，相机采用该预设的常规渲染。Kodachrome 继续使用原厂 Red。更新校准只需替换 `Z72NPCAL.BIN` 并重新开机。
+
+`tools/np3_calibrate.py fit` 用同次曝光的机内 JPEG 与 NX Studio 显影结果拟合并输出 JSON 和校准文件。`tools/np3_calibrate.py pack calibration.json Z72NPCAL.BIN` 可将调整后的 JSON 重新打包。JSON 中按原始文件内容记录校准，`rgb` 为三通道各九个 RGB 修正节点，`cpxs` 为六行各四个循环色度修正节点。
+
 ## 算法差异
 
 表中的 NX Studio 指对同次曝光 NEF 应用完整灵活色彩配方的桌面显影路径。[尼康 NX Studio 灵活色彩说明](https://nikonimglib.com/nxstdo/onlinehelp/en/the_picture_controls_flexible_color_23.html)
@@ -49,6 +57,14 @@ Mean ΔE76 is calculated over flat areas in the 720×480 comparisons. In this sc
 
 ARM emulation verified direct startup reads, early restoration, and retry conditions. Parsing and table generation executed 85%–87% fewer instructions across six presets and produced byte-identical RGB and chroma tables.
 
+### SD calibration file
+
+Put `Z72NPCAL.BIN` beside the original presets under `CUSTOMPC` at the root of the SD card, then fully power the camera off and on. The module matches each preset by file length and content fingerprint. Renaming or reordering the files preserves the match. If you edit a preset, fit a new record for its updated content.
+
+Each record adjusts the preset's standard RGB and paired chroma tables for live view and camera JPEGs. The module uses the standard rendering if the calibration file is missing or fails validation or if the preset has no matching record. Kodachrome uses the camera's native Red processing. To update the calibration, replace `Z72NPCAL.BIN` and power-cycle the camera.
+
+Use `tools/np3_calibrate.py fit` to generate a JSON report and a calibration file from matched camera JPEGs and NX Studio renders. Use `tools/np3_calibrate.py pack calibration.json Z72NPCAL.BIN` to rebuild the calibration file from an edited report.
+
 ### Algorithm differences
 
 | Stage | Z 7II Flexible Color extension | NX Studio Flexible Color |
@@ -61,6 +77,11 @@ ARM emulation verified direct startup reads, early restoration, and retry condit
 | Output | Uses a shared algorithm for compatible presets. The effect appears in preview and camera JPEGs. The original NEF sensor data is retained. | Reapplies and permits editing the full preset when developing the NEF. |
 
 ## 版本更新 / Version history
+
+### v0.1.0-preview.46-np3cal.1
+
+- SD 测试版加入 `CUSTOMPC/Z72NPCAL.BIN`，为 11 份灵活色彩 NP3 分别加载取景和 JPEG 的色彩修正。使用同次曝光的原始 NEF 套用对应 NP3 作为显影参考。留出区域的平均 ΔE76 从 15.34 降到模型估计的 5.51，待实机测量。
+- The SD test build loads individual live-view and JPEG corrections for 11 Flexible Color presets from `CUSTOMPC/Z72NPCAL.BIN`. NX Studio references were rendered from the same exposures with the original NP3s. Across held-out image regions, mean ΔE76 was 15.34 before calibration and 5.51 in the calibrated model.
 
 ### v0.1.0-preview.45
 
