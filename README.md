@@ -68,10 +68,10 @@ Wi-Fi 设置的[使用限制与风险声明](docs/wifi-settings.md#important-lim
 如果要自己构建固件升级包的生成方法见[构建](#构建)。
 
 1. 等待存储卡访问结束，关机并取出存储卡。
-2. 将 [Z72APP.BIN](releases/v0.1.0-preview.45/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
+2. 将 [Z72APP.BIN](releases/v0.1.0-preview.46/Z72APP.BIN) 放到 SD 卡根目录，已有 `Z72APP.CFG` 可保留。
 3. 装回卡和电池，等待到 i 按键旁边的读取灯灭了再开机。
 
-当前版本为 `v0.1.0-preview.45`，模块 356,652 字节。[SHA-256 校验](releases/v0.1.0-preview.45/SHA256SUMS)
+当前版本为 `v0.1.0-preview.46`，模块 356,716 字节。[SHA-256 校验](releases/v0.1.0-preview.46/SHA256SUMS)
 
 替换或移除模块请完整断电。只加载可信模块。
 

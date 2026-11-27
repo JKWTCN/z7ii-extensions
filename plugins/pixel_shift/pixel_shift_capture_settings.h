@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 enum {
+    PIXEL_SELF_TIMER = 0x0008, PIXEL_RELEASE_MODE = 0x0209,
     PIXEL_RAW_COMPRESSION = 0x0506, PIXEL_RAW_DEPTH = 0x0507,
     PIXEL_SILENT_PHOTOGRAPHY = 0x057a, PIXEL_SILENT_ON = 1,
     PIXEL_BRACKETING_TYPE = 0x056f, PIXEL_BRACKETING_FLASH_ONLY = 2,
@@ -14,6 +15,10 @@ static const struct {
     {PIXEL_RAW_DEPTH, PIXEL_RAW_14_BIT, 1},
     {PIXEL_RAW_COMPRESSION, PIXEL_RAW_UNCOMPRESSED, 2},
     {PIXEL_SILENT_PHOTOGRAPHY, PIXEL_SILENT_ON, 1},
+    /* The native release menu clears the self-timer before selecting S.
+     * The continuous subtype (0x020a) stays selected for restoration. */
+    {PIXEL_SELF_TIMER, 0, 1},
+    {PIXEL_RELEASE_MODE, 0, 4},
 };
 enum { PIXEL_SETTINGS_COUNT = sizeof(pixel_capture_settings)/sizeof(pixel_capture_settings[0]) };
 static z72_u32 pixel_settings_saved[PIXEL_SETTINGS_COUNT];

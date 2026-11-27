@@ -6,7 +6,7 @@
 
 ### 相机设置
 
-1. 使用三脚架和静止主体。开启机身防抖，选择单张释放和单卡记录。
+1. 使用三脚架和静止主体。开启机身防抖，选择单卡记录。
 2. 将照片影像区域设为 FX，NEF（RAW）尺寸设为 L。每组拍摄期间，模块会启用静音拍摄并固定输出 14 位未压缩 NEF，拍摄结束后恢复原来的设置。
 3. 在 **设定菜单 → 像素变化拍摄** 选择模式与张数，然后返回取景。全按一次快门后松开，等待相机完成整组拍摄、传感器回中和存卡。
 
@@ -30,8 +30,6 @@
 
 机内合成会先对齐原片。4 张和 8 张输出 8256 × 5504，16 张和 32 张输出 16512 × 11008。完成后，文件保存在原片所在卡根目录的 `Synthesis` 文件夹。合成中按 MENU 或点右上角的返回键可以取消。
 
-从 `v0.1.0-preview.41` 起，相机在合成期间会刷新菜单待机计时。显示「已保存到存储卡」和返回照片组时都会重新计时。返回后按相机设定的菜单待机时长计时。
-
 四张一组的实机合成耗时为 TIF **74.411 秒**、NEFX **75.011 秒**。
 
 「半格位移校准」可单独设定 X 和 Y，默认值分别为 11 和 9，设置保存在 SD 卡的 `Z72APP.CFG` 中。16 张和 32 张模式会使用半格位移。[标定指南](IBIS-calibration.md)
@@ -51,7 +49,7 @@ Pixel shift shooting on the Nikon Z 7II C 1.70 moves the sensor between exposure
 
 ### Camera setup
 
-1. Use a tripod and a static subject. Enable in-body vibration reduction and select single-frame release and single-card recording.
+1. Use a tripod and a static subject. Enable in-body vibration reduction and select single-card recording.
 2. Select FX image area and L NEF (RAW) size. The module enables silent photography and records uncompressed 14-bit NEFs during each series. It restores your settings after capture.
 3. Choose the mode and number of shots under **Setup Menu → Pixel shift shooting**. Return to live view, press the shutter-release button fully once, and release it. Wait for the camera to finish the series, recenter the sensor and write the files.
 
@@ -75,8 +73,6 @@ Go to **Setup Menu → Pixel shift shooting → In-camera merge** and select a s
 
 The camera aligns the originals before merging. With 4 or 8 shots it produces an 8256 × 5504 image, and with 16 or 32 shots it produces a 16512 × 11008 image. The result is saved in `Synthesis` at the root of the card holding the originals. Press MENU or tap the back button in the top-right corner to cancel a merge in progress.
 
-Starting with `v0.1.0-preview.41`, the module keeps the menu awake during a merge. The menu standby timer restarts when the camera shows **Saved to memory card** and again when you return to the series picker. The picker follows the configured menu standby delay.
-
 On-camera merge of a four-shot series took **74.411 seconds** for TIF and **75.011 seconds** for NEFX.
 
 **Half-step calibration** lets you set X and Y separately. The defaults are 11 and 9. The SD card's `Z72APP.CFG` stores both values, which are used for 16- and 32-shot series. [Calibration guide](IBIS-calibration.md#why-calibrate)
@@ -89,6 +85,18 @@ The Windows GUI and command-line tool accept 4, 8, 16 or 32 full-size, 14-bit FX
 
 1. Open a complete NEF series in NX Studio and select **Pixel shift merge** in the toolbar. With **Generate one image** selected, 4- and 8-shot series produce 8256 × 5504 images, while 16- and 32-shot series produce 16512 × 11008 images.
 2. Choose a destination and start the merge. The resulting NEFX is ready for editing and export. [NX Studio Pixel Shift Merge help](https://www.nikonimglib.com/nxstdo/onlinehelp/en/merge_pixel_shift_pictures_53.html)
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.46
+
+- 每组像素变化拍摄开拍前自动切换到单张释放，组末恢复原释放模式。使用旧版时，请在拍摄前手动选择单张释放。
+- The module switches to single-frame release before each series and restores the previous release mode afterward. On earlier versions, select single-frame release before shooting.
+
+### v0.1.0-preview.41
+
+- 机内合成期间刷新菜单待机计时。显示「已保存到存储卡」和返回照片组时都会重新计时。返回后按相机设定的菜单待机时长计时。
+- The module keeps the menu awake during a merge. The menu standby timer restarts when the camera shows **Saved to memory card** and again when you return to the series picker. The picker follows the configured menu standby delay.
 
 ## 机内合成界面 / In-camera merge screens
 

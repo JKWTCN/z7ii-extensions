@@ -146,8 +146,7 @@ static int pixel_shutter_event(z72_u32 callback)
         PIXEL_STORE(pixel_full_owned,1);
         return 1;
     }
-    if (!PIXEL_LOAD(pixel_tasks_started) || PIXEL_LOAD(pixel_mode)==PIXEL_OFF || !pixel_photo_view() ||
-        CALL(0x104d1e8bu,z72_u32,void)()!=1) return 0;
+    if (!PIXEL_LOAD(pixel_tasks_started) || PIXEL_LOAD(pixel_mode)==PIXEL_OFF || !pixel_photo_view()) return 0;
 
     PIXEL_STORE(pixel_full_owned,1);
     if (PIXEL_LOAD(reply)==0x102u) return 1;
@@ -165,13 +164,14 @@ static int pixel_shutter_event(z72_u32 callback)
     return 1;
 }
 
-static int pixel_capture_ready(int require_silent)
+static int pixel_capture_ready(int require_prepared)
 {
     return !pixel_cancelled() && pixel_capture_idle() &&
         !CALL(0x1022cfa7u,z72_u32,z72_u32)(0x58) &&
         !CALL(0x1022cfa7u,z72_u32,z72_u32)(0x59) &&
-        (!require_silent || CALL(0x1063c7d5u,z72_u32,z72_u32)(PIXEL_SILENT_PHOTOGRAPHY)==1) &&
-        CALL(0x104d1e8bu,z72_u32,void)()==1 &&
+        (!require_prepared ||
+         (CALL(0x1063c7d5u,z72_u32,z72_u32)(PIXEL_SILENT_PHOTOGRAPHY)==1 &&
+          CALL(0x104d1e8bu,z72_u32,void)()==1)) &&
         CALL(0x1034ffbfu,z72_u32,z72_u32)(0x1b04)==0 &&
         CALL(0x10496b8bu,z72_u32,void)()==1 &&
         CALL(0x103c09e9u,z72_u32,z72_u32)(0x11b)!=1 &&
