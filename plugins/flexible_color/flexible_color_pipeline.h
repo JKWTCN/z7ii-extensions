@@ -28,14 +28,6 @@ static u32 cloud_style_mutex[2];
 static u32 cloud_saved_capture_policy,cloud_capture_policy_owned;
 static u32 cloud_style_enabled;
 
-static u32 cloud_hash(const void *data,u32 bytes)
-{
-    const unsigned char *source=data;
-    u32 hash=2166136261u;
-    for(u32 i=0;i<bytes;++i) hash=(hash^source[i])*16777619u;
-    return hash;
-}
-
 /* The original local photo path lets the same color data reach every shot. */
 static u32 cloud_set_capture_policy(u32 enabled)
 {
@@ -133,7 +125,7 @@ static u32 cloud_running_update(u32 bank,const void *request)
 static u32 cloud_pipeline_prepare(void)
 {
     if(WORD(CLOUD_WORKER_SLOT0)!=CLOUD_WORKER_STOCK0 || WORD(CLOUD_WORKER_SLOT1)!=CLOUD_WORKER_STOCK1 ||
-       CLOUD_CAPTURE_POLICY>2 || cloud_hash((const void *)0x103d1e5cu,58)!=0x3099b367u)
+       CLOUD_CAPTURE_POLICY>2 || z72_np3_hash((const void *)0x103d1e5cu,58)!=0x3099b367u)
         return 1;
     for(u32 i=0;i<sizeof(cloud_capture_slots)/sizeof(cloud_capture_slots[0]);++i)
         if(WORD(cloud_capture_slots[i])!=CLOUD_CAPTURE_ACTION) return 1;

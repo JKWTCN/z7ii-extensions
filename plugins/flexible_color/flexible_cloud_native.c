@@ -4,6 +4,7 @@
 #define Z72_STYLE_LIMIT_PAIRED_DELTA
 #include "flexible_cloud.h"
 #include "flexible_live_color.h"
+#include "np3_calibration.h"
 
 #define CLOUD_PC_RED 0x080fu
 #define CLOUD_PC_AUTO 0x02cfu
@@ -48,12 +49,15 @@ static struct cloud_catalog_storage *cloud_catalog;
 static u32 cloud_picker_installed;
 static unsigned char *cloud_file_data;
 #define CLOUD_NP3_CAPACITY 4096u
+static union z72_np3_calibration_block *cloud_calibration;
+static u32 cloud_calibration_count;
 
 static void *cloud_allocate_storage(void)
 {
     /* Use the same native heap and 64-byte alignment as the SD loader. */
     struct cloud_storage {
         _Alignas(64) unsigned char file_data[CLOUD_NP3_CAPACITY];
+        union z72_np3_calibration_block calibration;
         struct cloud_style_storage style;
         struct cloud_catalog_storage catalog;
     };
@@ -66,6 +70,7 @@ static void *cloud_allocate_storage(void)
     unsigned char *states=(void *)storage->style.states;
     for(u32 i=0;i<sizeof(storage->style.states);++i) states[i]=0;
     cloud_file_data=storage->file_data;
+    cloud_calibration=&storage->calibration;
     cloud_style=&storage->style;
     cloud_catalog=&storage->catalog;
     cloud_filenames=storage->catalog.filenames;
@@ -85,6 +90,7 @@ static u32 cloud_boot_first_generated,cloud_boot_updates;
 
 static const char cloud_selection_path[]=CLOUD_PRESET_DIRECTORY "Z72BSEL.CFG";
 static const char cloud_resume_path[]=CLOUD_PRESET_DIRECTORY "Z72BSEL.IDX";
+static const char cloud_calibration_path[]="B:\\Z72NPCAL.BIN";
 #define CLOUD_SELECTION_MAGIC 0x3142535au /* ZSB1 */
 #define CLOUD_RESUME_MAGIC 0x3149535au /* ZSI1 */
 struct cloud_resume {
@@ -102,28 +108,29 @@ static char cloud_resume_filename[CLOUD_FILENAME];
 static u32 cloud_confirmed,cloud_restore_pending;
 static u32 cloud_restore_last_attempt,cloud_restore_refreshes;
 
-static u32 cloud_read_sd(const char *path,void *data,u32 bytes,u32 capacity)
+static u32 cloud_read_sd(const char *path,void *data,u32 capacity,u32 expected)
 {
     u32 file[10],actual=0,status=1;
     for(u32 i=0;i<10;++i) ((volatile u32 *)file)[i]=0;
     FN(0x104d3c01u,void,u32 *,const char *)(file,path);
     u32 opened=FN(0x104d3c05u,u32,u32 *,u32,u32)(file,0,0);
     if(opened!=CLOUD_FILE_OK)
-        return opened;
-    if(file[6]==bytes && !file[7]) {
+        return 0;
+    u32 bytes=file[6];
+    if(bytes && bytes<capacity && (!expected || expected==bytes) && !file[7]) {
         struct {u32 kind; void *buffer; u32 capacity;} request={1,data,bytes+1u};
         FN(0x1034fa29u,void,void *,u32)(data,capacity);
         status=FN(0x104d3d83u,u32,u32 *,void *,u32,u32 *)(file,&request,bytes+1u,&actual);
         FN(0x1034fa29u,void,void *,u32)(data,capacity);
     }
     u32 closed=FN(0x104d3c91u,u32,u32 *)(file);
-    return status==CLOUD_FILE_OK && closed==CLOUD_FILE_OK && actual==bytes ? CLOUD_FILE_OK : 0;
+    return status==CLOUD_FILE_OK && closed==CLOUD_FILE_OK && actual==bytes ? bytes : 0;
 }
 
 static u32 cloud_read_selection(void)
 {
     _Alignas(64) u32 data[16];
-    if(cloud_read_sd(cloud_selection_path,data,16,sizeof(data))!=CLOUD_FILE_OK)
+    if(!cloud_read_sd(cloud_selection_path,data,sizeof(data),16))
         return 0;
     if(data[0]!=CLOUD_SELECTION_MAGIC ||
        data[3]!=~(data[1]^data[2]) || (!data[1] && data[2]))
@@ -169,12 +176,12 @@ static u32 cloud_same_filename(const char *left,const char *right)
 static u32 cloud_read_resume(void)
 {
     _Alignas(64) union {struct cloud_resume record; unsigned char block[192];} data;
-    if(cloud_read_sd(cloud_resume_path,data.block,sizeof(data.record),sizeof(data.block))!=CLOUD_FILE_OK)
+    if(!cloud_read_sd(cloud_resume_path,data.block,sizeof(data.block),sizeof(data.record)))
         return 0;
     const struct cloud_resume *record=&data.record;
     if(record->magic!=CLOUD_RESUME_MAGIC || record->bytes!=cloud_saved_bytes ||
        record->hash!=cloud_saved_hash || !record->slot || record->slot>CLOUD_CANDIDATES ||
-       record->reserved || cloud_hash(record,sizeof(*record)-4u)!=record->checksum)
+       record->reserved || z72_np3_hash(record,sizeof(*record)-4u)!=record->checksum)
         return 0;
     u32 i=0;
     for(;i<CLOUD_FILENAME && record->filename[i];++i) {
@@ -203,7 +210,7 @@ static void cloud_write_resume(u32 index)
     record.slot=index;
     z72_style_copy(record.filename,filename,sizeof(record.filename));
     record.reserved=0;
-    record.checksum=cloud_hash(&record,sizeof(record)-4u);
+    record.checksum=z72_np3_hash(&record,sizeof(record)-4u);
     if(cloud_write_sd(cloud_resume_path,&record,sizeof(record))) {
         cloud_resume_slot=index;
         z72_style_copy(cloud_resume_filename,filename,sizeof(cloud_resume_filename));
@@ -231,8 +238,14 @@ static u32 cloud_prepare_style(u32 index)
     u32 failed=0;
     if(!cloud_catalog->style_prepared[slot]) {
         failed=z72_cloud_prepare(&cloud_catalog->profiles[slot].profile,&cloud_catalog->profiles[slot].style);
-        if(!failed)
+        if(!failed) {
+            const struct z72_np3_calibration *record=z72_cal_find(&cloud_calibration->file,
+                cloud_calibration_count,cloud_catalog->profiles[slot].file_bytes,
+                cloud_catalog->profiles[slot].file_hash);
+            if(record)
+                z72_cal_apply(&cloud_catalog->profiles[slot].style,record);
             __atomic_store_n(&cloud_catalog->style_prepared[slot],1,__ATOMIC_RELEASE);
+        }
     }
     FN(0x103d58fbu,void,u32 *)(cloud_style_mutex);
     return failed;
@@ -266,7 +279,7 @@ static u32 cloud_load_entry(const char *path,u32 index)
     u32 bytes;
     if(cloud_read_np3(path,parsed,&bytes)!=Z72_NP3_OK || !cloud_english_name(parsed->name))
         return 0;
-    u32 file_hash=cloud_hash(cloud_file_data,bytes);
+    u32 file_hash=z72_np3_hash(cloud_file_data,bytes);
     if(index==CLOUD_BOOT_INDEX-1u && (bytes!=cloud_saved_bytes || file_hash!=cloud_saved_hash))
         return 0;
     struct cloud_pc_record *native=&cloud_catalog->profiles[index].native;
@@ -331,6 +344,8 @@ static void cloud_scan_profiles(void)
     u32 (*make_directory)(const char *,u32)=FN(0x104d3ea5u,u32,const char *,u32);
     if(!directory_exists(cloud_directory) && make_directory(cloud_directory,0x10u)!=CLOUD_FILE_OK)
         return;
+    u32 bytes=cloud_read_sd(cloud_calibration_path,cloud_calibration->data,sizeof(cloud_calibration->data),0);
+    cloud_calibration_count=z72_cal_count(cloud_calibration,bytes);
     cloud_selection_needs_write=!cloud_read_selection();
     if(cloud_saved_bytes && cloud_read_resume()) {
         char path[sizeof(cloud_directory)+CLOUD_FILENAME-1u];
