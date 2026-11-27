@@ -15,3 +15,12 @@ Use **Setup Menu → Focus improvements → Reacquire after occlusion** to enabl
 In photo mode, select **AF-C → Subject tracking**, aim at the subject, and hold a half-press or AF-ON. When enabled, the module uses the last reliable position to guide native matching during low-confidence frames. The position expires 400 ms after the last reliable match, and assisted matches are at least 80 ms apart. With the switch disabled, subject tracking uses the native matching path. [Subject tracking controls](subject-tracking.md)
 
 Menu navigation, settings persistence, and matcher fallback passed offline checks.
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.28
+
+- 加入「遮挡后找回主体」。照片 AF-C 主体跟踪可使用最近可靠位置引导低置信度画面的匹配，开关随 SD 模块设置保存。
+- Added Reacquire after occlusion for photo AF-C subject tracking. Low-confidence frames can use the last reliable position to guide matching, and the setting is saved with the SD module preferences.
+- 最近可靠位置保留 400 毫秒，辅助匹配最短间隔为 80 毫秒。可在设定菜单即时启停，默认关闭。
+- The last reliable position remains available for 400 ms, and assisted matches are at least 80 ms apart. The Setup Menu switch takes effect immediately and defaults to Off.

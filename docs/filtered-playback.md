@@ -37,3 +37,37 @@ Filtering applies to both full-frame playback and the thumbnail grid. In full-fr
 | ![播放 i 菜单中的筛选开关和筛选条件入口](images/filtered-playback/i-menu-zh.jpeg) | ![Filtered playback and criteria entries over a full-frame image](images/filtered-playback/i-menu-zh-alt.jpeg) |
 
 The supplemental Noto Sans SC glyph for the Simplified Chinese menu is distributed under the SIL Open Font License. 简体中文菜单的「筛」字补充字形取自 Noto Sans SC，采用 SIL 开放字体许可证。
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.42
+
+- 筛选回放完成初始化后再接管播放任务。
+- Filtered playback takes over the playback task after its setup is ready.
+
+### v0.1.0-preview.39
+
+- 修复筛选结果中的倒置照片在单张查看和放大时出现的边缘杂色，并统一预读和绘制的方向。
+- Fixed stray pixels in full-frame and zoomed playback of upside-down photos in the filtered results. Preloading and rendering use the same orientation decision.
+
+### v0.1.0-preview.37
+
+- 筛选结果中的新拍倒置照片可以直接按写入的标准 EXIF 方向转正回放。
+- New upside-down photos in the filtered results can use their standard EXIF orientation for upright playback.
+
+### v0.1.0-preview.36
+
+- 筛选的播放加入倒置照片转正，适用于单张回放和放大查看。
+- Added upright full-frame and zoomed playback for upside-down photos in the filtered results.
+
+### v0.1.0-preview.24
+
+- 播放 i 菜单加入 FTP 标记入口，可直接标记当前浏览的影像。
+- Added FTP marking to the playback i menu for the image currently being reviewed.
+
+### v0.1.0-preview.20
+
+- 首次发布筛选的播放。可按保护状态、影像类型、评级和拍摄日期筛选，应用于全屏和缩略图。
+- Added filtering by protection, file type, rating, and shooting date in full-frame playback and the thumbnail grid.
+- 播放菜单和播放 i 菜单共用筛选条件，单张回放显示当前序号和筛选结果总数。开关和条件随 SD 设置保存。
+- The Playback Menu and playback i menu share the same criteria. Full-frame playback shows the position and total within the results. The switch and criteria are saved on the SD card.

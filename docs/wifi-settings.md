@@ -22,19 +22,9 @@ Confirming or cancelling either child returns to Wi-Fi settings with that row se
 
 ## Important limits and risk notice / 使用限制与风险声明
 
-**This is an unofficial extension for the Z 7II running C 1.70. It is not developed, approved, or certified by Nikon, and it does not change the camera's regulatory certification. Hardware verification is limited to the reported setup; it is not a guarantee of safety, compatibility, performance, or regulatory compliance.**
+Choose the profile for the camera's actual operating region and follow the applicable local wireless requirements. Use **Follow camera** in other regions. The camera's driver selects the channel under the active profile.
 
-**这是面向 Z 7II C 1.70 的非官方扩展，不是尼康开发、认可或认证的功能，也不会改变设备原有的无线认证。已实机验证仅表示下述测试环境中的结果，不构成对安全性、兼容性、速度或任何地区合规性的保证。**
-
-- Select the actual operating region and check the requirements that apply to your location and equipment before enabling wireless transmission. Do not select another country merely to obtain different channels or power limits. If neither offered region matches your location, use Follow camera rather than treating either option as a universal profile.
-- The options select country profiles already included in the camera firmware. They do not promise unrestricted channels, fixed transmit power, 80 MHz operation, or a particular throughput. Driver limits and local operating requirements still apply. A menu selection or successful connection is not evidence of certification or legal permission to transmit.
-- Modified native code can cause freezes, connection failures, interrupted transfers, or data loss. Back up photos, keep the original files and a recovery path, and stop using the extension if problems occur.
-- The project is supplied without warranty under the [MIT License](../LICENSE). Users must assess suitability for their own equipment and operating conditions.
-
-- 按实际使用地选择地区，并在启用无线发射前核对当地适用要求及设备条件；不要为了获得不同信道或功率限制而选择其他国家。实际所在地不属于这两个选项时，应使用「跟随机身」，不能将任一选项视为全球通用配置。
-- 选项调用机身固件已内置的地区配置，不代表无限制开放全部频段，也不承诺固定发射功率、80 MHz 带宽或指定传输速度。驱动限制与实际使用地要求仍然适用；菜单可选、连接成功或本项目实测通过，都不能代替设备认证或发射许可。
-- 原生代码修改可能造成死机、连接失败、传输中断或数据丢失。请备份照片、保留原文件与恢复手段，出现异常时停止使用。
-- 项目按 [MIT 许可证](../LICENSE)提供，不作担保。使用者应自行判断设备与实际运行条件是否适合使用。
+按相机的实际使用地选择地区，并遵守当地无线使用要求。其他地区请选择「跟随机身」。机身驱动按当前地区配置选择信道。
 
 ## Wi-Fi region / Wi-Fi 地区
 
@@ -48,17 +38,17 @@ Select the region where the camera is actually being used. The camera's purchase
 | United States / 美国 | Uses the camera's United States profile and its limits, through the same AP/STA feature paths. / 使用机身内置美国配置，功能路径相同，采用对应配置的限制。 |
 | Follow camera / 跟随机身 | Default; delegates to native behavior without a region/band override. The extension's 80 MHz request is also bypassed. / 默认；不覆盖原厂地区／频段，也不应用扩展的80 MHz请求。 |
 
-The explicit regions are not interchangeable promises about permitted channels or power. The driver chooses the channel. AP and STA remain separate native modes; simultaneous AP+STA is not added. STA here means the native Connect to PC infrastructure workflow, not an added SnapBridge STA protocol. The AP path includes the native phone/LSWifi hotspot entry.
+Use AP for the camera hotspot, including the native phone/LSWifi hotspot entry. Use STA through the native **Connect to PC** workflow. The camera runs one mode at a time.
 
-两个显式地区选项不等于相同的信道或功率许可，信道仍由驱动选择。AP与STA保持原厂的独立模式，不增加同时运行能力。STA指原厂「连接到PC」基础结构流程，不增加SnapBridge的STA协议；AP包括原厂手机／LSWifi热点入口。
+AP 为相机热点，包括原厂手机／LSWifi 入口。STA 通过原厂「连接到 PC」使用。相机一次运行一种模式。
 
 ## Enable 80 MHz WiFi / 开启 80 MHz WiFi
 
-- **Off (default):** retains the selected region's existing automatic AP bandwidth path, without the extra 80 MHz candidate selection. Off does not force a fixed 40 MHz width.
+- **Off (default)** uses the selected region's automatic AP bandwidth setting.
 - **On:** for Mainland China or United States, enables compatible 80 MHz AP operation where allowed by the driver. Actual bandwidth and link rate depend on the camera and client connection.
 - **Follow camera:** delegates to native behavior regardless of the saved switch value. The switch does not change STA bandwidth negotiation.
 
-- **关闭（默认）：** 使用对应地区原有的AP自动带宽流程，不额外选择80 MHz组合；关闭不等于强制固定为40 MHz。
+- **关闭（默认）**时，热点沿用所选地区的自动带宽设置。
 - **开启：** 中国大陆／美国设置下，启用驱动允许且兼容的80 MHz热点连接。实际带宽和速率以相机与客户端的连接结果为准。
 - **跟随机身：** 即使保存的开关为开启，也沿用原厂流程。该开关不改变STA带宽协商。
 
@@ -78,9 +68,9 @@ Preferences are saved in `Z72APP.CFG` and apply to the next wireless connection.
 
 ## Transfer performance / 传输性能实测
 
-The following results were recorded with a **Hong Kong-market Z 7II**. SnapBridge timings, third-party app throughput, and Windows client link rates are separate measurements. Link negotiation is not file-transfer throughput; Windows screenshots do not establish the phone's negotiated rate. Results depend on the client, signal conditions, and files being transferred.
+The following results were recorded with a **Hong Kong-market Z 7II**. SnapBridge timings, third-party app throughput, and Windows client link rates are separate measurements. The Windows screenshots show the negotiated rates on that computer. Results depend on the client, signal conditions, and files being transferred.
 
-以下实测使用**港行Z 7II**。SnapBridge计时、第三方应用吞吐和Windows电脑连接状态属于不同测量；电脑截图不代表手机各轮的协商速率，协商Mbps也不等于照片传输MB/s。实际结果会受客户端、信号条件和传输文件影响。
+以下实测使用**港行Z 7II**。以下分别记录 SnapBridge 传输用时、第三方应用吞吐量和 Windows 电脑的协商速率。实际结果取决于客户端、信号条件和传输文件。
 
 ### SnapBridge: the same six photos / SnapBridge：相同六张照片
 
@@ -152,10 +142,10 @@ Mainland China, 80 MHz on / 中国大陆，80 MHz开启：
 
 ## Compatibility / 兼容性
 
-- Compatible 5 GHz WPA2-Personal/CCMP STA connections have been verified. An AP advertising 802.11ax does not establish Wi-Fi 6 support in the camera.
+- Compatible 5 GHz WPA2-Personal/CCMP STA connections have been verified.
 - Wi-Fi settings are provided by the SD module. With the supported SD loader already installed, updates only require replacing the module file.
 
-- 已验证 5 GHz WPA2-Personal／CCMP STA 连接。路由器显示802.11ax不代表相机支持Wi-Fi 6。
+- 已验证 5 GHz WPA2-Personal／CCMP STA 连接。
 - Wi-Fi设置由SD模块提供；已有支持的SD加载宿主时，更新只需替换模块文件。
 
 ## Verification / 验证
@@ -164,14 +154,43 @@ Mainland China, 80 MHz on / 中国大陆，80 MHz开启：
 
 **Wi-Fi 设置已于2026-11-14通过实机验证。**
 
-Verified features include the grouped Wi-Fi settings menu, 5 GHz STA and Wi-Fi 5 AP operation for Mainland China and United States, and an 80 MHz AP connection with an observed 433.3 Mbps client link rate. The operating limits and risk notices above still apply.
+Verified features include the grouped Wi-Fi settings menu, 5 GHz STA and Wi-Fi 5 AP operation for Mainland China and United States, and an 80 MHz AP connection with an observed 433.3 Mbps client link rate.
 
-已验证统一Wi-Fi设置菜单、大陆／美国的5 GHz STA与Wi-Fi 5 AP连接，以及80 MHz热点下客户端433.3 Mbps的协商速率。上述使用限制与风险说明仍然适用。
+已验证统一Wi-Fi设置菜单、大陆／美国的5 GHz STA与Wi-Fi 5 AP连接，以及80 MHz热点下客户端433.3 Mbps的协商速率。
 
-The following screenshots show a compatible 5 GHz WPA2 network and the native Connect to PC interface. The router's advertised radio type is separate from the camera's negotiated connection.
+The screenshots show the 5 GHz WPA2 network used for the STA test and the camera's Connect to PC screen.
 
-以下展示兼容的5 GHz WPA2网络和原厂连接到PC界面；路由器广播的无线类型与相机实际协商的连接类型应分开理解。
+截图展示 STA 实测使用的 5 GHz WPA2 网络和原厂「连接到 PC」界面。
 
 ![5 GHz WPA2 network used for STA testing / STA验证使用的5 GHz WPA2网络](images/z7ii-wifi-5ghz-sta-network.png)
 
 ![Native Connect to PC workflow / 原厂连接到PC流程](images/z7ii-wifi-5ghz-sta-camera.jpg)
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.42
+
+- 浏览器相册支持相机接入路由器后的 STA 连接。同一局域网内可使用路由器分配给相机的 IP 打开相册。
+- Browser Gallery supports STA connections. Devices on the same LAN can open the gallery at the camera's router-assigned IP address.
+
+### v0.1.0-preview.30
+
+- 在相机热点上加入浏览器相册。相册开启期间延后 Wi-Fi 空闲关闭，关闭相册后恢复原厂计时。
+- Added Browser Gallery on the camera hotspot. Wi-Fi idle disconnection is deferred while the gallery is enabled and resumes on the native timer when the gallery is turned off.
+
+### v0.1.0-preview.24
+
+- FTP 上传支持通过热点或路由器传输。打开 FTP 菜单、正在上传或开启自动发送时会延后 Wi-Fi 空闲关闭。
+- FTP upload works over a camera hotspot or router connection. The Wi-Fi idle timeout is deferred while the FTP menu is open, an upload is active, or auto send is enabled.
+
+### v0.1.0-preview.13
+
+- 将地区选择纳入「Wi-Fi 设置」，并加入 80 MHz 热点开关。实机在兼容客户端上测得 433.3 Mbps 的协商速率。
+- Grouped region selection under Wi-Fi settings and added an 80 MHz hotspot switch. A compatible client negotiated a 433.3 Mbps link in camera testing.
+- 「跟随机身」沿用原厂连接流程。80 MHz 设置在下一次建立兼容热点时生效。
+- Follow camera uses the native connection behavior. The 80 MHz setting applies the next time a compatible hotspot starts.
+
+### v0.1.0-preview.12
+
+- 首次加入 Wi-Fi 地区选择。中国大陆和美国配置支持 5 GHz Wi-Fi 5 热点，以及原厂「连接到 PC」连接兼容的 5 GHz 路由器。
+- Added Wi-Fi region selection. The Mainland China and United States profiles support 5 GHz Wi-Fi 5 hotspots and connections to compatible 5 GHz routers through the native Connect to PC workflow.

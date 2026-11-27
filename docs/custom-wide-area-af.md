@@ -24,12 +24,6 @@ In **f2 → Custom controls**, assign C1/C2 to Fn1, Fn2, AF-ON, the sub-selector
 
 Preset settings and the active selection share `Z72APP.CFG` with the other extensions. You can keep your existing file when you update.
 
-## v0.1.0-preview.38
-
-修复了 C1/C2 的宽度和高度上限被锁在原厂宽区域 AF（L）尺寸的问题。新版可分别调至全宽或全高，两个方向都调到最大时覆盖整个取景画面。这项修复已于 2026-11-25 通过 Z 7 II 实机验证。
-
-Fixed a bug that capped C1/C2 width and height at the stock Wide-area AF (L) size. Each dimension can now reach the corresponding edges of the live-view image. Set both to maximum to cover the full frame. The fix passed on-camera testing on a Nikon Z 7 II on November 25, 2026.
-
 ## 实机截图 / Camera screenshots
 
 C1/C2 已随 SD 整包通过实机验证。The combined SD module passed on-camera verification with C1/C2.
@@ -47,3 +41,29 @@ C1/C2 已随 SD 整包通过实机验证。The combined SD module passed on-came
 ### 取景中的 C1 / C1 in live view
 
 ![取景状态栏显示 C1，识别框覆盖人物眼部 / C1 in live view with subject detection over the eye](images/custom-wide-area-af/c1-live-view.jpeg)
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.42
+
+- 先完成自定义宽区域 AF 绘制的初始化，再启用对应的显示回调。
+- Completes initialization of custom wide-area AF drawing before activating its display callback.
+
+### v0.1.0-preview.38
+
+- 修复 C1/C2 宽高受原厂宽区域 AF（L）尺寸限制的问题。两个方向可分别调至全宽、全高，最大时覆盖整个取景画面。2026-11-25 在 Z 7 II 实机验证。
+- Fixed the C1/C2 size cap inherited from Wide-area AF (L). Width and height can each reach the edges, covering the full frame at maximum size. Verified on a Z 7 II on November 25, 2026.
+- 尺寸预览随宽高调整更新，取景中的对焦框在画面边缘内显示。
+- Updated the size preview and keeps the live focus box within the frame edges.
+
+### v0.1.0-preview.27
+
+- 修复 AF-S 下打开 i 菜单 AF 区域选择页时可能卡死的问题。
+- Fixed a freeze that could occur when opening the i-menu AF-area picker in AF-S.
+
+### v0.1.0-preview.21
+
+- 首次加入 C1/C2 自定义宽区域 AF。两个预设可独立设置区域宽高和主体识别，支持 i 菜单、波轮和 f2 快捷键切换。
+- Added Wide-area AF (C1/C2) with independent width, height, and subject detection settings. The presets are accessible through the i menu, command dials, and f2 shortcuts.
+- 尺寸预览随方向键调整，C1/C2 参数和当前选择在开机时从 SD 设置恢复。
+- The size preview updates as the directional buttons are pressed. C1/C2 settings and the active selection are restored from the SD card at startup.

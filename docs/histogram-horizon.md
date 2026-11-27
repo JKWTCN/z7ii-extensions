@@ -21,3 +21,44 @@ On November 10, 2026, the tester confirmed the overlay on the rear screen and in
 ![Histogram, virtual horizon, and framing grid on the Z 7II rear screen](images/z7ii-histogram-horizon-hardware-2026-11-10.jpg)
 
 ![Histogram, virtual horizon, and framing grid in the Z 7II electronic viewfinder](images/z7ii-histogram-horizon-evf-hardware-2026-11-10.png)
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.44
+
+- 调整 ISO 或曝光补偿时，自定义 DISP 页面上的实时直方图继续显示。
+- Keeps the live histogram visible on Custom DISP pages while adjusting ISO or exposure compensation.
+
+### v0.1.0-preview.42
+
+- 将照片直方图叠加和旋转限制在照片取景，切换到视频时停止额外刷新。
+- Limits the photo histogram overlay and rotation to photo live view and stops extra refreshes in movie mode.
+
+### v0.1.0-preview.10
+
+- 优化竖拍直方图绘制，将相邻等高的柱形合并绘制。
+- Draws adjacent columns of equal height together to reduce portrait histogram drawing operations.
+
+### v0.1.0-preview.8
+
+- 后屏直方图和水平仪可按自定义 DISP 预设独立显示。
+- Added independent rear-screen histogram and virtual horizon switches to each Custom DISP preset.
+
+### v0.1.0-preview.5
+
+- 后屏实时直方图随竖拍界面转正。
+- The rear-screen live histogram now rotates with the portrait display.
+- 正式组合包停止导出水平仪和直方图的测试日志。
+- Removed histogram and virtual horizon diagnostic log export from the combined package.
+
+### v0.1.0-preview.4
+
+- 电子取景器的水平仪页也可显示实时直方图，支持与后屏自动切换。
+- Added the live histogram to the viewfinder’s virtual horizon page, including automatic switching between the viewfinder and rear screen.
+- 限制额外绘制频率，在切换显示设备或渲染繁忙时跳过追加刷新。
+- Limited the extra drawing rate and deferred refreshes while the display switches or the renderer is busy.
+
+### v0.1.0-preview.2
+
+- 首次在照片模式的后屏水平仪页叠加实时直方图。
+- Added the live histogram to the rear-screen virtual horizon page in photo mode.

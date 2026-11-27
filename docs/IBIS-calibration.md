@@ -41,3 +41,12 @@ The two images below compare color fringing along an edge in a merge made withou
    ![Parsek NEFX Calculate only results showing full-pixel movement in a four-shot series](images/ibis-calibration/parsek-calculate-only.png)
 
 5. Adjust X and Y in **Setup Menu → Pixel shift shooting → Half-step calibration**. After each adjustment, capture a **16-shot** series, add the NEFs in capture order, and run **Calculate only** again. With the first shot as the reference, use shot 5 to measure X and shot 13 to measure Y. Aim for an absolute offset of about 0.5 pixels on each axis.
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.40
+
+- 加入机内 X／Y 半格位移校准，设置随 SD 模块保存。Parsek NEFX 的「仅计算」可测量整像素和半像素位移。
+- Added in-camera X and Y half-step calibration, saved with the SD module settings. Calculate only in Parsek NEFX measures full-pixel and half-pixel offsets.
+- 机内默认 X=11、Y=9，供 16 张与 32 张模式使用。标定时先用 4 张一组确认整像素移动，再用 16 张一组中的第 5 张和第 13 张分别测量 X、Y 半像素位移。
+- The camera defaults to X=11 and Y=9 for 16- and 32-shot series. Calibration uses four frames to check full-pixel movement, then frames 5 and 13 of a 16-shot series to measure the X and Y half-pixel offsets.

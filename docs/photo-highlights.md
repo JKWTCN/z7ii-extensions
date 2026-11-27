@@ -23,9 +23,9 @@ On the rear LCD, [Custom DISP pages](custom-disp.md) can additionally hide or al
 
 ## Verification / 验证
 
-Photo highlight display on LCD and EVF has been verified on a Z 7II. The Simplified Chinese and English Setup Menu entries, pattern indicator and numeric threshold have also been hardware verified. This does not establish that every pattern/threshold combination or long-term stability has been tested.
+Photo highlight display on LCD and EVF has been verified on a Z 7II. The Simplified Chinese and English Setup Menu entries, pattern indicator and numeric threshold have also been hardware verified.
 
-照片加亮显示已在 Z 7II 的 LCD 和电子取景器上通过实机验证。简体中文、英文的设定菜单入口、图案状态和阈值数值也已实机验证；不代表所有图案与阈值组合及长期稳定性均已测试。
+照片加亮显示已在 Z 7II 的 LCD 和电子取景器上通过实机验证。简体中文、英文的设定菜单入口、图案状态和阈值数值也已实机验证。
 
 ## Photo live view / 照片取景画面
 
@@ -42,3 +42,30 @@ Photo highlight display on LCD and EVF has been verified on a Z 7II. The Simplif
 ![Simplified Chinese display pattern and highlight threshold settings](images/z7ii-photo-highlights-settings-zh-cn.jpg)
 
 ![English display pattern and highlight threshold settings](images/z7ii-photo-highlights-settings-en.jpg)
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.44
+
+- 取景中调整 ISO 或曝光补偿时保留加亮显示。
+- Keeps photo highlights visible during ISO and exposure compensation adjustments.
+
+### v0.1.0-preview.42
+
+- 关闭加亮且没有活动绘制时，跳过电子取景器的加亮刷新。
+- Skips EVF highlight refreshes when highlights are off and nothing is being drawn.
+
+### v0.1.0-preview.10
+
+- 优化照片加亮的刷新。关闭图案时跳过取景帧处理，启用时复用已应用的取景状态，减少重复更新。
+- Optimized highlight refreshes by skipping live-view frame processing when the pattern is off and reusing the applied display state to cut redundant updates.
+
+### v0.1.0-preview.8
+
+- 后屏自定义 DISP 预设可按页控制加亮显示，沿用同一套图案与阈值设置。
+- Custom DISP presets can show or hide highlights per rear-screen page using the shared pattern and threshold settings.
+
+### v0.1.0-preview.7
+
+- 首次在照片模式的后屏和电子取景器中加入加亮显示，可在设定菜单选择图案与阈值。
+- Added photo highlights to the rear screen and electronic viewfinder with selectable patterns and thresholds in the Setup Menu.

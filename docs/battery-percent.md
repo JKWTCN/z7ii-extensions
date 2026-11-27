@@ -34,9 +34,9 @@ The setting is saved with the other preferences in `Z72APP.CFG`. Enabling it use
 
 ![Hardware-verified battery percentage in movie standby / 已实机验证的视频待机电量百分比](images/z7ii-battery-percentage-movie-standby.jpg)
 
-Local checks reproduce the earlier rejection of nonzero movie display states, then execute the native battery-visibility selector and test all four supported states, repeated redraws, and three orientations. Photo-mode exclusions, the global switch, and native-icon restoration remain covered. This confirmation does not establish every recording format, battery model, orientation, or long-term recording condition.
+Local checks reproduce the earlier rejection of nonzero movie display states, then execute the native battery-visibility selector and test all four supported states, repeated redraws, and three orientations. Photo-mode exclusions, the global switch, and native-icon restoration remain covered.
 
-本地检查先复现此前拒绝非零视频显示状态的问题，再执行原厂电池可见性选择，检查四种合法状态、反复重绘及三种方向。照片模式的排除规则、全局开关和原厂图标恢复也保持覆盖。此次确认不代表所有录制格式、电池型号、方向及长期录制条件均已验证。
+本地检查先复现此前拒绝非零视频显示状态的问题，再执行原厂电池可见性选择，检查四种合法状态、反复重绘及三种方向。照片模式的排除规则、全局开关和原厂图标恢复也保持覆盖。
 
 ### Photo mode and menus / 照片模式与菜单
 
@@ -50,6 +50,35 @@ Local checks reproduce the earlier rejection of nonzero movie display states, th
 
 ![Hardware-verified transparent battery percentage in photo live view / 已实机验证的照片取景透明底电量百分比](images/z7ii-battery-percentage-live-view.png)
 
-Local checks cover default-off behavior, menu selection and cancellation, persistence and legacy configuration migration, independence from the DISP master, native icon restoration, transparent clearing, focus redraws, rotation geometry, and native glyph decoding. The public module is byte-for-byte identical to the hardware-tested build. Modeled file and display services do not establish every battery's compatibility, every orientation, sleep/wake behavior, or long-term stability.
+Local checks cover default-off behavior, menu selection and cancellation, persistence and legacy configuration migration, independence from the DISP master, native icon restoration, transparent clearing, focus redraws, rotation geometry, and native glyph decoding. The public module is byte-for-byte identical to the hardware-tested build.
 
-本地检查覆盖默认关闭、菜单选择与取消、保存及旧配置迁移、独立于 DISP 总开关、恢复原厂图标、透明清除、对焦重绘、旋转位置及原厂字形解码。发布模块与实机测试版本逐字节一致。文件和最终显示服务中有替身；此次确认不代表所有电池兼容性、每种方向、休眠唤醒及长期稳定性均已验证。
+本地检查覆盖默认关闭、菜单选择与取消、保存及旧配置迁移、独立于 DISP 总开关、恢复原厂图标、透明清除、对焦重绘、旋转位置及原厂字形解码。发布模块与实机测试版本逐字节一致。
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.44
+
+- 取景中调整 ISO 或曝光补偿时保留电量百分比。
+- Keeps the battery percentage visible while adjusting ISO or exposure compensation in live view.
+
+### v0.1.0-preview.42
+
+- 修正旧电量数字的同步清除，并将竖拍电量文字的绘制限制在电池框区域。
+- Synchronizes clearing of the old battery digits and confines portrait battery text positioning to the battery icon area.
+
+### v0.1.0-preview.36
+
+- 切换横竖取景时先清除原电量文字，修复旧文字的清除区域覆盖竖拍 ISO 控件的问题。
+- Clears the previous battery text before the live-view layout rotates, preventing its old area from erasing the portrait ISO control.
+
+### v0.1.0-preview.15
+
+- 视频待机和录制使用原厂电池图标的可见性规则。开始录制后继续显示电量百分比。
+- Applies the native battery visibility rules in movie standby and during recording, keeping the percentage visible after recording starts.
+
+### v0.1.0-preview.10
+
+- 首次加入全局「电量百分比显示」。后屏透明电池框可显示机身报告的真实电量。
+- Added the global Battery percentage display setting, which shows the camera-reported percentage in the transparent battery icon on the rear screen.
+- 关掉全局开关时停止采样电量，后屏恢复原厂电池图标。
+- Turning off the global switch stops percentage sampling and restores the native battery icon on the rear screen.

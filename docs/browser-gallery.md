@@ -1,6 +1,6 @@
 # 浏览器相册
 
-在 Nikon Z 7II C 1.70 的「设定菜单 → 浏览器相册」中选择「开启」。使用相机热点（AP）时，让手机或电脑连上热点，再打开相机 IP，默认地址为 [http://192.168.1.1/](http://192.168.1.1/)。从 v0.1.0-preview.42 起，也可让相机接入路由器（STA），再用同一局域网内的手机或电脑打开路由器分配给相机的 IP。相册开启时，能访问相机 IP 的设备无需登录即可浏览、下载照片和上传构图参考图。
+在 Nikon Z 7II C 1.70 的「设定菜单 → 浏览器相册」中选择「开启」。使用相机热点（AP）时，让手机或电脑连上热点，再打开相机 IP，默认地址为 [http://192.168.1.1/](http://192.168.1.1/)。相机接入路由器（STA）后，用同一局域网内的手机或电脑打开路由器分配给相机的 IP。相册开启时，能访问相机 IP 的设备无需登录即可浏览、下载照片和上传构图参考图。
 
 | 设置 | 操作 |
 | --- | --- |
@@ -32,26 +32,49 @@
 
 独立 SD 模块已在实机验证滚动浏览、预览、多选逐个下载，以及星级、保护状态和拍摄日期的组合筛选。用户已确认双卡组合测试版通过实机验证。
 
-## 版本更新与实机截图
+## English
 
-### v0.1.0-preview.42 版本更新
+See the [release notes and hardware screenshots](#版本更新--version-history) for dual-card browsing, composition reference uploads, gallery filters, and batch downloads.
 
-相册支持路由器（STA）连接。「下载所选」等待每个文件下载状态的重试窗口由 30 秒延长到 180 秒。整合版已通过实机验证。
+Open **Setup Menu → Browser gallery** on the Nikon Z 7II running C 1.70 and set **Browser gallery** to **On**. In hotspot (AP) mode, join the camera hotspot and open the camera IP address. The default is [http://192.168.1.1/](http://192.168.1.1/). In router mode (STA), open the camera's assigned IP from a device on the same network. Devices that can reach the camera can browse and download photos or upload composition references without signing in.
 
-### v0.1.0-preview.34 版本更新
+**Refresh status** updates the service status and the TCP send buffer used by the most recent original download. The gallery starts **Off** on first use, then restores the saved setting from the SD card. Use the camera's Wi-Fi menu to start the hotspot or connect to the router.
+
+Scroll to load more photos from CFexpress/XQD and SD cards, up to 24 per batch. Each entry shows its source card. A RAW+JPEG pair from the same folder appears as one entry labeled **JPG + NEF**, with separate original-file download buttons. An entry with a single format shows its original filename and the corresponding download button. **View full-size JPG** loads the complete JPEG in the browser.
+
+Filter by card slot, exact star rating (unrated or 1–5 stars), protection (protected only or unprotected only), or capture date. The date filter accepts either bound on its own or both bounds, including both selected dates. Set both bounds to the same day to see photos taken that day. Photos must match all active filters. Clearing dates keeps the other filters. Changing a filter clears the current photo selection.
+
+In multi-select mode, selected photos stay selected as you scroll. Choose **JPG + RAW** (default), **JPG only**, or **RAW only**. Download selected originals as separate files in sequence or as one ZIP archive. ZIP entries use separate folders for CFexpress/XQD (`A/`) and SD (`B/`). Your browser may ask to allow multiple downloads. You can stop the remaining files from the page and cancel the current download in your browser. Each batch supports up to 128 originals, with a ZIP size limit below 4 GiB.
+
+Original and ZIP downloads of at least 4 MiB can use a 4 MiB TCP send buffer when memory is available. The gallery defers the Wi-Fi idle timer while it is on. Choosing **Off** restores the camera's usual timer. You can also turn off the hotspot manually.
+
+Choose **构图参考图** on the gallery home page to edit and upload a JPG or PNG, or choose **用作构图参考** on a photo's detail page to use the camera preview. Drag or pinch in the preview, or use the zoom and rotation controls. Save to a slot from 1 to 6 and select its thumbnail on the camera. [Composition reference instructions](composition-reference.md#english)
+
+Scrolling, previews, sequential batch downloads, and the combined rating, protection, and capture-date filters were tested on camera with the standalone SD module. The dual-card combined test build also passed user testing on camera.
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.42
+
+- 相册支持路由器（STA）连接。「下载所选」等待每个文件下载状态的重试窗口由 30 秒延长到 180 秒。整合版已通过实机验证。
+- Added router (STA) connections and extended the per-file download status retry window from 30 to 180 seconds. The combined module passed on-camera testing.
+
+### v0.1.0-preview.34
 
 - 支持浏览和下载 CFexpress／XQD、SD 两个卡槽的照片，并按存储卡筛选。
 - 缩略图和详情标注来源卡槽。双格式照片显示「JPG + NEF」，详情提供两种原文件的下载按钮。
 - ZIP 按卡槽保留各自的拍摄目录，双卡同名文件可以放进同一个存档。
+- Added browsing, downloads, and filtering for both card slots. Entries identify the source card and show separate downloads for JPG and NEF pairs. ZIP archives separate files by card slot.
 
 ![实机浏览器相册以 CFexpress / XQD 筛选并显示相应缩略图 / Gallery on the camera hotspot showing thumbnails filtered to CFexpress / XQD](images/z7ii-browser-gallery-cfexpress.png)
 
-截图来自双格式标注修订前的实机试用，展示了 CFexpress／XQD 筛选结果。
+截图展示了按 CFexpress／XQD 筛选的结果。
 
-### v0.1.0-preview.33 版本更新
+### v0.1.0-preview.33
 
 - 相册首页新增「构图参考图」入口，照片详情新增「用作构图参考」。支持拖动、缩放和旋转，并上传到 1 至 6 号槽位。
 - 浏览器相册开关随 SD 设置保存，重启后恢复。从相册返回设定菜单后可直接进入构图辅助。
+- Added an editor for uploading composition references from the gallery home page or photo details. The editor can position, scale, and rotate the image and save it to one of six slots. The gallery setting is restored at startup, and Composition reference is accessible after returning to the Setup Menu.
 
 **手机端相册入口**
 
@@ -61,17 +84,23 @@
 
 ![手机浏览器显示取景预览、缩放旋转控件和六个上传槽位 / Mobile browser editor showing framing preview, zoom and rotation, and six upload slots](images/z7ii-browser-gallery-reference-editor.jpg)
 
-手机端编辑上传已在开发试用版上通过实机验证。机内选图和取景叠加见[构图辅助实机截图](composition-reference.md#版本更新与实机截图)。
+手机端编辑上传已在开发试用版上通过实机验证。机内选图和取景叠加见[构图辅助实机截图](composition-reference.md#v010-preview33)。
 
-### v0.1.0-preview.32 版本更新
+### v0.1.0-preview.32
 
-新增星级、保护状态和拍摄日期筛选，支持同时使用三项条件。
+- 新增星级、保护状态和拍摄日期筛选，支持同时使用三项条件。
+- Added combinable filters for star rating, protection status, and capture date.
+- 拍摄日期可选单日、起止范围，或只填一端。修改筛选条件会清空当前勾选。
+- Capture-date filtering supports one day, a range, or a single bound. Changing the filters clears the current selection.
 
 ![电脑端相册选择「仅已保护」后的结果 / Desktop gallery with the Protected only filter applied](images/z7ii-browser-gallery-filters.png)
 
-### v0.1.0-preview.31 版本更新
+### v0.1.0-preview.31
 
-首页改为滚动加载，新增多选逐个下载和 ZIP 打包。批量下载可选择 JPG + RAW、仅 JPG 或仅 RAW。
+- 首页改为滚动加载，新增多选逐个下载和 ZIP 打包。批量下载可选择 JPG + RAW、仅 JPG 或仅 RAW。
+- Added scrolling to load more images and multi-select downloads as individual files or a ZIP. Batch formats include JPG + RAW, JPG only, and RAW only.
+- 多选时滚动加载会保留已勾选的照片。可在页面停止后续逐个下载。每批最多 128 个原文件，ZIP 小于 4 GiB。
+- Selected photos stay selected as more thumbnails load, and the page can stop the remaining individual downloads. Each batch supports up to 128 originals, with a ZIP size limit below 4 GiB.
 
 **手机端缩略图列表**
 
@@ -89,28 +118,11 @@
 
 ![iPhone 灵动岛显示 Safari 的 NEF 原图下载进度 / Safari's original NEF download progress in the iPhone Dynamic Island](images/z7ii-browser-gallery-safari-download.jpg)
 
-### v0.1.0-preview.30 版本更新
+### v0.1.0-preview.30
 
-首次加入浏览器相册，支持缩略图、单张预览和 JPG、NEF 原文件下载。
+- 首次加入浏览器相册。手机或电脑连接相机热点后，可以翻页浏览 SD 卡缩略图、预览照片和下载 JPG、NEF 原文件。
+- Added a hotspot-based browser gallery with paged SD-card thumbnails, single-image previews, and downloads of original JPG and NEF files.
+- 每页最多 24 张。同目录的同名 JPG 与 NEF 共用一个条目，分别提供原图下载。原图传输支持 4 MiB TCP 发送缓冲，相册开启时延后 Wi-Fi 空闲关闭。
+- Each page shows up to 24 photos. A JPG and NEF with the same name in the same folder share one entry with separate original downloads. Original downloads can use a 4 MiB TCP send buffer, and the gallery defers the Wi-Fi idle timeout while enabled.
 
 ![单张照片预览及 JPG、NEF 原图下载按钮 / Photo preview with original JPG and NEF download buttons](images/z7ii-browser-gallery-preview.png)
-
-## English
-
-See the [release notes and hardware screenshots](#版本更新与实机截图) for dual-card browsing, composition reference uploads, gallery filters, and batch downloads.
-
-Open **Setup Menu → Browser gallery** on the Nikon Z 7II running C 1.70 and set **Browser gallery** to **On**. In hotspot (AP) mode, join the camera hotspot and open the camera IP address. The default is [http://192.168.1.1/](http://192.168.1.1/). Starting with v0.1.0-preview.42, you can also connect the camera to a router (STA mode) and open the camera's assigned IP from a device on the same network. Devices that can reach the camera can browse and download photos or upload composition references without signing in.
-
-**Refresh status** updates the service status and the TCP send buffer used by the most recent original download. The gallery starts **Off** on first use, then restores the saved setting from the SD card. Use the camera's Wi-Fi menu to start the hotspot or connect to the router.
-
-Scroll to load more photos from CFexpress/XQD and SD cards, up to 24 per batch. Each entry shows its source card. A RAW+JPEG pair from the same folder appears as one entry labeled **JPG + NEF**, with separate original-file download buttons. An entry with a single format shows its original filename and the corresponding download button. **View full-size JPG** loads the complete JPEG in the browser.
-
-Filter by card slot, exact star rating (unrated or 1–5 stars), protection (protected only or unprotected only), or capture date. The date filter accepts either bound on its own or both bounds, including both selected dates. Set both bounds to the same day to see photos taken that day. Photos must match all active filters. Clearing dates keeps the other filters. Changing a filter clears the current photo selection.
-
-In multi-select mode, selected photos stay selected as you scroll. Choose **JPG + RAW** (default), **JPG only**, or **RAW only**. Download selected originals as separate files in sequence or as one ZIP archive. ZIP entries use separate folders for CFexpress/XQD (`A/`) and SD (`B/`). Your browser may ask to allow multiple downloads. You can stop the remaining files from the page and cancel the current download in your browser. Each batch supports up to 128 originals, with a ZIP size limit below 4 GiB. Version v0.1.0-preview.42 extends the per-file download status retry window from 30 to 180 seconds.
-
-Original and ZIP downloads of at least 4 MiB can use a 4 MiB TCP send buffer when memory is available. The gallery defers the Wi-Fi idle timer while it is on. Choosing **Off** restores the camera's usual timer. You can also turn off the hotspot manually.
-
-Choose **构图参考图** on the gallery home page to edit and upload a JPG or PNG, or choose **用作构图参考** on a photo's detail page to use the camera preview. Drag or pinch in the preview, or use the zoom and rotation controls. Save to a slot from 1 to 6 and select its thumbnail on the camera. [Composition reference instructions](composition-reference.md#english)
-
-Scrolling, previews, sequential batch downloads, and the combined rating, protection, and capture-date filters were tested on camera with the standalone SD module. The dual-card combined test build also passed user testing on camera.

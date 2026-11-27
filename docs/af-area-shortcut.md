@@ -48,6 +48,30 @@ The SD module stores assignments in the shared `Z72APP.CFG`. Existing assignment
 
 ![Hardware-verified Chinese AF-area choices / 已实机验证的中文 AF 区域选择](images/z7ii-af-area-shortcut-areas-zh-cn.jpg)
 
-Local checks cover five buttons and ten targets, press/hold/release behavior, native availability, LCD/EVF context isolation, original assignments and submenus, configuration migration, scrolling, and ten button-switch round trips. The assigned name is substituted only when its native text widget is drawn; the module delegates to the original text renderer without starting another whole-window render. The public-source build is byte-for-byte identical to the hardware-tested module. These checks and the camera confirmation do not establish every lens/body combination, every language, sleep/wake behavior, or long-term stability.
+Local checks cover five buttons and ten targets, press/hold/release behavior, native availability, LCD/EVF context isolation, original assignments and submenus, configuration migration, scrolling, and ten button-switch round trips. The assigned name is substituted only when its native text widget is drawn; the module delegates to the original text renderer without starting another whole-window render. The public-source build is byte-for-byte identical to the hardware-tested module.
 
-本地检查覆盖五个按键与十个目标、按下／按住／松开行为、原厂区域限制、LCD／取景器上下文、原厂功能与子菜单、配置迁移、滚动及十次按钮往返。区域名称只在原厂文字控件正常绘制时替换，并继续调用原厂文字绘制函数，不额外启动整窗重绘。发布源码构建结果与实机测试模块逐字节一致。本地检查和本次实机确认不代表所有镜头／机身组合、所有语言、休眠唤醒及长期稳定性均已验证。
+本地检查覆盖五个按键与十个目标、按下／按住／松开行为、原厂区域限制、LCD／取景器上下文、原厂功能与子菜单、配置迁移、滚动及十次按钮往返。区域名称只在原厂文字控件正常绘制时替换，并继续调用原厂文字绘制函数，不额外启动整窗重绘。发布源码构建结果与实机测试模块逐字节一致。
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.33
+
+- f2 的同一个按键可以在 AF 区域快捷切换和构图辅助之间重新分配。自定义控制总览显示当前分配的功能。
+- An f2 button can be reassigned between an AF-area shortcut and Composition reference. The Custom controls overview shows the active assignment.
+
+### v0.1.0-preview.22
+
+- AF 区域快捷切换新增照片 AF-C 的「主体跟踪」。
+- Added Subject tracking in photo AF-C as an AF-area shortcut target.
+
+### v0.1.0-preview.21
+
+- AF 区域快捷切换新增宽区域 AF（C1/C2）。
+- Added Wide-area AF (C1/C2) as shortcut targets.
+
+### v0.1.0-preview.11
+
+- 首次在 f2「自定义控制」中加入 AF 区域快捷切换。五个按键可分别指定区域，按一下切换。
+- Added AF-area shortcuts to f2 Custom controls. Each of the five buttons can select its assigned area with one press.
+- 按键分配随 SD 设置保存，原有功能与帮助入口继续可用。已分配的区域在列表和总览中显示名称或图标。
+- Assignments are saved with the SD module settings, and native functions and help remain accessible. The assignment list and overview show the selected area name or icon.

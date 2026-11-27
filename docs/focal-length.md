@@ -22,6 +22,18 @@ Show the current focal length in photo live view with an electronically reportin
 
 ![Hardware-verified 24mm focal length with histogram and virtual horizon / 已实机验证的 24mm 焦距、直方图及水平仪同显](images/z7ii-focal-length-hardware-2026-11-13.png)
 
-Local checks execute the native visibility, layout, and formatting paths with modeled lens and paint services. They cover changing focal values, integer/fractional formatting, invalid lens data, context exclusions, both LCD mask banks, independent DISP selection, and the native EVF style. Hardware confirmation does not establish compatibility with every lens or separately verify every output, language, or long-term operating condition.
+Local checks execute the native visibility, layout, and formatting paths with modeled lens and paint services. They cover changing focal values, integer/fractional formatting, invalid lens data, context exclusions, both LCD mask banks, independent DISP selection, and the native EVF style.
 
-本地检查执行原厂可见性、布局和格式化流程，镜头和图形服务使用替身，覆盖焦距变化、整数／小数格式、无效镜头数据、显示上下文排除、两组 LCD 掩码、独立 DISP 选择及原厂取景器字体。此次实机确认不代表全部镜头兼容性，也未逐项独立覆盖每种输出、语言及长期运行条件。
+本地检查执行原厂可见性、布局和格式化流程，镜头和图形服务使用替身，覆盖焦距变化、整数／小数格式、无效镜头数据、显示上下文排除、两组 LCD 掩码、独立 DISP 选择及原厂取景器字体。
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.44
+
+- 调整 ISO 或曝光补偿时保留焦距显示。
+- Keeps focal length visible while adjusting ISO or exposure compensation.
+
+### v0.1.0-preview.9
+
+- 首次在照片取景中显示镜头报告的焦距。后屏可按自定义 DISP 预设开关，电子取景器沿用原厂文字样式。
+- Added lens-reported focal length to photo live view. Each Custom DISP preset can control it on the rear screen, and the EVF uses the native text style.

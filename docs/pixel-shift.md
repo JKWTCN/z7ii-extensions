@@ -86,18 +86,6 @@ The Windows GUI and command-line tool accept 4, 8, 16 or 32 full-size, 14-bit FX
 1. Open a complete NEF series in NX Studio and select **Pixel shift merge** in the toolbar. With **Generate one image** selected, 4- and 8-shot series produce 8256 × 5504 images, while 16- and 32-shot series produce 16512 × 11008 images.
 2. Choose a destination and start the merge. The resulting NEFX is ready for editing and export. [NX Studio Pixel Shift Merge help](https://www.nikonimglib.com/nxstdo/onlinehelp/en/merge_pixel_shift_pictures_53.html)
 
-## 版本更新 / Version history
-
-### v0.1.0-preview.46
-
-- 每组像素变化拍摄开拍前自动切换到单张释放，组末恢复原释放模式。使用旧版时，请在拍摄前手动选择单张释放。
-- The module switches to single-frame release before each series and restores the previous release mode afterward. On earlier versions, select single-frame release before shooting.
-
-### v0.1.0-preview.41
-
-- 机内合成期间刷新菜单待机计时。显示「已保存到存储卡」和返回照片组时都会重新计时。返回后按相机设定的菜单待机时长计时。
-- The module keeps the menu awake during a merge. The menu standby timer restarts when the camera shows **Saved to memory card** and again when you return to the series picker. The picker follows the configured menu standby delay.
-
 ## 机内合成界面 / In-camera merge screens
 
 ![像素变化拍摄菜单中的机内合成入口 / In-camera merge under Pixel shift shooting](images/pixel-shift/camera-pixel-shift-menu.jpg)
@@ -125,3 +113,43 @@ DSC_8019 至 DSC_8026 合成为 8256 × 5504 的 NEFX。DSC_8019 through DSC_802
 ![8 张源片和选中的合成 NEFX / Eight source NEFs and the selected merge](images/pixel-shift/nx-8-series.png)
 
 ![8 张合成照片 / Eight-shot merge](images/pixel-shift/nx-8-merged.png)
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.46
+
+- 每组像素变化拍摄开拍前自动切换到单张释放，组末恢复原释放模式。使用旧版时，请在拍摄前手动选择单张释放。
+- The module switches to single-frame release before each series and restores the previous release mode afterward. On earlier versions, select single-frame release before shooting.
+- 开拍前退出自拍释放，并保留原连拍子模式，拍摄结束后恢复原设置。
+- Clears self-timer mode before a series and preserves the selected continuous-release subtype for restoration afterward.
+
+### v0.1.0-preview.42
+
+- 开启 FTP 自动发送后，像素变化拍摄的照片可在写卡完成时加入发送队列。
+- With FTP auto send enabled, pixel shift photos can enter the upload queue after saving.
+
+### v0.1.0-preview.41
+
+- 机内合成期间刷新菜单待机计时。显示「已保存到存储卡」和返回照片组时都会重新计时。返回后按相机设定的菜单待机时长计时。
+- The module keeps the menu awake during a merge. The menu standby timer restarts when the camera shows **Saved to memory card** and again when you return to the series picker. The picker follows the configured menu standby delay.
+
+### v0.1.0-preview.40
+
+- 加入机内 TIF／NEFX 合成、X／Y 半格位移校准和 Parsek NEFX 桌面工具。每组拍摄自动开启静音拍摄并固定输出 14 位未压缩 NEF。
+- Added in-camera TIF and NEFX merging, X and Y half-step calibration, and the Parsek NEFX desktop tool. Each series automatically uses silent photography and records uncompressed 14-bit NEFs.
+- 机内可从 SD 或 CFexpress Type B 选组并对齐原片，输出到原卡的 Synthesis 目录。4／8 张输出 8256 × 5504，16／32 张输出 16512 × 11008。TIF 为 16 位 RGB，支持读取早期的 14 位无损压缩照片组。
+- The camera can select a series from SD or CFexpress Type B, align the frames, and save the merge to Synthesis on the source card. Four- and eight-shot series produce 8256 × 5504. Sixteen- and 32-shot series produce 16512 × 11008. TIF output is 16-bit RGB and supports earlier lossless-compressed 14-bit series.
+
+### v0.1.0-preview.32
+
+- 发布 Windows 图形版 NEFX 修复工具，可批量修复尼康工坊从早期无损压缩原片合成时沿用的压缩标记。
+- Released a Windows GUI for batch repair of compression tags inherited by NX Studio merges from earlier lossless-compressed originals.
+- 可多选或拖入已合成的 NEFX 和文件夹，输出带 _NX_compatible 后缀的副本。
+- Select or drag in merged NEFX files and folders to create repaired copies with an _NX_compatible suffix.
+
+### v0.1.0-preview.23
+
+- 首次发布像素变化拍摄，支持 4、8、16 或 32 张一组，在 NEF 中记录分组信息供尼康工坊合并。
+- Added pixel shift shooting in 4-, 8-, 16-, and 32-shot series, with grouping information written to the NEFs for merging in NX Studio.
+- 拍摄支持单组与连续组、启动延迟和拍摄间隔。原片支持 14 位未压缩和无损压缩。Windows 启动器和 Python 脚本可修复尼康工坊合成时沿用的压缩标记。
+- Added single-set and continuous modes, start delays, and shot intervals. Originals support uncompressed and lossless-compressed 14-bit NEF. A Windows launcher and Python script can repair compression tags carried over by NX Studio.

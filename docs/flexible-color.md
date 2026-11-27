@@ -59,3 +59,12 @@ ARM emulation verified direct startup reads, early restoration, and retry condit
 | Three-way grading | Maps shadow, midtone, and highlight adjustments into luminance-weighted early RGB curves. Strong tints can differ, especially in low-chroma areas. | Grades shadows, midtones, and highlights in its native grading stage. Blending controls overlap, and balance shifts the ranges. |
 | Custom curve | Maps 257 monotone samples into the early RGB tables, preserves the preset endpoints, and approximates brightness using a neutral ramp. | Controlled comparisons indicate that the custom curve operates on luminance after color mixing. |
 | Output | Uses a shared algorithm for compatible presets. The effect appears in preview and camera JPEGs. The original NEF sensor data is retained. | Reapplies and permits editing the full preset when developing the NEF. |
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.45
+
+- 照片优化校准菜单加入 B 槽位，可从 SD 卡加载 Flexible Color 预设，关机后保存选择并在开机时恢复。机内 JPEG 与尼康工坊导出的实拍对比见上文。
+- Added B slots to the photo Picture Control menu for Flexible Color presets loaded from SD. The module saves the selected preset and restores it at startup. The photos above compare camera JPEGs with NX Studio exports.
+- B 槽最多显示 99 个预设，方向键、触屏和波轮支持实时预览。开机优先用索引恢复预设，也支持通过原厂处理路径使用兼容的 Red 配方。
+- The B list supports up to 99 presets with live preview through the directional buttons, touch, or a command dial. Startup uses the saved index to restore the preset, and compatible Red recipes use the camera's native processing.

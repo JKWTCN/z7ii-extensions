@@ -63,6 +63,40 @@ On November 13, 2026, the user confirmed the 42,748-byte combined build passed t
 
 2026-11-13，用户确认 42,748 字节完整组合版本已通过 Z 7II 实机验证。此次更新在此前已验证的自定义 DISP 循环、原厂参数信息页、对焦期间 LCD 显示掩码修订及「水平仪」标签基础上，增加独立焦距开关、修正原厂列表列布局与滚动条，并将子菜单入口标为 `--`，状态为**已实机验证**。
 
-Local checks execute native visibility and input instructions, including 153 legacy visibility cases, 240 detailed-information cases, both LCD mask banks, information-page transitions, and restoration outside photo LCD live view. Menu/configuration checks cover 48 selections, legacy records, v8 persistence, reset, and last-page protection. Native list checks cover the final row, scrollbar geometry, visibility, and movement between both pages. Language checks cover 36 banks, 864 labels, and 165 glyph outlines. Hardware confirmation does not establish every component combination, every language, sleep/wake behavior, or long-term stability.
+Local checks execute native visibility and input instructions, including 153 legacy visibility cases, 240 detailed-information cases, both LCD mask banks, information-page transitions, and restoration outside photo LCD live view. Menu/configuration checks cover 48 selections, legacy records, v8 persistence, reset, and last-page protection. Native list checks cover the final row, scrollbar geometry, visibility, and movement between both pages. Language checks cover 36 banks, 864 labels, and 165 glyph outlines.
 
-本地检查执行原厂可见性及按键指令，覆盖 153 个原有显示组合、240 个细分信息组合、两组 LCD 掩码、参数页往返及退出恢复；菜单和配置检查覆盖 48 次选择、旧记录、v8 保存、恢复预设和最后一页保护。原厂列表检查覆盖末项选择、滚动条范围、显示及两页间移动。语言检查覆盖 36 个语言表、864 条标签及 165 个字形轮廓。实机确认不代表所有组件组合、所有语言、休眠唤醒及长期稳定性均已验证。
+本地检查执行原厂可见性及按键指令，覆盖 153 个原有显示组合、240 个细分信息组合、两组 LCD 掩码、参数页往返及退出恢复；菜单和配置检查覆盖 48 次选择、旧记录、v8 保存、恢复预设和最后一页保护。原厂列表检查覆盖末项选择、滚动条范围、显示及两页间移动。语言检查覆盖 36 个语言表、864 条标签及 165 个字形轮廓。
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.44
+
+- 调整 ISO 或曝光补偿时保留当前自定义页面及实时直方图。按住 ISO 键时，即使预设关闭 ISO 显示，也会临时显示原厂 ISO 调整信息。松开后恢复预设。
+- Keeps the current Custom DISP page and its live histogram visible during ISO and exposure compensation adjustments. Holding the ISO button temporarily shows the native ISO adjustment text even when the preset hides ISO. Releasing the button restores the preset.
+
+### v0.1.0-preview.42
+
+- 切换自定义页面时立即刷新网格，离开自定义页面时恢复所选网格。
+- Refreshes the framing grid when switching Custom DISP pages and restores the selected grid when leaving them.
+
+### v0.1.0-preview.15
+
+- 全局「电量百分比显示」支持视频待机和录制时持续显示。
+- The global Battery percentage display setting keeps the percentage visible in movie standby and during recording.
+
+### v0.1.0-preview.10
+
+- 在「参数信息页」下方加入全局「电量百分比显示」，与四套显示预设独立设置。
+- Added the global Battery percentage display switch below Information display, independent of the four presets.
+
+### v0.1.0-preview.9
+
+- 加入独立的「焦距显示」开关，修正原厂列表布局与滚动条，子菜单入口显示「--」。
+- Added the separate Focal length display switch, corrected the menu columns and scrollbar, and used -- to mark submenu entries.
+
+### v0.1.0-preview.8
+
+- 首次为照片模式后屏加入四套自定义 DISP 预设，支持独立选择显示组件，并可将原厂参数信息页纳入循环。
+- Added four rear-screen Custom DISP presets for photo mode, with independently selectable display components and an option to include the native information display in the cycle.
+- 提供细分拍摄信息、恢复预设和最后一页保护，调整对焦期间的后屏显示掩码。
+- Added detailed shooting-information settings, preset reset, and protection against disabling the last page. Updated rear-screen visibility while focusing.

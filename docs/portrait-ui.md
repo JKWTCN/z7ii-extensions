@@ -53,3 +53,49 @@ The movie portrait layout, including the audio meters, WIDE indicator, and track
 ## Movie live view / 视频取景画面
 
 ![Hardware-verified portrait movie display with upright WIDE, audio meters, and OK hint / 已实机验证的视频竖拍画面，WIDE、音频电平和 OK 提示均已转正](images/z7ii-portrait-video.jpg)
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.44
+
+- 调整 ISO 或曝光补偿时，后屏保留竖拍取景布局。
+- Keeps the portrait live-view layout active while adjusting ISO or exposure compensation.
+
+### v0.1.0-preview.42
+
+- 视频画面忙时暂缓更新电平条布局，收紧竖拍电量文字的重定位范围。
+- Defers audio-meter layout updates while movie live view is busy and tightens battery-text positioning in portrait orientation.
+- 合并模块在完成初始化后再启用竖拍绘制，修正开机阶段的初始化顺序。
+- Enables portrait drawing after module initialization to address a startup ordering issue.
+
+### v0.1.0-preview.36
+
+- 竖拍时，快门速度、光圈、ISO、触控 AF 和 i 按钮的触摸位置跟随画面。曝光快调面板和触控模式提示随取景转正。倒置拍摄时，后屏取景信息、快调和 i 菜单采用 180° 布局。
+- In portrait live view, the shutter speed, aperture, ISO, touch AF, and i touch targets follow the display. Exposure adjustment panels and touch-mode prompts rotate with the view. Upside-down shooting rotates rear-screen information, quick adjustments, and the i menu by 180°.
+- 从横拍切到竖拍时先清除旧电量文字，再画 ISO 框和电量。
+- Clears the old battery text before drawing the ISO control and battery display when rotating from landscape to portrait.
+
+### v0.1.0-preview.22
+
+- 竖拍照片 AF-C 下，可在 i 菜单的 AF 区域选项和波轮条中选择主体跟踪。
+- Added Subject tracking to the portrait i-menu AF-area picker and command-dial strip in photo AF-C.
+
+### v0.1.0-preview.21
+
+- 竖拍 i 菜单、波轮条和取景状态栏支持自定义宽区域 AF（C1/C2）。
+- Added Wide-area AF (C1/C2) to the portrait i menu, command-dial strip, and live-view status bar.
+
+### v0.1.0-preview.14
+
+- 视频竖拍时，左侧显示转正的 L/R 电平条与 WIDE 等麦克风指示，跟踪对焦提示栏同步转正。
+- Movie portrait view rotates the L/R audio meters and microphone indicators, including WIDE, along the left edge and rotates the tracking hint strip.
+
+### v0.1.0-preview.6
+
+- 「自动旋转信息显示」随相机语言显示简体中文、繁体中文或英文。
+- Auto rotate info follows the camera language in Simplified Chinese, Traditional Chinese, and English.
+
+### v0.1.0-preview.5
+
+- 首次发布后屏竖拍界面，支持拍摄信息、4×3 i 菜单、支持的设置页和实时直方图转正。
+- Added portrait rotation for rear-screen shooting information, the 4×3 i menu, supported settings panels, and the live histogram.

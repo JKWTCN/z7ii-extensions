@@ -81,14 +81,6 @@ FileZilla Server 收到 `STOR` 并回复 `226` 表示上传完成。若先看到
 
 实机连续上传 NEF 到 FileZilla Server 的记录。
 
-## 版本更新与实机截图
-
-### v0.1.0-preview.34 版本更新
-
-「选择影像」在同一个六宫格内支持勾选 CFexpress／XQD 和 SD 的影像，并加入同一个发送队列。回放标记、自动发送和文件夹发送也支持两个卡槽。用户已确认双卡组合测试版通过实机验证。
-
-![实机 FTP 六宫格，顶部显示 SD 文件夹，底部是选择、缩放和确认操作 / FTP thumbnail picker on the camera, showing an SD folder and the Select, Zoom, and OK controls](images/z7ii-ftp-dual-card-picker.jpg)
-
 ## English
 
 The SD extension adds **Setup menu → FTP upload** on the Nikon Z 7II C 1.70 with the SD loader installed. It uploads JPEG, NEF, MOV, and MP4 files from the `DCIM` folders on CFexpress/XQD and SD cards. Each file must be smaller than 4 GiB.
@@ -107,3 +99,31 @@ To use the larger TCP send buffer, open **FTP upload → Options → Use 4 MiB b
 In the hardware test, average FTP upload speed rose from about **2.5 MiB/s** to **4.5 MiB/s** with the 4 MiB buffer. The [FileZilla screenshot](images/z7ii-ftp-filezilla-4mib-speed.png) shows one NEF transfer averaging **4.63 MiB/s**. Throughput varies with the Wi-Fi signal, SD card, and server setup.
 
 The extension defers the camera's idle Wi‑Fi disconnect while the FTP menu is open, an upload is active, or auto send is enabled. Wi‑Fi can still be turned off manually. On the server, `STOR` followed by `226` confirms a completed upload. If the session stops after `229`, check the passive data port range and inbound rule.
+
+## 版本更新 / Version history
+
+### v0.1.0-preview.42
+
+- FTP 自动发送与 JPEG 预拍摄、像素变化拍摄共用写卡完成通知，相应照片写卡后可加入上传队列。
+- FTP auto send shares file-completion notifications with JPEG pre-capture and pixel shift shooting, allowing their photos to enter the upload queue after saving.
+
+### v0.1.0-preview.34
+
+- 「选择影像」在同一个六宫格内支持勾选 CFexpress／XQD 和 SD 的影像，并加入同一个发送队列。回放标记、自动发送和文件夹发送也支持两个卡槽。双卡组合测试版已通过实机验证。
+- Added a shared six-thumbnail picker and upload queue for CFexpress/XQD and SD. Playback marking, auto send, and folder uploads work with both slots. The dual-card test build passed on-camera testing.
+
+![实机 FTP 六宫格，顶部显示 SD 文件夹，底部是选择、缩放和确认操作 / FTP thumbnail picker on the camera, showing an SD folder and the Select, Zoom, and OK controls](images/z7ii-ftp-dual-card-picker.jpg)
+
+### v0.1.0-preview.29
+
+- 加入六宫格选图、触屏双击勾选和 4 MiB TCP 发送缓冲。支持从 SD 卡发送 MOV、MP4，单个文件上限提高到小于 4 GiB。
+- Added a six-thumbnail picker, touchscreen double-tap selection, and a 4 MiB TCP send buffer. MOV and MP4 uploads from SD are supported, and files can be just under 4 GiB.
+- 缩略图选择在关闭并重开选图页后保留，可用 X（+）放大。实拍平均上传速度从约 2.5 MiB/s 提升到约 4.5 MiB/s。
+- Thumbnail marks persist when reopening the picker, and X (+) opens zoom. In camera testing, the larger buffer increased average upload speed from about 2.5 MiB/s to 4.5 MiB/s.
+
+### v0.1.0-preview.24
+
+- 首次发布 FTP 上传。支持将 SD 卡上的 JPEG 和 NEF 手动发送或自动入队，也可从播放 i 菜单标记影像。
+- Added manual FTP upload and automatic queuing of JPEG and NEF photos from SD, with an option to mark images from the playback i menu.
+- 支持三个机内 FTP 配置、文件夹发送、同名文件处理、传输状态与取消。JPEG／NEF 的单文件上限为 256 MiB。相机热点和路由器连接都可上传。
+- Added three on-camera FTP profiles, folder uploads, filename conflict handling, transfer status, and cancellation. JPEG and NEF uploads support files up to 256 MiB on both camera hotspots and router connections.
