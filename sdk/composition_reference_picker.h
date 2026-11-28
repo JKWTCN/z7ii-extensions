@@ -17,8 +17,8 @@ static struct {
 } composition_picker_page;
 static u32 composition_picker_callbacks[5];
 static u32 composition_picker_focus,composition_picker_images;
-static _Alignas(64) unsigned char composition_picker_thumbs[Z72_REFERENCE_SLOTS]
-    [REFERENCE_THUMB_STRIDE*REFERENCE_THUMB_H*4];
+typedef unsigned char composition_thumb[REFERENCE_THUMB_STRIDE*REFERENCE_THUMB_H*4];
+static composition_thumb *composition_picker_thumbs;
 
 static struct box composition_picker_tile(u32 index)
 {
@@ -149,7 +149,12 @@ static void composition_picker_load(void)
     composition_picker_focus=(z72_config_current.reference>>4)&15u;
     u32 *hint=composition_picker_page.title[REFERENCE_PICKER_FOOTER];
     hint[0]=Z72_TEXT_REFERENCE_UNAVAILABLE;
-    /* The full SD module shares a 4 MiB image/BSS budget with the other features. */
+    /* The renderer keeps stable texture addresses across page redraws. */
+    if (!composition_picker_thumbs) {
+        void *owner=CALL(0x1034fe31u,void *,u32,u32)(Z72_REFERENCE_SLOTS*sizeof(composition_thumb)+63u,0);
+        if (!owner) return;
+        composition_picker_thumbs=(composition_thumb *)(((u32)owner+63u)&~63u);
+    }
     void *raw=CALL(0x1034fe31u,void *,u32,u32)(sizeof(struct composition_file)+63,0);
     if (!raw) return;
     struct composition_file *file=(struct composition_file *)(((u32)raw+63)&~63u);

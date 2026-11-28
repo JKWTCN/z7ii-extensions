@@ -24,6 +24,8 @@
 #define Z72_PHOTO_PLAYBACK 1
 #define Z72_PIXEL_SHIFT 1
 #define Z72_FLEXIBLE_COMBINED 1
+#define Z72_MOVIE_RAW 1
+#include "movie_raw.h"
 #include "z72.h"
 
 static void cloud_init(void);
@@ -62,6 +64,16 @@ static void sound_shutter_event(z72_u32 fn);
 #include "shutter_sound.c"
 #include "pixel_shift/pixel_shift_menu.h"
 
+int z72_raw_save_settings(z72_u32 value)
+{
+    struct z72_config config=z72_config_current;
+    const z72_u32 previous=config.movie_raw;
+    config.movie_raw=value;
+    if (z72_config_save(config)==Z72_CFG_OK) return 1;
+    z72_config_current.movie_raw=previous;
+    return 0;
+}
+
 z72_u32 z72_main(const struct z72_api *api)
 {
     if (!grid_ready(api) || !z72_grid_menu_ready() || !histogram_horizon_ready(api) || !disp_ready() ||
@@ -82,6 +94,7 @@ z72_u32 z72_main(const struct z72_api *api)
     if (ftp_menu_available) ftp_restore_large_option();
     if (gallery_menu_available && z72_config_current.gallery_enabled) gallery_menu_apply(1);
     movie_limit_install();
+    if (rotation_menu.title[0]) z72_raw_video_install(Z72_TEXT_RAW_VIDEO,z72_config_current.movie_raw,movie_limit_ui);
     movie_rot_install();
     photo_rot_install();
     if (pre_capture_menu_available) pre_capture_install();

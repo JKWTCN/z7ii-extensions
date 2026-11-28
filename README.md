@@ -17,6 +17,7 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 | [焦距显示](docs/focal-length.md)                        | 手动变焦镜头的实时焦距（需电子通信），支持独立 DISP 开关                               | 已实机验证 |
 | [电量百分比显示](docs/battery-percent.md)               | 照片及视频 LCD 电池框内透明底百分比，全局开关默认关闭                                  | 已实机验证 |
 | [解除录像时长限制](docs/movie-recording-limit.md)       | 普通视频突破 29:59，已验证 1080/60p 连续录制 38:52                                     | 已实机验证 |
+| [RAW 视频录制](docs/movie-raw.md)                       | 机内录制 RAW12 ZRV，支持普通视频双录、分段和 CinemaDNG 导出                            | 已实机验证 |
 | [视频自动方向](docs/video-rotation.md)                  | 开档时锁定方向，写入 MOV／MP4 视频轨元数据                                             | 已实机验证 |
 | [风味灵活颜色](docs/flexible-color.md)                  | 照片 i 菜单支持 SD 卡 NP3 的 B 插槽、实时预览和开机恢复                                | 已实机验证 |
 | [JPEG 预拍摄](docs/jpeg-pre-capture.md)                 | 四档预拍摄时间，可由半按快门或 AF-ON 启动，全按接续 H+ 连拍                            | 已实机验证 |
@@ -82,7 +83,7 @@ Wi-Fi 设置的[使用限制与风险声明](docs/wifi-settings.md#important-lim
 ```powershell
 New-Item -ItemType Directory -Force artifacts | Out-Null
 python -B tools/wifi_aux.py --ftp
-python -B tools/module.py plugins/combined.c --output artifacts/Z72APP.BIN
+python -B tools/module.py plugins/combined.c plugins/movie_raw/movie_raw.c --output artifacts/Z72APP.BIN
 ```
 
 `host/` 为宿主源码，`sdk/` 为模块接口，`plugins/` 为插件实现。

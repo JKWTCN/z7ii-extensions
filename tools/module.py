@@ -85,26 +85,30 @@ def from_elf(data):
                         symbols={k: v for k, v in symbols.items() if k and not k.startswith('$')})
 
 
-def build(source):
+def build(source, *additional_sources):
     with tempfile.TemporaryDirectory(prefix='z72-native-module-') as folder:
-        obj, elf = Path(folder) / 'module.o', Path(folder) / 'module.elf'
-        subprocess.run(['clang', '--target=arm-none-eabi', '-mcpu=cortex-a9', '-mthumb',
-                        '-mfloat-abi=soft', '-Os', '-fPIC', '-fvisibility=hidden',
-                        '-ffreestanding', '-fno-builtin', '-fno-unwind-tables',
-                        '-fno-asynchronous-unwind-tables', '-fno-stack-protector',
-                        '-Wall', '-Wextra', '-Werror', '-I', ROOT / 'sdk',
-                        '-c', source, '-o', obj], check=True)
+        objects=[]
+        elf=Path(folder) / 'module.elf'
+        for index, unit in enumerate((source, *additional_sources)):
+            obj=Path(folder) / f'module-{index}.o'
+            subprocess.run(['clang', '--target=arm-none-eabi', '-mcpu=cortex-a9', '-mthumb',
+                            '-mfloat-abi=soft', '-Os', '-fPIC', '-fvisibility=hidden',
+                            '-ffreestanding', '-fno-builtin', '-fno-unwind-tables',
+                            '-fno-asynchronous-unwind-tables', '-fno-stack-protector',
+                            '-Wall', '-Wextra', '-Werror', '-I', ROOT / 'sdk',
+                            '-c', unit, '-o', obj], check=True)
+            objects.append(obj)
         subprocess.run(['ld.lld.exe' if os.name == 'nt' else 'ld.lld', '-T', ROOT / 'sdk/module.ld', '--emit-relocs',
-                        '--no-undefined', obj, '-o', elf], check=True)
+                        '--no-undefined', *objects, '-o', elf], check=True)
         return from_elf(elf.read_bytes())
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('source', type=Path)
+    parser.add_argument('sources', nargs='+', type=Path)
     parser.add_argument('--output', required=True, type=Path)
     args = parser.parse_args()
-    module, report = build(args.source)
+    module, report = build(*args.sources)
     with args.output.open('xb') as handle:
         handle.write(module)
     print(json.dumps(report, indent=2))

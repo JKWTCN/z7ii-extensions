@@ -2,6 +2,9 @@
 #ifndef Z72_MENU_LOCALE_H
 #define Z72_MENU_LOCALE_H
 #include "menu_golden_font.h"
+#ifdef Z72_MOVIE_RAW
+#include "movie_raw.h"
+#endif
 #ifdef Z72_FIRMWARE_INFO
 #include "version.h"
 #include "host_version.h"
@@ -188,6 +191,10 @@ enum {
     Z72_TEXT_REFERENCE_PERCENT=Z72_TEXT_REFERENCE_SLOT+Z72_REFERENCE_SLOTS,
     Z72_TEXT_REFERENCE_END=Z72_TEXT_REFERENCE_PERCENT+Z72_REFERENCE_OPACITIES-1,
     Z72_TEXT_REFERENCE_PICK,
+#endif
+#ifdef Z72_MOVIE_RAW
+    Z72_TEXT_RAW_VIDEO,
+    Z72_TEXT_RAW_VIDEO_LAST=Z72_TEXT_RAW_VIDEO+Z72_RAW_LABEL_COUNT-1,
 #endif
 #ifdef Z72_PIXEL_SHIFT
     Z72_TEXT_PIXEL_LIVE,
@@ -500,6 +507,10 @@ static inline int z72_menu_locale_install(void)
             if (id==TEXT_ROTATE_INVERTED) attribute_template=0x178;
 #endif
             const unsigned short *label=translations[label_language][id-Z72_MENU_STOCK_TEXTS];
+#ifdef Z72_MOVIE_RAW
+            if (id>=Z72_TEXT_RAW_VIDEO && id<=Z72_TEXT_RAW_VIDEO_LAST)
+                label=z72_raw_menu_label(translation,id-Z72_TEXT_RAW_VIDEO);
+#endif
 #ifdef Z72_FIRMWARE_INFO
             if (id==Z72_TEXT_FIRMWARE_INFO_HOST) label=host_version;
             if (lang==10 && id==Z72_TEXT_FIRMWARE_INFO) label=u"사용자 펌웨어 버전";

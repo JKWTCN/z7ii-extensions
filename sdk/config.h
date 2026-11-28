@@ -5,6 +5,7 @@
 #include "wifi_regions.h"
 #include "playback_filter_config.h"
 #include "composition_reference_format.h"
+#include "movie_raw.h"
 
 /* C 1.70 synchronous file-object API, on the SD volume only. */
 #define Z72_CFG_FN(a, result, ...) ((result (*)(__VA_ARGS__))(a))
@@ -54,7 +55,7 @@ enum { Z72_SOUND_BURST_FIRST=0, Z72_SOUND_BURST_EVERY, Z72_SOUND_BURST_RESTART, 
 #define Z72_REFERENCE_BUTTON_MASK 7u
 #define Z72_REFERENCE_HOLD (1u<<3)
 #define Z72_REFERENCE_DEFAULT (2u<<8) /* Shortcut off, toggle, first image, 50%. */
-#define Z72_CONFIG_DEFAULTS {Z72_CFG_NO_GRID,1,0,1,31,Z72_DISP_DEFAULTS,{0,0,0,0,0},Z72_WIFI_REGION_BODY,0,0,Z72_SOUND_BURST_EVERY,Z72_SOUND_VOLUME_MAX,0,Z72_WIDE_AF_DEFAULTS,0,Z72_PIXEL_SHIFT_DEFAULT,0,0,Z72_REFERENCE_DEFAULT,0,1,Z72_PIXEL_HALF_STEPS_DEFAULT}
+#define Z72_CONFIG_DEFAULTS {Z72_CFG_NO_GRID,1,0,1,31,Z72_DISP_DEFAULTS,{0,0,0,0,0},Z72_WIFI_REGION_BODY,0,0,Z72_SOUND_BURST_EVERY,Z72_SOUND_VOLUME_MAX,0,Z72_WIDE_AF_DEFAULTS,0,Z72_PIXEL_SHIFT_DEFAULT,0,0,Z72_REFERENCE_DEFAULT,0,1,Z72_PIXEL_HALF_STEPS_DEFAULT,Z72_RAW_CFG_DEFAULT}
 
 enum { Z72_DISP_SHUTTER=1u, Z72_DISP_APERTURE=2u, Z72_DISP_ISO=4u,
        Z72_DISP_SHOOTING=8u, Z72_DISP_RELEASE=16u,
@@ -99,6 +100,7 @@ struct z72_config {
     z72_u32 gallery_enabled;
     z72_u32 rotate_inverted;
     z72_u32 pixel_half_steps; /* X and Y in successive bytes, in actuator command units. */
+    z72_u32 movie_raw; /* Routing, segmentation, timeout, compression and MOV sync. */
 };
 
 /* The freestanding build lowers copies of the settings record to these helpers. */
@@ -126,7 +128,7 @@ static inline struct z72_config z72_config_load(void)
 {
     struct z72_config config=Z72_CONFIG_DEFAULTS;
     z72_u32 file[10],actual=0;
-    _Alignas(64) z72_u32 data[64];
+    _Alignas(64) z72_u32 data[80];
     for(z72_u32 i=0;i<10;++i) ((volatile z72_u32 *)file)[i]=0;
     Z72_CFG_FN(0x104d3c01,void,z72_u32 *,const char *)(file,"B:\\Z72APP.CFG");
     if(Z72_CFG_FN(0x104d3c05,z72_u32,z72_u32 *,z72_u32,z72_u32)(file,0,0)!=Z72_CFG_OK)
@@ -134,7 +136,7 @@ static inline struct z72_config z72_config_load(void)
     z72_u32 size=file[6],result=1;
     if((size==16 || size==24 || size==32 || size==40 || size==80 || size==120 || size==128 ||
         size==136 || size==160 || size==168 || size==184 || size==192 || size==200 || size==208 || size==216 ||
-        size==224 || size==232 || size==240 || size==248) && file[7]==0) {
+        size==224 || size==232 || size==240 || size==248 || size==256) && file[7]==0) {
         /* The native reader needs one byte of capacity beyond EOF. */
         struct { z72_u32 kind; void *buffer; z72_u32 capacity; } request={1,data,size+1};
         Z72_CFG_FN(0x1034fa29,void,void *,z72_u32)(data,sizeof(data));
@@ -157,7 +159,7 @@ static inline struct z72_config z72_config_load(void)
         (size==184 && data[1]==16) || (size==192 && data[1]==17) ||
         (size==200 && data[1]==18) || (size==208 && data[1]==19) ||
         (size==216 && data[1]==20) || (size==224 && data[1]==21) || (size==232 && data[1]==22) ||
-        (size==240 && data[1]==23) || (size==248 && data[1]==24)) &&
+        (size==240 && data[1]==23) || (size==248 && data[1]==24) || (size==256 && data[1]==25)) &&
        (data[2]<=4 || data[2]==Z72_CFG_NO_GRID) &&
        data[4]<=1 && data[5]==~data[4] && data[6]<=2 && data[7]==~data[6] &&
        data[8]<=7 && data[9]==~data[8])
@@ -224,10 +226,11 @@ static inline struct z72_config z72_config_load(void)
                 config.reference=data[54];
             if(size>=232 && data[56]<=1 && data[57]==~data[56]) config.gallery_enabled=data[56];
             if(size>=240 && data[58]<=1 && data[59]==~data[58]) config.rotate_inverted=data[58];
-            if(size==248 && data[61]==~data[60] &&
+            if(size>=248 && data[61]==~data[60] &&
                (data[60]&255u)-Z72_PIXEL_X_MIN<Z72_PIXEL_STEP_CHOICES &&
                (data[60]>>8)-Z72_PIXEL_Y_MIN<Z72_PIXEL_STEP_CHOICES)
                 config.pixel_half_steps=data[60];
+            if(size==256 && data[63]==~data[62] && z72_raw_config_valid(data[62])) config.movie_raw=data[62];
             if(size>=184)
                 for(z72_u32 i=0;i<2;++i) {
                     if(data[43+2*i]!=~data[42+2*i] || !z72_wide_af_valid(data[42+2*i])) continue;
@@ -262,6 +265,7 @@ static inline z72_u32 z72_config_save(struct z72_config config)
        config.wide_af_selected==z72_config_current.wide_af_selected &&
        config.pixel_shift==z72_config_current.pixel_shift &&
        config.pixel_half_steps==z72_config_current.pixel_half_steps &&
+       config.movie_raw==z72_config_current.movie_raw &&
        config.tracking_assist==z72_config_current.tracking_assist &&
        config.ftp_4mib==z72_config_current.ftp_4mib &&
        config.reference==z72_config_current.reference &&
@@ -287,7 +291,8 @@ static inline z72_u32 z72_config_save(struct z72_config config)
         config.sound_volume!=Z72_SOUND_VOLUME_MAX;
     static const z72_u32 wide_defaults[2]=Z72_WIDE_AF_DEFAULTS;
     z72_u32 wide=config.wide_af[0]!=wide_defaults[0] || config.wide_af[1]!=wide_defaults[1];
-    z72_u32 version=config.pixel_half_steps!=Z72_PIXEL_HALF_STEPS_DEFAULT ? 24 :
+    z72_u32 version=config.movie_raw!=Z72_RAW_CFG_DEFAULT ? 25 :
+                    config.pixel_half_steps!=Z72_PIXEL_HALF_STEPS_DEFAULT ? 24 :
                     !config.rotate_inverted ? 23 : config.gallery_enabled ? 22 : config.reference!=Z72_REFERENCE_DEFAULT ? 21 :
                     config.ftp_4mib ? 20 : config.tracking_assist ? 19 :
                     config.pixel_shift!=Z72_PIXEL_SHIFT_DEFAULT ? 18 :
@@ -298,7 +303,7 @@ static inline z72_u32 z72_config_save(struct z72_config config)
                     config.photo_zebra_pattern || config.photo_zebra_threshold!=1 ? 4 :
                     config.auto_rotate && config.grid_style!=Z72_CFG_NO_GRID ? 1 : 2;
     z72_u32 size=version==1 ? 16 : version==2 ? 24 : version==4 ? 40 :
-                 version==24 ? 248 : version==23 ? 240 : version==22 ? 232 : version==21 ? 224 : version==20 ? 216 : version==19 ? 208 : version==18 ? 200 :
+                 version==25 ? 256 : version==24 ? 248 : version==23 ? 240 : version==22 ? 232 : version==21 ? 224 : version==20 ? 216 : version==19 ? 208 : version==18 ? 200 :
                  version==17 ? 192 : version==16 ? 184 : version==15 ? 168 :
                  version==14 ? 160 : version==13 ? 136 :
                  version==12 ? 128 : version==10 ? 120 : 80,actual=0;
@@ -356,6 +361,8 @@ static inline z72_u32 z72_config_save(struct z72_config config)
     data[59]=~data[58];
     data[60]=config.pixel_half_steps;
     data[61]=~data[60];
+    data[62]=config.movie_raw;
+    data[63]=~data[62];
     struct { z72_u32 kind; void *buffer; z72_u32 capacity; } request={1,data,size};
     int opened=Z72_CFG_FN(0x105beb2b,int,const char *,z72_u32)("B:\\Z72APP.CFG",0);
     if(opened<0) return (z72_u32)opened;

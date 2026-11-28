@@ -17,6 +17,7 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 | [Focal length display](docs/focal-length.md)                   | Live focal length for electronically reporting manual-zoom lenses, with an independent DISP switch                                      | Hardware verified  |
 | [Battery percentage display](docs/battery-percent.md)          | Transparent in-frame percentage on the photo and movie LCD, with a global switch that defaults to off                                   | Hardware verified  |
 | [Extended movie recording](docs/movie-recording-limit.md)      | Ordinary movies beyond 29:59; 38:52 continuous recording verified at 1080/60p                                                           | Hardware verified  |
+| [RAW video recording](docs/movie-raw.md#english)               | In-camera RAW12 ZRV, optional MOV recording, file splitting, and CinemaDNG export                                                       | Hardware verified  |
 | [Automatic video orientation](docs/video-rotation.md#english)  | Locks orientation when each MOV or MP4 file opens and writes it to the video track                                                      | Hardware verified  |
 | [Flexible Color](docs/flexible-color.md#english)               | SD-based NP3 B slots in the photo i menu, with live preview and startup restoration                                                     | Hardware verified  |
 | [JPEG pre-capture](docs/jpeg-pre-capture.md)                   | Rolling JPEG buffer with selectable duration and continuous H+ capture through full press                                               | Hardware verified  |
@@ -80,7 +81,7 @@ To build the combined SD module, use Python 3.12 with LLVM’s `clang` and `ld.l
 ```powershell
 New-Item -ItemType Directory -Force artifacts | Out-Null
 python -B tools/wifi_aux.py --ftp
-python -B tools/module.py plugins/combined.c --output artifacts/Z72APP.BIN
+python -B tools/module.py plugins/combined.c plugins/movie_raw/movie_raw.c --output artifacts/Z72APP.BIN
 ```
 
 `host/` contains the loader source, `sdk/` provides module interfaces, and `plugins/` contains plugin implementations.
