@@ -82,6 +82,11 @@ Use `tools/np3_calibrate.py fit` with a local NX Studio installation, the NP3 re
 
 ## 版本更新 / Version history
 
+### v0.1.0-preview.50
+
+- 修复组合模块在视频档开机后对焦时偶发的卡顿和花屏，以及照片档启用 NP3 后切到视频档可能卡死的问题。风味灵活颜色在照片取景就绪后才初始化，B 槽仅在照片档显示，视频档使用原厂优化校准。组合模块已通过 Z 7II 实机验收。
+- Fixed intermittent live-view lag and corruption when focusing after starting in movie mode, and a possible freeze when switching from a photo NP3 preset to movie mode. Flexible Color initializes once photo live view is ready. B slots are available in photo mode, and movie mode uses Nikon Picture Controls. The combined module passed testing on a Z 7II.
+
 ### v0.1.0-preview.47
 
 - 新增按 NP3 内容匹配的独立校准，应用于取景和机内 JPEG。发布包附带 11 份预设的校准数据。把 `Z72NPCAL.BIN` 和 `Z72APP.BIN` 一起放在 SD 卡根目录，原始 NP3 放在 `CUSTOMPC`。

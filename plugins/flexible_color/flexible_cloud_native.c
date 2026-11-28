@@ -12,6 +12,8 @@
 
 #define FN(a, result, ...) ((result (*)(__VA_ARGS__))(a))
 
+static u32 cloud_photo_mode(void);
+static void cloud_start_in_photo_view(void);
 static void cloud_refresh_selection(void);
 static u32 cloud_i_wheel_active(void);
 static void cloud_before_capture(void);
@@ -47,6 +49,7 @@ struct cloud_catalog_storage {
 };
 static struct cloud_catalog_storage *cloud_catalog;
 static u32 cloud_picker_installed;
+static u32 cloud_init_started;
 static unsigned char *cloud_file_data;
 #define CLOUD_NP3_CAPACITY 4096u
 static union z72_np3_calibration_block *cloud_calibration;
@@ -219,6 +222,8 @@ static void cloud_write_resume(u32 index)
 
 static void cloud_save_selection(u32 index)
 {
+    if(!cloud_photo_mode())
+        return;
     u32 bytes=index ? cloud_catalog->profiles[index-1u].file_bytes : 0;
     u32 hash=index ? cloud_catalog->profiles[index-1u].file_hash : 0;
     if(cloud_selection_needs_write || bytes!=cloud_saved_bytes || hash!=cloud_saved_hash)
@@ -368,7 +373,7 @@ static void cloud_scan_profiles(void)
 static u32 cloud_photo_mode(void)
 {
     u32 mode=*(volatile unsigned char *)0xb2018820u;
-    return mode<5u || mode>7u;
+    return !WORD(SHOOTING_MODE) && (mode<5u || mode>7u);
 }
 
 static u32 cloud_requested_profile(void)
@@ -475,8 +480,9 @@ static unsigned short cloud_native_start[2],cloud_native_focus[2];
 
 static u32 cloud_photo_picker(void)
 {
-    return CLOUD_BYTE(CLOUD_PC_STATE+5)==1 && !CLOUD_BYTE(CLOUD_PC_STATE+6) &&
-           CLOUD_BYTE(CLOUD_PC_STATE+7)!=2;
+    /* Photo and movie share the carousel and can report the same page state. */
+    return cloud_photo_mode() && CLOUD_BYTE(CLOUD_PC_STATE+5)==1 &&
+           !CLOUD_BYTE(CLOUD_PC_STATE+6) && CLOUD_BYTE(CLOUD_PC_STATE+7)!=2;
 }
 
 static u32 cloud_view(void)
@@ -553,7 +559,7 @@ static u32 cloud_generate_live_color(const u32 *source,const u32 *output)
     u32 index=__atomic_load_n(&cloud_boot_profile,__ATOMIC_ACQUIRE);
     u32 requests=__atomic_load_n(&cloud_boot_requests,__ATOMIC_RELAXED);
     const unsigned char *flags=(const unsigned char *)source+0x14;
-    if(!index || requests>=2 || flags[0] || (flags[1]!=0 && flags[1]!=3) ||
+    if(!cloud_pipeline_photo() || !index || requests>=2 || flags[0] || (flags[1]!=0 && flags[1]!=3) ||
        (requests && (!__atomic_load_n(&cloud_boot_first_generated,__ATOMIC_ACQUIRE) ||
         __atomic_load_n(&cloud_boot_updates,__ATOMIC_RELAXED)<4u)) ||
        WORD(CLOUD_PC_BASE_VALUE) || WORD(CLOUD_PC_EFFECTIVE_BASE) ||
@@ -577,7 +583,8 @@ static u32 cloud_generate_live_color(const u32 *source,const u32 *output)
 
 static u32 cloud_live_color_action(void *context)
 {
-    return FN((u32)cloud_color_action.code+3u,u32,void *)(context);
+    u32 entry=cloud_pipeline_photo() ? (u32)cloud_color_action.code+3u : Z72_LIVE_COLOR_STOCK;
+    return FN(entry,u32,void *)(context);
 }
 
 static void cloud_live_published(const u32 *root,const struct z72_style_transaction *transaction)
@@ -641,6 +648,8 @@ static u32 cloud_set_preview_descriptor(u32 index,u32 base,u32 stock_id)
 
 static void cloud_preview(u32 index)
 {
+    if(!cloud_photo_mode())
+        return;
     if(index && cloud_prepare_style(index))
         index=0;
     u32 previous=cloud_selected_profile();
@@ -701,7 +710,7 @@ static void cloud_restore_at_startup(void)
 
 static void cloud_ensure_catalog(void)
 {
-    if(!cloud_catalog_pending || !cloud_scan(CLOUD_CANDIDATES,cloud_load_candidate))
+    if(!cloud_catalog_pending || !cloud_photo_mode() || !cloud_scan(CLOUD_CANDIDATES,cloud_load_candidate))
         return;
     cloud_catalog_pending=0;
     u32 index=cloud_catalog_match();
@@ -734,8 +743,8 @@ static void cloud_ensure_catalog(void)
 
 static void cloud_restore_selection(void)
 {
-    if(!cloud_confirmed || cloud_picker_active ||
-       !cloud_photo_mode() || !WORD(CLOUD_LIVE_CONTROLLER+4))
+    if(!__atomic_load_n(&cloud_picker_installed,__ATOMIC_ACQUIRE) ||
+       !cloud_photo_mode() || !cloud_confirmed || cloud_picker_active || !WORD(CLOUD_LIVE_CONTROLLER+4))
         return;
     /* A deliberate stock selection can move the native slot. Recovery after
      * a successful restore is only for a rebuild of the same native slot. */
@@ -783,6 +792,15 @@ static void cloud_restore_selection(void)
 
 static void cloud_before_live_update(void)
 {
+    if(!cloud_pipeline_photo()) {
+        if(__atomic_exchange_n(&cloud_live_ready,0,__ATOMIC_ACQ_REL))
+            cloud_restore_refreshes=0;
+        return;
+    }
+    if(!__atomic_load_n(&cloud_picker_installed,__ATOMIC_ACQUIRE)) {
+        cloud_start_in_photo_view();
+        return;
+    }
     if(cloud_restore_pending==CLOUD_RESTORE_NEW)
         cloud_restore_selection();
 }
@@ -990,6 +1008,8 @@ static u32 cloud_i_apply(u32 root,struct cloud_i_tile *tile,u32 record,u32 index
 
 static void cloud_i_refresh(void)
 {
+    if(!cloud_photo_mode())
+        return;
     u32 app=CLOUD_BYTE(0xb1821b18u),state=CLOUD_BYTE(CLOUD_I_STATE);
     u32 variant=CLOUD_BYTE(CLOUD_I_STATE+1);
     if((app!=3 && app!=4) || WORD(0xb202f728u+app*4)!=CLOUD_I_APP ||
@@ -1023,7 +1043,7 @@ static void cloud_i_wheel_title(u32 position,u32 unused)
         return;
     }
     u32 index=position-cloud_i_wheel_stock+1;
-    if(index>cloud_profile_count)
+    if(!cloud_photo_mode() || index>cloud_profile_count)
         return;
     char label[27];
     cloud_b_label(label,index);
@@ -1051,7 +1071,7 @@ static void cloud_i_wheel_title(u32 position,u32 unused)
 
 static void cloud_i_wheel_save(void)
 {
-    if(cloud_i_wheel_dirty) {
+    if(cloud_i_wheel_dirty && cloud_photo_mode()) {
         cloud_save_selection(cloud_confirmed);
         cloud_i_wheel_dirty=0;
     }
@@ -1092,8 +1112,9 @@ static u32 cloud_i_wheel_step(u32 key,u32 steps)
 
 static u32 cloud_i_input(u32 key)
 {
-    if(cloud_picker_installed && key>=0x41u && key<=0x44u &&
-       cloud_photo_mode() && !WORD(0xb25519b8u) &&
+    if(!cloud_photo_mode())
+        return FN(CLOUD_I_INPUT,u32,u32)(key);
+    if(__atomic_load_n(&cloud_picker_installed,__ATOMIC_ACQUIRE) && key>=0x41u && key<=0x44u &&
        !FN(0x104a96ffu,u32,void)()) {
         if(cloud_i_wheel_active())
             return cloud_i_wheel_step(key,FN(0x10542629u,u32,void)());
@@ -1153,6 +1174,8 @@ static u32 cloud_i_close(void)
 static u32 cloud_i_update(void)
 {
     u32 result=FN(CLOUD_I_UPDATE,u32,void)();
+    if(!cloud_photo_mode())
+        return result;
     if(cloud_i_wheel_dirty && (!cloud_i_wheel_active() ||
        FN(0x1062e59du,u32,void)()-cloud_i_wheel_changed_at>=300u))
         cloud_i_wheel_save();
@@ -1283,6 +1306,8 @@ static void cloud_move(int direction,u32 step)
 
 static void cloud_confirm(void)
 {
+    if(!cloud_photo_picker() || !cloud_browse)
+        return;
     cloud_confirmed=cloud_browse;
     cloud_restore_pending=CLOUD_RESTORE_NEW;
     cloud_save_selection(cloud_confirmed);
@@ -1368,17 +1393,21 @@ static void cloud_picker_event(u32 event)
 
 static void cloud_picker_drag(u32 view,u32 direction,u32 finalized,u32 position);
 
+static void cloud_release_picker_drag(void)
+{
+    if(WORD(CLOUD_PC_DRAG_SLOT)==(u32)cloud_picker_drag)
+        WORD(CLOUD_PC_DRAG_SLOT)=CLOUD_PC_DRAG;
+}
+
 static void cloud_picker_close(void)
 {
-    u32 photo=cloud_photo_picker();
+    u32 photo=cloud_picker_active && cloud_photo_picker();
     u32 had_preview=cloud_browse;
-    if(photo) {
-        if(WORD(CLOUD_PC_DRAG_SLOT)==(u32)cloud_picker_drag)
-            WORD(CLOUD_PC_DRAG_SLOT)=CLOUD_PC_DRAG;
+    cloud_release_picker_drag();
+    if(photo)
         cloud_leave_page(0);
-    }
     FN(CLOUD_PC_CLOSE,void,void)();
-    cloud_picker_active=0;
+    cloud_picker_active=cloud_browse=0;
     if(photo && (cloud_confirmed || had_preview)) {
         cloud_preview(cloud_confirmed);
         if(cloud_confirmed) {
@@ -1392,9 +1421,13 @@ static void cloud_picker_close(void)
 
 static void cloud_picker_arrow(void)
 {
+    if(!cloud_photo_picker()) {
+        FN(CLOUD_PC_ARROW,void,void)();
+        return;
+    }
     u32 touch=0,widget=0;
     FN(0x10623521u,void,u32 *,u32 *)(&touch,&widget);
-    if(cloud_photo_picker() && touch && widget) {
+    if(touch && widget) {
         int direction=WORD(widget)==0x800fu ? -1 : 1;
         if(cloud_browse) {
             if(CLOUD_BYTE(touch+8)!=1)
@@ -1449,14 +1482,20 @@ static void cloud_install_touch(void)
 
 static void cloud_picker_open(void)
 {
-    cloud_picker_active=1;
+    if(!cloud_photo_mode()) {
+        cloud_release_picker_drag();
+        cloud_picker_active=cloud_browse=0;
+        FN(CLOUD_PC_OPEN,void,void)();
+        return;
+    }
     u32 previously_browsing=cloud_browse;
     u32 selected=previously_browsing ? previously_browsing : cloud_requested_profile();
     if(!selected && cloud_restore_pending)
         selected=cloud_confirmed;
     cloud_leave_page(0);
     FN(CLOUD_PC_OPEN,void,void)();
-    if(cloud_photo_picker()) {
+    cloud_picker_active=cloud_photo_picker();
+    if(cloud_picker_active) {
         cloud_ensure_catalog();
         if(selected==CLOUD_BOOT_INDEX)
             selected=cloud_confirmed;
@@ -1478,7 +1517,7 @@ static void cloud_install_picker(void)
             WORD(z72_live_color_slots[i])=(u32)cloud_live_color_action;
     }
     cloud_restore_at_startup();
-    cloud_picker_installed=1;
+    __asm__ volatile("dmb sy" ::: "memory");
     WORD(CLOUD_PC_APP+0xc)=(u32)cloud_picker_open;
     WORD(CLOUD_PC_APP+0x10)=(u32)cloud_picker_close;
     WORD(CLOUD_PC_APP+0x18)=(u32)cloud_picker_event;
@@ -1494,13 +1533,25 @@ static void cloud_install_picker(void)
         if(WORD(CLOUD_I_APP+0x14)==CLOUD_I_INPUT)
             WORD(CLOUD_I_APP+0x14)=(u32)cloud_i_input;
     }
+    __atomic_store_n(&cloud_picker_installed,1,__ATOMIC_RELEASE);
+}
+
+static u32 cloud_photo_live_ready(void)
+{
+    return cloud_photo_mode() && current_page()==LIVE &&
+        (WORD(DISPLAY_OUTPUTS)&7u) && WORD(CLOUD_LIVE_CONTROLLER+4);
 }
 
 static void cloud_init(void)
 {
+    /* The task may first run after the camera changes modes again. */
+    while(!cloud_photo_live_ready())
+        FN(0x103dc539u,void,u32)(50);
+    /* The combined key wrapper may already be installed on the GUI task. */
+    const u32 key=WORD(CLOUD_PC_APP+0x14);
     if(WORD(CLOUD_PC_APP+0xc)!=CLOUD_PC_OPEN ||
        WORD(CLOUD_PC_APP+0x10)!=CLOUD_PC_CLOSE ||
-       WORD(CLOUD_PC_APP+0x14)!=CLOUD_PC_KEY ||
+       (key!=CLOUD_PC_KEY && key!=(u32)picture_key) ||
        WORD(CLOUD_PC_APP+0x18)!=CLOUD_PC_EVENT || cloud_pipeline_prepare())
         return;
     void *owner=cloud_allocate_storage();
@@ -1510,6 +1561,37 @@ static void cloud_init(void)
         FN(0x1034fe7fu,void,void *)(owner);
         return;
     }
+    while(!cloud_photo_live_ready())
+        FN(0x103dc539u,void,u32)(50);
     cloud_pipeline_install();
     cloud_install_picker();
+}
+
+static void cloud_init_task(void *unused)
+{
+    (void)unused;
+    cloud_init();
+    for(;;) FN(0x101045f1u,void,void)();
+}
+
+/* Start the SD scan off the GUI task once native photo live view is active. */
+static void cloud_start_in_photo_view(void)
+{
+    if(__atomic_load_n(&cloud_init_started,__ATOMIC_ACQUIRE) || !cloud_photo_live_ready())
+        return;
+    static u32 task[8],descriptor[7];
+    const u32 *source=FN(0x103d3dffu,const u32 *,u32)(0x10005);
+    u32 address=(u32)source;
+    if((address&3u) || !((address>=0x10020000u && address<=0x12497b78u-sizeof(descriptor)) ||
+        (address>=0xb1800000u && address<=0xb5f00000u-sizeof(descriptor))))
+        return;
+    if(__atomic_exchange_n(&cloud_init_started,1,__ATOMIC_ACQ_REL))
+        return;
+    for(u32 i=0;i<7;++i) descriptor[i]=source[i];
+    descriptor[0]=(descriptor[0]&~255u)|1u;
+    descriptor[2]=16384u;
+    descriptor[6]&=0xffffu;
+    FN(0x103dc46bu,int,void *,void (*)(void *),void *)(task,cloud_init_task,descriptor);
+    if((int)task[0]>0)
+        FN(0x103606dfu,int,void *)(task);
 }

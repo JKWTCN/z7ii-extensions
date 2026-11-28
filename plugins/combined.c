@@ -28,7 +28,6 @@
 #include "movie_raw.h"
 #include "z72.h"
 
-static void cloud_init(void);
 static void cloud_before_live_update(void);
 static void cloud_restore_selection(void);
 static void cloud_combined_picture_key(z72_u32 key);
@@ -82,7 +81,6 @@ z72_u32 z72_main(const struct z72_api *api)
         return 1;
     z72_u32 result=portrait_init(api);
     if (result) return result;
-    cloud_init();
     if (rotation_menu.title[0]) filtered_playback_install();
     grid_install(rotation_menu.title[0] ? Z72_TEXT_GRID_GOLDEN : 0);
     zebra_producer_install();
