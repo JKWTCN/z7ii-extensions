@@ -39,7 +39,7 @@ Nikon Z 7II C 1.70 的 SD 卡原生 C 扩展框架，开机自动加载卡上的
 - 在 JPEG 预拍摄中,启动预拍摄时取景卡顿是因为 z7ii 的 cmos 没有双数据通路,只能使用 H+ 模式进行捕获,导致取景卡顿.
 - 在 JPEG 预拍摄中,可能出现无法显示此文件,这个是由于预拍摄的图片先注册了后写入,此时因为写入性能不够还没有写入,过一会写入了就能看到了.
 - 像素变化拍摄中目前使用的半格位移是 X=11、Y=9, 此半格位移是建立在我在我的相机标定的基础上的.如果你想要使用尼康工坊合成和机内合成,建议根据你自己的相机进行标定.参考 [标定指南](docs/IBIS-calibration.md) ,如果你懒得标定的话,请使用 [parsek-nefx-gui.exe](releases/parsek-nefx-gui.exe) 进行 NEFX 合成,最后使用尼康工坊进行导出 jpeg/tif.
-- 像素变化拍摄固定输出 14 位未压缩 NEF，可用尼康工坊直接合并、打开和导出。[像素变化拍摄](docs/pixel-shift.md) · [下载 Parsek NEFX（Windows x64）](releases/parsek-nefx-gui.exe)
+- 像素变化拍摄固定输出 14 位未压缩 NEF，可用尼康工坊直接合并、打开和导出。[像素变化拍摄](docs/pixel-shift.md) · [实拍数据对比](docs/pixel-shift-measurements.md) · [下载 Parsek NEFX（Windows x64）](releases/parsek-nefx-gui.exe)
 
 **刷机有风险，请谨慎操作。修改版固件和原生模块可能导致死机、数据丢失、硬件损坏，甚至相机无法启动（变砖），可能需要专业维修。** 已有实机验证不代表所有相机和使用场景均安全。
 

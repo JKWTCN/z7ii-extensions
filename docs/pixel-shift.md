@@ -14,7 +14,7 @@
 | ---------------- | ----------------------------------------- | ---- |
 | 像素变化拍摄模式 | 开启（连续）、开启（单组）、关闭          | 关闭 |
 | 拍摄张数         | 4 张、8 张、16 张、32 张                  | 4 张 |
-| 开始拍摄延迟     | 关闭、1 秒、2 秒、3 秒、5 秒、10 秒       | 2 秒 |
+| 开始拍摄延迟     | 关闭、1 秒、2 秒、3 秒、5 秒、10 秒       | 10 秒 |
 | 拍摄间隔         | 0 秒、1 秒、2 秒、3 秒、5 秒、10 秒、关闭 | 0 秒 |
 
 「开启（连续）」下，每次全按快门启动一组。「开启（单组）」仅启动一组，结束后自动关闭。拍摄间隔设为「0 秒」或「关闭」时，等上一张写卡完成并且传感器移到下一位置后立即拍摄。连续模式开关、张数、延迟和间隔保存在 SD 卡的 `Z72APP.CFG` 中，开机时恢复。单组模式每次开机后可重新启用。
@@ -57,7 +57,7 @@ Pixel shift shooting on the Nikon Z 7II C 1.70 moves the sensor between exposure
 | ---------------- | ------------------------------------- | ------- |
 | Pixel shift mode | On (continuous), On (single set), Off | Off     |
 | Number of shots  | 4, 8, 16, 32                          | 4       |
-| Start delay      | Off, 1 s, 2 s, 3 s, 5 s, 10 s         | 2 s     |
+| Start delay      | Off, 1 s, 2 s, 3 s, 5 s, 10 s         | 10 s    |
 | Shot interval    | 0 s, 1 s, 2 s, 3 s, 5 s, 10 s, Off    | 0 s     |
 
 In continuous mode, each full press starts one series. Single-set mode turns itself off when the series ends. With the interval set to **0 s** or **Off**, the next shot starts as soon as the previous file write completes and the sensor settles at its next position. The continuous-mode switch, shot count, delay and interval are restored from `Z72APP.CFG` on the SD card. Single-set mode can be armed again after power-up.
@@ -85,6 +85,49 @@ The Windows GUI and command-line tool accept 4, 8, 16 or 32 full-size, 14-bit FX
 
 1. Open a complete NEF series in NX Studio and select **Pixel shift merge** in the toolbar. With **Generate one image** selected, 4- and 8-shot series produce 8256 × 5504 images, while 16- and 32-shot series produce 16512 × 11008 images.
 2. Choose a destination and start the merge. The resulting NEFX is ready for editing and export. [NX Studio Pixel Shift Merge help](https://www.nikonimglib.com/nxstdo/onlinehelp/en/merge_pixel_shift_pictures_53.html)
+
+## 组前延时实机对照 / Start-delay camera test
+
+同一台 Z 7II 按 **2 秒 → 10 秒 → 2 秒**拍了三组。24 张原片都是 1/8 秒、28 mm、f/2.8、ISO 64、FX/L 14 位 NEF。每组把相同的四个位置拍两轮，位移通过原始 Bayer 绿色平面的多区域配准计算。
+
+Three eight-shot series were recorded on the same Z 7II using **2 s → 10 s → 2 s** start delays. All 24 originals were FX/L 14-bit NEFs at 1/8 s, 28 mm, f/2.8 and ISO 64. Each series captured the same four sensor positions twice. Displacements came from registration across multiple regions of the RAW green planes.
+
+| 延时 / Delay | 第 1、5 张相差 / Frames 1 and 5 | 前四张最大误差 / First four | 后四张最大误差 / Last four |
+| --- | ---: | ---: | ---: |
+| 2 秒，第一次 / 2 s, first run | 0.11–0.14 px | 0.17–0.21 px | 约 / about 0.08 px |
+| **10 秒 / 10 s** | **约 / about 0.03 px** | **0.07–0.11 px** | 0.06–0.08 px |
+| 2 秒，第三次 / 2 s, third run | 约 / about 0.07 px | 0.12–0.13 px | 0.07–0.09 px |
+
+第 1、5 张使用同一个中心目标。最大误差是每个半组以自身首张为参考，三个角点测得的二维位移与理想位置之间的最大距离。10 秒组的两个中心最接近。拍摄顺序中也观察到小幅画面漂移，现有数据无法确定改善来自机身振动衰减还是其他位置变化。
+
+Frames 1 and 5 shared the same center target. Maximum error is the largest distance between the measured and ideal corner shifts, using the first frame of each four-shot set as its reference. The 10-second series had the closest pair of center frames. The images also drifted slightly over the course of the test, leaving the physical cause of the difference unresolved.
+
+![三组测试首张原片的机内预览 / In-camera previews of the first frame from each test series](images/pixel-shift/start-delay-2-10-2.jpg)
+
+从左至右依次为 2 秒（`DSC_9264`）、10 秒（`DSC_9272`）和 2 秒（`DSC_9280`）。From left to right, the frames show 2 s (`DSC_9264`), 10 s (`DSC_9272`), and 2 s (`DSC_9280`).
+
+### 较早的 2 秒和 10 秒样本 / Earlier 2- and 10-second samples
+
+较早的两组 2 秒样本为四合一原片，延时来自拍摄记录。另两组 10 秒样本分别取自早期八张测试的第 5–8 张，每组以所列第一张为参考。向右、向下为正，单位是原图像素。各组的焦距、快门或场景有差异，表中数值可作实拍参考。
+
+The photographer recorded a 2-second delay for the two earlier four-shot sets. The additional 10-second samples use frames 5–8 from each of two earlier eight-shot tests. Shifts are relative to the first listed frame, in original image pixels, with right and down positive. Focal length, shutter speed, or scene varies across these samples.
+
+| 延时 / Delay | 原片 / NEFs | 焦距与快门 / Focal length and shutter | 第 2 张 / Frame 2 | 第 3 张 / Frame 3 | 第 4 张 / Frame 4 | 最大误差 / Max. error |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| 2 s | `DSC_9220–9223` | 68 mm · 1/25 s | (−1.15, −0.06) | (−1.18, +0.90) | (−0.13, +0.91) | 约 / about 0.21 px |
+| 2 s | `DSC_9224–9227` | 75 mm · 1/20 s | (−1.05, −0.03) | (−1.01, +0.93) | (+0.03, +0.93) | 约 / about 0.08 px |
+| 10 s | `DSC_9250–9253` | 28 mm · 1/25 s | (−1.03, +0.01) | (−0.99, +0.98) | (+0.08, +0.99) | 0.08–0.09 px |
+| 10 s | `DSC_9259–9262` | 28 mm · 1/4 s | (−1.08, 0.00) | (−1.08, +1.06) | (+0.01, +1.08) | 0.10–0.12 px |
+
+![较早两组 2 秒测试的首张原片 / First frames from the two earlier 2-second tests](images/pixel-shift/start-delay-earlier-2s.jpg)
+
+左为 `DSC_9220`，右为 `DSC_9224`。`DSC_9220` is on the left and `DSC_9224` is on the right.
+
+![较早两组 10 秒样本的参考帧 / Reference frames from the two earlier 10-second samples](images/pixel-shift/start-delay-earlier-10s.jpg)
+
+左为 `DSC_9250`，右为 `DSC_9259`。`DSC_9250` is on the left and `DSC_9259` is on the right.
+
+后续的四组交替延时、X=11／10、时序实拍和两轮拍摄顺序对照，见[16 张实拍数据](pixel-shift-measurements.md)。[Sixteen-shot measurements](pixel-shift-measurements.md) cover the subsequent delay, X calibration, timing and capture-order comparisons.
 
 ## 机内合成界面 / In-camera merge screens
 
@@ -115,6 +158,13 @@ DSC_8019 至 DSC_8026 合成为 8256 × 5504 的 NEFX。DSC_8019 through DSC_802
 ![8 张合成照片 / Eight-shot merge](images/pixel-shift/nx-8-merged.png)
 
 ## 版本更新 / Version history
+
+### v0.1.0-preview.48
+
+- 像素变化拍摄的默认组前延时从 2 秒改为 10 秒。已保存在 `Z72APP.CFG` 中的延时继续使用原值。
+- The default pixel shift start delay is now 10 seconds. The module continues to use any delay already saved in `Z72APP.CFG`.
+- 16 张模式按 X 分列拍摄，同一列相邻 Y 位置的拍摄间隔更短。NEF 和机内合成使用标准网格帧号。[实拍对照](pixel-shift-measurements.md)
+- Sixteen-shot series now capture by X column, bringing neighboring Y positions closer together in time. NEFs and in-camera merging use the standard grid frame numbers. [Camera measurements](pixel-shift-measurements.md)
 
 ### v0.1.0-preview.46
 

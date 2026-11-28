@@ -10,7 +10,7 @@ enum {
     PIXEL_OFF=0, PIXEL_ONE, PIXEL_REPEAT,
     PIXEL_IDLE=0, PIXEL_RUNNING, PIXEL_STARTING, PIXEL_REVIEW_READY, PIXEL_REVIEW_SHOWING,
     PIXEL_MERGE_STARTING, PIXEL_MERGE_SCANNING, PIXEL_MERGING,
-    PIXEL_MAX_SHOTS=32,
+    PIXEL_MAX_SHOTS=32, PIXEL_COLUMN_ORDER_SHOTS=16,
     PIXEL_REVIEW_EVENT=1,
     PIXEL_REVIEW_PROPERTY=0x0308u,
     PIXEL_REVIEW_DESCRIPTOR=0x118fb584u,
@@ -20,7 +20,7 @@ enum { PIXEL_FILE_DONE=1, PIXEL_FILE_FAILED, PIXEL_IMAGE_CLOSED };
 
 static const unsigned char pixel_delays[]={0,1,2,3,5,10};
 static const unsigned char pixel_gaps[]={0,1,2,3,5,10,0};
-static z72_u32 pixel_mode,pixel_count_index,pixel_delay_index=2,pixel_gap_index;
+static z72_u32 pixel_mode,pixel_count_index,pixel_delay_index=Z72_PIXEL_DELAY_DEFAULT_INDEX,pixel_gap_index;
 static z72_u32 pixel_full_owned,pixel_pressed_at,pixel_count,pixel_delay,pixel_gap;
 static z72_u32 pixel_state,pixel_tasks_started,pixel_review_request;
 static z72_u32 pixel_job,pixel_release_result;
@@ -30,6 +30,15 @@ static z72_u32 pixel_merge_input_lock;
 static void merge_menu_wake(void);
 
 #include "pixel_shift_merge_file.h"
+static unsigned pixel_grid_index(unsigned capture_index,unsigned columns)
+{
+    /* Standard grid indices for each X column, with Y in order 0, 9, 27, 18 at the defaults. */
+    static const unsigned char column_order[PIXEL_COLUMN_ORDER_SHOTS]={
+        0,12,15,3, 4,8,11,7, 1,13,14,2, 5,9,10,6
+    };
+    return columns ? column_order[capture_index] : capture_index;
+}
+
 #include "pixel_shift_merge_gallery.h"
 
 enum {
@@ -324,14 +333,14 @@ static int pixel_capture_series(struct d2_settings *saved)
     struct vr_sample center;
     z72_u32 ids[PIXEL_MAX_SHOTS],count=pixel_count,gap_ms=pixel_gap*1000u,frame_started=0;
     z72_u32 steps=PIXEL_LOAD(pixel_half_steps);
-    unsigned i=0;
+    unsigned columns=count==PIXEL_COLUMN_ORDER_SHOTS,i=0;
     int position_issued=0;
     for (;i<count;++i) {
         while (i && pixel_tick()-frame_started<gap_ms && !pixel_cancelled()) pixel_sleep(50);
         if (pixel_cancelled()) break;
         if (i && !pixel_wait_between_frames(saved)) break;
         z72_u32 x,y;
-        pixel_target(i,steps,&x,&y);
+        pixel_target(pixel_grid_index(i,columns),steps,&x,&y);
         payload[1]=(unsigned char)x;
         payload[3]=(unsigned char)y;
         z72_u32 result=send_position(&command,saved);
@@ -358,7 +367,7 @@ static int pixel_capture_series(struct d2_settings *saved)
 
     z72_u32 group=(ids[0]&0x3fffffe0u)|2u;
     for (i=0;i<count;++i)
-        if (nx_tag_file(ids[i],group,i+1,count)) return 0;
+        if (nx_tag_file(ids[i],group,pixel_grid_index(i,columns)+1u,count)) return 0;
     return 1;
 }
 

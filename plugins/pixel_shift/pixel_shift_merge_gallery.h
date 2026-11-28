@@ -87,20 +87,24 @@ static int merge_gallery_member(z72_u32 *file,struct merge_group_member *member)
 /* Tagged series are written consecutively. Only publish groups with every
  * sequence index and the original group identifier on the same card. */
 static int merge_gallery_accept(struct merge_group *group,z72_u32 *key,unsigned *expected,
-                                z72_u32 id,const struct merge_group_member *member)
+                                unsigned *columns,z72_u32 id,const struct merge_group_member *member)
 {
     if (!*expected || member->group!=*key || member->count!=group->count ||
-        member->frame!=*expected || dcim_id_card(id)!=dcim_id_card(group->ids[group->count-1])) {
+        member->frame!=pixel_grid_index(*expected-1u,*columns)+1u ||
+        dcim_id_card(id)!=dcim_id_card(group->ids[pixel_grid_index(group->count-1u,*columns)])) {
         *expected=0;
-        if (member->frame!=member->count) return 0;
+        /* The newest file is frame 7 for column order and the highest frame for sequential series. */
+        *columns=member->count==PIXEL_COLUMN_ORDER_SHOTS &&
+            member->frame==pixel_grid_index(PIXEL_COLUMN_ORDER_SHOTS-1u,1u)+1u;
+        if (member->frame!=member->count && !*columns) return 0;
+        *expected=member->count;
         group->count=member->count;
         group->packed=member->packed;
         *key=member->group;
     }
     group->ids[member->frame-1]=id;
     group->packed&=member->packed;
-    *expected=member->frame-1;
-    return !*expected;
+    return --*expected==0;
 }
 
 static int merge_gallery_thumbnail(z72_u32 *file,unsigned root,unsigned slot)
@@ -140,7 +144,7 @@ static void merge_gallery_label(struct merge_group *group,const char *path)
 
 static void merge_gallery_scan(int (*stop_requested)(void))
 {
-    unsigned count=0,expected=0,checked=0;
+    unsigned count=0,expected=0,checked=0,columns=0;
     z72_u32 key=0;
     struct merge_gallery_cursor cursor=merge_gallery_page->start;
     while (count<MERGE_GALLERY_TILES && !stop_requested()) {
@@ -153,7 +157,7 @@ static void merge_gallery_scan(int (*stop_requested)(void))
         struct merge_group_member member;
         struct merge_group *group=&merge_gallery_groups[count];
         int complete=merge_gallery_member(file,&member) &&
-            merge_gallery_accept(group,&key,&expected,id,&member);
+            merge_gallery_accept(group,&key,&expected,&columns,id,&member);
         if (complete) {
             merge_gallery_label(group,path);
             group->thumbnail=merge_gallery_thumbnail(file,member.root,count);

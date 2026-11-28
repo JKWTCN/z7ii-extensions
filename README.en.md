@@ -39,7 +39,7 @@ Native C extensions loaded automatically from an SD card for the Nikon Z 7II run
 - The Z 7II's CMOS sensor lacks dual data paths, so JPEG pre-capture relies on H+ burst mode. This can make live view stutter when pre-capture starts.
 - During playback, some JPEG pre-capture photos may temporarily show “Cannot display this file.” The camera registers these photos before writing them to the card. The photos become viewable once writing finishes.
 - The default half-pixel offsets of X=11 and Y=9 were calibrated on my camera. For in-camera or NX Studio merging, follow the [calibration guide](docs/IBIS-calibration.md#why-calibrate) to calibrate your own camera. To skip calibration, merge the original NEFs with [Parsek NEFX](releases/parsek-nefx-gui.exe), then export JPEG or TIFF in NX Studio.
-- Pixel shift shooting records uncompressed 14-bit NEFs. NX Studio can merge the series and open or export the result directly. [Pixel shift shooting](docs/pixel-shift.md) · [Download Parsek NEFX for Windows x64](releases/parsek-nefx-gui.exe)
+- Pixel shift shooting records uncompressed 14-bit NEFs. NX Studio can merge the series and open or export the result directly. [Pixel shift shooting](docs/pixel-shift.md) · [Camera measurements](docs/pixel-shift-measurements.md) · [Download Parsek NEFX for Windows x64](releases/parsek-nefx-gui.exe)
 
 **Flash at your own risk. Modified firmware and native modules may cause crashes, data loss, hardware damage, or an unbootable camera (bricking), potentially requiring professional repair.** Successful testing does not guarantee safety on every camera or in every situation.
 
